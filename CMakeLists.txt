@@ -8,7 +8,7 @@
 # ----------------------------------------------------------------------
 
 cmake_minimum_required(VERSION 2.6)
-set(PROJECT_NAME changeme)
+set(PROJECT_NAME swanson)
 project(${PROJECT_NAME})
 enable_testing()
 
@@ -31,26 +31,18 @@ endif(VERSION_RESULT)
 
 find_package(PkgConfig)
 
-pkg_check_modules(GLIB REQUIRED glib-2.0)
-include_directories(${GLIB_INCLUDE_DIRS})
-link_directories(${GLIB_LIBRARY_DIRS})
-
 #-----------------------------------------------------------------------
 # Set some options
 
-# We can't set this by default since we don't have a Universal glib to
-# link to...
-
-#if(APPLE)
-#    set(CMAKE_OSX_ARCHITECTURES "ppc;i386;x86_64"
-#        CACHE STRING "Build architectures for Mac OS X"
-#        FORCE)
-#endif(APPLE)
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "i386;x86_64"
+        CACHE STRING "Build architectures for Mac OS X")
+endif(APPLE)
 
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING
-        "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
-        FORCE)
+    set(CMAKE_BUILD_TYPE Release
+        CACHE STRING
+        "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel.")
 endif(NOT CMAKE_BUILD_TYPE)
 
 if(CMAKE_COMPILER_IS_GNUCC)

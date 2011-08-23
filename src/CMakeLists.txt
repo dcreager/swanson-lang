@@ -12,24 +12,26 @@ include_directories(../include)
 #-----------------------------------------------------------------------
 # Build the library
 
-file(GLOB_RECURSE LIBAPPNAME_SRC libAPPNAME/*.c)
+file(GLOB_RECURSE LIBSWANSON_SRC libswanson/*.c)
 
-add_library(libAPPNAME SHARED ${LIBAPPNAME_SRC})
-set_target_properties(libAPPNAME PROPERTIES
-    COMPILE_DEFINITIONS G_LOG_DOMAIN="APPNAME"
-    OUTPUT_NAME appname
+add_library(libswanson SHARED ${LIBSWANSON_SRC})
+set_target_properties(libswanson PROPERTIES
+    OUTPUT_NAME swanson
     SOVERSION 0.0.0)
-target_link_libraries(libAPPNAME
-    ${GLIB_LIBRARIES})
+target_link_libraries(libswanson
+)
 
-install(TARGETS libAPPNAME
+install(
+    TARGETS
+      libswanson
     RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib)
+    LIBRARY DESTINATION lib
+)
 
 #-----------------------------------------------------------------------
 # Generate the pkg-config file
 
 set(prefix ${CMAKE_INSTALL_PREFIX})
-configure_file(libAPPNAME.pc.in libAPPNAME.pc)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libAPPNAME.pc
+configure_file(libswanson.pc.in libswanson.pc)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libswanson.pc
         DESTINATION lib/pkgconfig)

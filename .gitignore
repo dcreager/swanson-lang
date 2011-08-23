@@ -2,10 +2,10 @@
 /build/
 
 RELEASE-VERSION
-PLEASE_DEFINE_APPNAME.pc
+libswanson.pc
 
-/PLEASE_DEFINE_APPNAME*.tar.gz
-/PLEASE_DEFINE_APPNAME*.tar.bz2
+/swanson*.tar.gz
+/swanson*.tar.bz2
 
 *.[oa]
 *.os
