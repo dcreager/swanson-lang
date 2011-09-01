@@ -12,18 +12,19 @@ include_directories(../include)
 #-----------------------------------------------------------------------
 # Build the library
 
-file(GLOB_RECURSE LIBSWANSON_SRC libswanson/*.c)
+file(GLOB_RECURSE LIBLAGAVULIN_SRC liblagavulin/*.c)
 
-add_library(libswanson SHARED ${LIBSWANSON_SRC})
-set_target_properties(libswanson PROPERTIES
-    OUTPUT_NAME swanson
+add_library(liblagavulin SHARED ${LIBLAGAVULIN_SRC})
+set_target_properties(liblagavulin PROPERTIES
+    OUTPUT_NAME lagavulin
     SOVERSION 0.0.0)
-target_link_libraries(libswanson
+target_link_libraries(liblagavulin
+    ${CORK_LIBRARIES}
 )
 
 install(
     TARGETS
-      libswanson
+      liblagavulin
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
 )
@@ -32,6 +33,6 @@ install(
 # Generate the pkg-config file
 
 set(prefix ${CMAKE_INSTALL_PREFIX})
-configure_file(libswanson.pc.in libswanson.pc)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libswanson.pc
+configure_file(liblagavulin.pc.in liblagavulin.pc)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/liblagavulin.pc
         DESTINATION lib/pkgconfig)

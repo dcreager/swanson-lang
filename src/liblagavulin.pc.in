@@ -1,0 +1,7 @@
+Name: liblagavulin
+Description: A pure-C, embeddable implementation of the Swanson language
+Version: @VERSION@
+URL: http://swanson-lang.org/
+Requires: libcork
+Libs: -L@prefix@/lib -llagavulin
+Cflags: -I@prefix@/include

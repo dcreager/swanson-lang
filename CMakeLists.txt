@@ -31,6 +31,10 @@ endif(VERSION_RESULT)
 
 find_package(PkgConfig)
 
+pkg_check_modules(CORK REQUIRED libcork)
+include_directories(${CORK_INCLUDE_DIRS})
+link_directories(${CORK_LIBRARY_DIRS})
+
 #-----------------------------------------------------------------------
 # Set some options
 
