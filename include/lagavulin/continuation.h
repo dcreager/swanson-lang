@@ -23,39 +23,103 @@
  *
  * <tt>#%include \<lagavulin/continuation.h\></tt>
  *
+ * This module implements a system of blocks and continuations that are
+ * used to implement the Swanson language.  A <em>block</em> represents
+ * a chunk of code that can be executed.  When it finishes, it passes
+ * control to a <em>continuation</em>, passing it the code's final
+ * result.
+ *
+ * Blocks and continuations are both implemented as structs that contain
+ * a function pointer.  These structs are intended to be embedded within
+ * custom types for the different specific implementations of blocks and
+ * continuations.
+ *
  * @{
  */
 
+/*-----------------------------------------------------------------------
+ * Blocks and continuations
+ */
+
+/**
+ * @brief An object that a block passes control to when it finishes.
+ * @since 0.0-dev
+ */
+
 struct lgv_continuation {
-    /** @brief Execute the continuation */
+    /**
+     * @brief Fire the continuation
+     * @param [in] self  The continuation object
+     * @param [in] input  The result of the block
+     * @since 0.0-dev
+     */
     void
     (*result)(struct lgv_continuation *self, void *input);
 };
 
+/**
+ * @brief Call a continuation with the given result value.
+ * @param [in] cont  A continuation object
+ * @param [in] input  The result of the block
+ */
+
 #define lgv_continuation_result(cont, input) \
     ((cont)->result((cont), (input)))
 
+/**
+ * @brief A chunk of code that can be executed.
+ * @since 0.0-dev
+ */
+
 struct lgv_block {
+    /**
+     * @brief Execute the code block.
+     * @param [in] self  The block object
+     * @param [in] dest  The continuation to pass control to when the
+     * block finishes
+     * @since 0.0-dev
+     */
     void
     (*execute)(struct lgv_block *self, struct lgv_continuation *dest);
 };
 
+/**
+ * @brief Execute a code block.
+ * @param [in] block  A block object
+ * @param [in] dest  The continuation to pass control to when the block
+ * finishes
+ * @since 0.0-dev
+ */
 #define lgv_block_execute(block, dest) \
     ((block)->execute((block), (dest)))
 
 
-/* TODO: Figure out how to make this define not show up in the doxygen. */
+/*-----------------------------------------------------------------------
+ * Constants
+ */
 
-#define lgv_block_new_constant(typ_id, typ) \
-    /** @brief Create a block that returns a constant <code>typ</code> value. */ \
-    struct lgv_block * \
-    lgv_block_new_constant_##typ_id(cork_allocator_t *alloc, typ value);
+/**
+ * @brief Create a block that returns a constant <code>bool</code> value.
+ */
+struct lgv_block *
+lgv_block_new_constant_bool(cork_allocator_t *alloc, bool value);
 
-lgv_block_new_constant(bool, bool);
-lgv_block_new_constant(int, int);
-lgv_block_new_constant(long, long);
+/**
+ * @brief Create a block that returns a constant <code>int</code> value.
+ */
+struct lgv_block *
+lgv_block_new_constant_int(cork_allocator_t *alloc, int value);
 
-#undef lgv_block_new_constant
+/**
+ * @brief Create a block that returns a constant <code>long</code> value.
+ */
+struct lgv_block *
+lgv_block_new_constant_long(cork_allocator_t *alloc, long value);
+
+
+/*-----------------------------------------------------------------------
+ * Control structures
+ */
 
 /**
  * @brief Create a block for an <code>if</code> statement.
