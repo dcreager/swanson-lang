@@ -14,18 +14,22 @@
 
 #include <check.h>
 
-#include "lagavulin/continuation.h"
+#include "lagavulin/block.h"
 
 
 /*-----------------------------------------------------------------------
  * Helper functions
  */
 
+#define DESCRIBE_TEST \
+    fprintf(stderr, "--- %s\n", __func__);
+
 #define test_result(block, typ, expected, fmt) \
     do { \
         void  *dest = NULL; \
-        struct lgv_continuation  *result = \
-            lgv_continuation_new_collect(alloc, &dest); \
+        struct lgv_block  *result = \
+            lgv_block_new_collect(alloc, &dest); \
+        lgv_block_set_next(block, result); \
         lgv_block_execute(block, result); \
         typ  actual = *((typ *) dest); \
         fail_unless(actual == expected, \
@@ -41,6 +45,7 @@
 #define test_constant(typ_id, typ, value, name, fmt) \
     START_TEST(test_constant_##typ_id##_##name) \
     { \
+        DESCRIBE_TEST; \
         cork_allocator_t  *alloc = cork_allocator_new_debug(); \
         struct lgv_block  *b0 = lgv_block_new_constant_##typ_id(alloc, value); \
         test_result(b0, typ, value, fmt); \
@@ -66,6 +71,7 @@ test_constant(int, int, INT_MAX, INT_MAX, "%d");
 
 START_TEST(test_if_true)
 {
+    DESCRIBE_TEST;
     cork_allocator_t  *alloc = cork_allocator_new_debug();
     struct lgv_block  *bc = lgv_block_new_constant_bool(alloc, true);
     struct lgv_block  *bt = lgv_block_new_constant_int(alloc, 12);
@@ -78,6 +84,7 @@ END_TEST
 
 START_TEST(test_if_false)
 {
+    DESCRIBE_TEST;
     cork_allocator_t  *alloc = cork_allocator_new_debug();
     struct lgv_block  *bc = lgv_block_new_constant_bool(alloc, false);
     struct lgv_block  *bt = lgv_block_new_constant_int(alloc, 12);
@@ -96,7 +103,7 @@ END_TEST
 Suite *
 test_suite()
 {
-    Suite  *s = suite_create("continuations");
+    Suite  *s = suite_create("blocks");
 
     TCase  *tc_constants = tcase_create("constants");
     tcase_add_test(tc_constants, test_constant_bool_false);

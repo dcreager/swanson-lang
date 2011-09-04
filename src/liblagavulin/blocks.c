@@ -10,13 +10,28 @@
 
 #include <libcork/core.h>
 
-#include "lagavulin/continuation.h"
+#include "lagavulin/block.h"
+
+#if !defined(BLOCK_DEBUG)
+#define BLOCK_DEBUG 0
+#endif
+
+#if BLOCK_DEBUG
+#include <stdio.h>
+#define DEBUG(...) \
+    do { \
+        fprintf(stderr, __VA_ARGS__); \
+        fprintf(stderr, "\n"); \
+    } while (0)
+#else
+#define DEBUG(...) /* no debug messages */
+#endif
 
 /*
- * This file contains all of the continuation definitions.  The file is
- * organized so that all of the "execute" and "result" definitions
- * appear together, in the hopes that this will place them closer
- * together in memory.  (Cache locality ftw)
+ * This file contains all of the block definitions.  The file is
+ * organized so that all of the "execute" definitions appear together,
+ * in the hopes that this will place them closer together in memory.
+ * (Cache locality ftw)
  */
 
 /*-----------------------------------------------------------------------
@@ -27,6 +42,7 @@
     struct lgv_block_constant_##typ_id { \
         struct lgv_block  parent; \
         typ  value; \
+        struct lgv_block  *next; \
     };
 
 constant_struct(bool, bool);
@@ -35,20 +51,20 @@ constant_struct(long, long);
 
 struct lgv_block_if {
     struct lgv_block  parent;
-    struct lgv_continuation  brancher;
+    struct lgv_block  brancher;
     struct lgv_block  *condition;
     struct lgv_block  *true_branch;
     struct lgv_block  *false_branch;
-    struct lgv_continuation  *dest;
 };
 
-struct lgv_continuation_collect {
-    struct lgv_continuation  parent;
+struct lgv_block_collect {
+    struct lgv_block  parent;
     void  **dest;
 };
 
+
 /*-----------------------------------------------------------------------
- * Execute and result functions
+ * Execute functions
  */
 
 /*
@@ -59,12 +75,13 @@ struct lgv_continuation_collect {
 #define constant_execute(typ_id, typ) \
     static void \
     lgv_block_constant_##typ_id(struct lgv_block *vself, \
-                                struct lgv_continuation *dest) \
+                                void *vinput) \
     { \
         struct lgv_block_constant_##typ_id  *self = \
             cork_container_of \
             (vself, struct lgv_block_constant_##typ_id, parent); \
-        return lgv_continuation_result(dest, &self->value); \
+        DEBUG("%p constant_" #typ_id, vself); \
+        return lgv_block_execute(self->next, &self->value); \
     }
 
 constant_execute(bool, bool);
@@ -72,35 +89,67 @@ constant_execute(int, int);
 constant_execute(long, long);
 
 static void
-lgv_block_if(struct lgv_block *vself, struct lgv_continuation *dest)
+lgv_block_if(struct lgv_block *vself, void *vinput)
 {
     struct lgv_block_if  *self =
         cork_container_of(vself, struct lgv_block_if, parent);
-    self->dest = dest;
-    return lgv_block_execute(self->condition, &self->brancher);
+    DEBUG("%p if", vself);
+    return lgv_block_execute(self->condition, NULL);
 }
 
 static void
-lgv_block_if_brancher(struct lgv_continuation *vself, void *vinput)
+lgv_block_if_brancher(struct lgv_block *vself, void *vinput)
 {
     struct lgv_block_if  *self =
         cork_container_of(vself, struct lgv_block_if, brancher);
     bool  *input = vinput;
+    DEBUG("%p if (brancher): %s", vself, *input? "true": "false");
 
     if (*input) {
-        return lgv_block_execute(self->true_branch, self->dest);
+        return lgv_block_execute(self->true_branch, NULL);
     } else {
-        return lgv_block_execute(self->false_branch, self->dest);
+        return lgv_block_execute(self->false_branch, NULL);
     }
 }
 
 static void
-lgv_continuation_collect(struct lgv_continuation *vself, void *vinput)
+lgv_block_collect(struct lgv_block *vself, void *vinput)
 {
-    struct lgv_continuation_collect  *self =
-        cork_container_of(vself, struct lgv_continuation_collect, parent);
+    struct lgv_block_collect  *self =
+        cork_container_of(vself, struct lgv_block_collect, parent);
+    DEBUG("%p collect: %p", vself, vinput);
     *self->dest = vinput;
 }
+
+
+/*-----------------------------------------------------------------------
+ * set_next methods
+ */
+
+#define constant_set_next(typ_id, typ) \
+    static void \
+    lgv_block_constant_##typ_id##_set_next(struct lgv_block *vself, \
+                                           struct lgv_block *next) \
+    { \
+        struct lgv_block_constant_##typ_id  *self = \
+            cork_container_of \
+            (vself, struct lgv_block_constant_##typ_id, parent); \
+        self->next = next; \
+    }
+
+constant_set_next(bool, bool);
+constant_set_next(int, int);
+constant_set_next(long, long);
+
+static void
+lgv_block_if_set_next(struct lgv_block *vself, struct lgv_block *next)
+{
+    struct lgv_block_if  *self =
+        cork_container_of(vself, struct lgv_block_if, parent);
+    lgv_block_set_next(self->true_branch, next);
+    lgv_block_set_next(self->false_branch, next);
+}
+
 
 /*-----------------------------------------------------------------------
  * Constructors
@@ -118,6 +167,7 @@ lgv_continuation_collect(struct lgv_continuation *vself, void *vinput)
     { \
         make_new(alloc, struct lgv_block_constant_##typ_id); \
         self->parent.execute = lgv_block_constant_##typ_id; \
+        self->parent.set_next = lgv_block_constant_##typ_id##_set_next; \
         self->value = value; \
         return &self->parent; \
     }
@@ -134,19 +184,22 @@ lgv_block_new_if(cork_allocator_t *alloc,
 {
     make_new(alloc, struct lgv_block_if);
     self->parent.execute = lgv_block_if;
-    self->brancher.result = lgv_block_if_brancher;
+    self->parent.set_next = lgv_block_if_set_next;
+    self->brancher.execute = lgv_block_if_brancher;
+    self->brancher.set_next = NULL;
     self->condition = condition;
     self->true_branch = true_branch;
     self->false_branch = false_branch;
-    self->dest = NULL;
+    lgv_block_set_next(self->condition, &self->brancher);
     return &self->parent;
 }
 
-struct lgv_continuation *
-lgv_continuation_new_collect(cork_allocator_t *alloc, void **dest)
+struct lgv_block *
+lgv_block_new_collect(cork_allocator_t *alloc, void **dest)
 {
-    make_new(alloc, struct lgv_continuation_collect);
-    self->parent.result = lgv_continuation_collect;
+    make_new(alloc, struct lgv_block_collect);
+    self->parent.execute = lgv_block_collect;
+    self->parent.set_next = NULL;
     self->dest = dest;
     return &self->parent;
 }
