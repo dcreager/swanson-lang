@@ -24,17 +24,25 @@
 #define DESCRIBE_TEST \
     fprintf(stderr, "--- %s\n", __func__);
 
-#define test_result(block, typ, expected, fmt) \
+#define test_stmt(block, typ, expected, fmt) \
     do { \
         void  *dest = NULL; \
-        struct lgv_block  *result = \
-            lgv_block_new_collect(alloc, &dest); \
-        lgv_block_set_next(block, result); \
-        lgv_block_execute(block, result); \
+        struct lgv_state  state; \
+        lgv_state_init(&state); \
+        state.ret = lgv_block_new_collect(alloc, &dest); \
+        lgv_block_execute(block, &state, NULL); \
         typ  actual = *((typ *) dest); \
         fail_unless(actual == expected, \
                     "Unexpected result: got " fmt ", expected " fmt, \
                     actual, expected); \
+        lgv_state_done(&state); \
+    } while (0)
+
+#define test_expr(block, typ, expected, fmt) \
+    do { \
+        struct lgv_block  *b_ret = lgv_block_new_return(alloc); \
+        lgv_block_set_next(block, b_ret); \
+        test_stmt(block, typ, expected, fmt); \
     } while (0)
 
 
@@ -48,7 +56,7 @@
         DESCRIBE_TEST; \
         cork_allocator_t  *alloc = cork_allocator_new_debug(); \
         struct lgv_block  *b0 = lgv_block_new_constant_##typ_id(alloc, value); \
-        test_result(b0, typ, value, fmt); \
+        test_expr(b0, typ, value, fmt); \
         cork_allocator_free(alloc); \
     } \
     END_TEST
@@ -77,7 +85,7 @@ START_TEST(test_if_true)
     struct lgv_block  *bt = lgv_block_new_constant_int(alloc, 12);
     struct lgv_block  *bf = lgv_block_new_constant_int(alloc, 43);
     struct lgv_block  *b0 = lgv_block_new_if(alloc, bc, bt, bf);
-    test_result(b0, int, 12, "%d");
+    test_expr(b0, int, 12, "%d");
     cork_allocator_free(alloc);
 }
 END_TEST
@@ -90,7 +98,7 @@ START_TEST(test_if_false)
     struct lgv_block  *bt = lgv_block_new_constant_int(alloc, 12);
     struct lgv_block  *bf = lgv_block_new_constant_int(alloc, 43);
     struct lgv_block  *b0 = lgv_block_new_if(alloc, bc, bt, bf);
-    test_result(b0, int, 43, "%d");
+    test_expr(b0, int, 43, "%d");
     cork_allocator_free(alloc);
 }
 END_TEST

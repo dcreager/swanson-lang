@@ -35,6 +35,24 @@
  */
 
 /*-----------------------------------------------------------------------
+ * Execution states
+ */
+
+int
+lgv_state_init(struct lgv_state *state)
+{
+    state->ret = NULL;
+    return 0;
+}
+
+void
+lgv_state_done(struct lgv_state *state)
+{
+    state->ret = NULL;
+}
+
+
+/*-----------------------------------------------------------------------
  * Subclass type definitions
  */
 
@@ -73,32 +91,34 @@ struct lgv_block_collect {
  */
 
 #define constant_execute(typ_id, typ) \
-    static void \
+    static int \
     lgv_block_constant_##typ_id(struct lgv_block *vself, \
-                                void *vinput) \
+                                struct lgv_state *state, void *vinput) \
     { \
         struct lgv_block_constant_##typ_id  *self = \
             cork_container_of \
             (vself, struct lgv_block_constant_##typ_id, parent); \
         DEBUG("%p constant_" #typ_id, vself); \
-        return lgv_block_execute(self->next, &self->value); \
+        return lgv_block_execute(self->next, state, &self->value); \
     }
 
 constant_execute(bool, bool);
 constant_execute(int, int);
 constant_execute(long, long);
 
-static void
-lgv_block_if(struct lgv_block *vself, void *vinput)
+static int
+lgv_block_if(struct lgv_block *vself,
+             struct lgv_state *state, void *vinput)
 {
     struct lgv_block_if  *self =
         cork_container_of(vself, struct lgv_block_if, parent);
     DEBUG("%p if", vself);
-    return lgv_block_execute(self->condition, NULL);
+    return lgv_block_execute(self->condition, state, NULL);
 }
 
-static void
-lgv_block_if_brancher(struct lgv_block *vself, void *vinput)
+static int
+lgv_block_if_brancher(struct lgv_block *vself,
+                      struct lgv_state *state, void *vinput)
 {
     struct lgv_block_if  *self =
         cork_container_of(vself, struct lgv_block_if, brancher);
@@ -106,19 +126,29 @@ lgv_block_if_brancher(struct lgv_block *vself, void *vinput)
     DEBUG("%p if (brancher): %s", vself, *input? "true": "false");
 
     if (*input) {
-        return lgv_block_execute(self->true_branch, NULL);
+        return lgv_block_execute(self->true_branch, state, NULL);
     } else {
-        return lgv_block_execute(self->false_branch, NULL);
+        return lgv_block_execute(self->false_branch, state, NULL);
     }
 }
 
-static void
-lgv_block_collect(struct lgv_block *vself, void *vinput)
+static int
+lgv_block_return(struct lgv_block *vself,
+                 struct lgv_state *state, void *vinput)
+{
+    DEBUG("%p return: %p", vself, vinput);
+    return lgv_block_execute(state->ret, state, vinput);
+}
+
+static int
+lgv_block_collect(struct lgv_block *vself,
+                  struct lgv_state *state, void *vinput)
 {
     struct lgv_block_collect  *self =
         cork_container_of(vself, struct lgv_block_collect, parent);
     DEBUG("%p collect: %p", vself, vinput);
     *self->dest = vinput;
+    return 0;
 }
 
 
@@ -148,6 +178,12 @@ lgv_block_if_set_next(struct lgv_block *vself, struct lgv_block *next)
         cork_container_of(vself, struct lgv_block_if, parent);
     lgv_block_set_next(self->true_branch, next);
     lgv_block_set_next(self->false_branch, next);
+}
+
+static void
+lgv_block_return_set_next(struct lgv_block *vself, struct lgv_block *next)
+{
+    /* nothing to do */
 }
 
 
@@ -192,6 +228,15 @@ lgv_block_new_if(cork_allocator_t *alloc,
     self->false_branch = false_branch;
     lgv_block_set_next(self->condition, &self->brancher);
     return &self->parent;
+}
+
+struct lgv_block *
+lgv_block_new_return(cork_allocator_t *alloc)
+{
+    make_new(alloc, struct lgv_block);
+    self->execute = lgv_block_return;
+    self->set_next = lgv_block_return_set_next;
+    return self;
 }
 
 struct lgv_block *

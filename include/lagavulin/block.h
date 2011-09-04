@@ -42,6 +42,10 @@
  * Blocks
  */
 
+/* forward declaration */
+
+struct lgv_state;
+
 /**
  * @brief A chunk of code that can be executed.
  * @since 0.0-dev
@@ -54,8 +58,8 @@ struct lgv_block {
      * @param [in] input  The input value to pass in to the block
      * @since 0.0-dev
      */
-    void
-    (*execute)(struct lgv_block *self, void *input);
+    int
+    (*execute)(struct lgv_block *self, struct lgv_state *state, void *input);
 
     /**
      * @brief Sets the “next” pointer for this block.
@@ -74,8 +78,8 @@ struct lgv_block {
  * finishes
  * @since 0.0-dev
  */
-#define lgv_block_execute(block, input) \
-    ((block)->execute((block), (input)))
+#define lgv_block_execute(block, state, input) \
+    ((block)->execute((block), (state), (input)))
 
 /**
  * @brief Sets the “next” pointer for this block.
@@ -124,12 +128,51 @@ lgv_block_new_if(cork_allocator_t *alloc,
                  struct lgv_block *false_branch);
 
 /**
+ * @brief Create a block for a <code>return</code> statement.
+ */
+struct lgv_block *
+lgv_block_new_return(cork_allocator_t *alloc);
+
+/**
  * @brief Create a block that stores the input pointer into
  * <code>dest</code> whenever it's called.
  */
 struct lgv_block *
 lgv_block_new_collect(cork_allocator_t *alloc, void **dest);
 
+
+/*-----------------------------------------------------------------------
+ * Execution states
+ */
+
+/**
+ * @brief Represents the current state of execution.
+ * @since 0.0-dev
+ */
+
+struct lgv_state {
+    /**
+     * @brief The “return” pointer for the currently executing function.
+     * @since 0.0-dev
+     */
+    struct lgv_block  *ret;
+};
+
+/**
+ * @brief Initialize a new execution state.
+ * @param [in] state  An execution state
+ * @since 0.0-dev
+ */
+int
+lgv_state_init(struct lgv_state *state);
+
+/**
+ * @brief Finalize an execution state.
+ * @param [in] state  An execution state
+ * @since 0.0-dev
+ */
+void
+lgv_state_done(struct lgv_state *state);
 
 /* end of block group */
 /**
