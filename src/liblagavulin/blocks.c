@@ -199,7 +199,7 @@ lgv_block_return_set_next(struct lgv_block *vself, struct lgv_block *next)
 
 #define constant_new(typ_id, typ) \
     struct lgv_block * \
-    lgv_block_new_constant_##typ_id(cork_allocator_t *alloc, typ value) \
+    lgv_block_new_constant_##typ_id(struct cork_alloc *alloc, typ value) \
     { \
         make_new(alloc, struct lgv_block_constant_##typ_id); \
         self->parent.execute = lgv_block_constant_##typ_id; \
@@ -213,7 +213,7 @@ constant_new(int, int);
 constant_new(long, long);
 
 struct lgv_block *
-lgv_block_new_if(cork_allocator_t *alloc,
+lgv_block_new_if(struct cork_alloc *alloc,
                  struct lgv_block *condition,
                  struct lgv_block *true_branch,
                  struct lgv_block *false_branch)
@@ -231,7 +231,7 @@ lgv_block_new_if(cork_allocator_t *alloc,
 }
 
 struct lgv_block *
-lgv_block_new_return(cork_allocator_t *alloc)
+lgv_block_new_return(struct cork_alloc *alloc)
 {
     make_new(alloc, struct lgv_block);
     self->execute = lgv_block_return;
@@ -240,7 +240,7 @@ lgv_block_new_return(cork_allocator_t *alloc)
 }
 
 struct lgv_block *
-lgv_block_new_collect(cork_allocator_t *alloc, void **dest)
+lgv_block_new_collect(struct cork_alloc *alloc, void **dest)
 {
     make_new(alloc, struct lgv_block_collect);
     self->parent.execute = lgv_block_collect;

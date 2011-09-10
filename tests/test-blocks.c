@@ -54,7 +54,7 @@
     START_TEST(test_constant_##typ_id##_##name) \
     { \
         DESCRIBE_TEST; \
-        cork_allocator_t  *alloc = cork_allocator_new_debug(); \
+        struct cork_alloc  *alloc = cork_allocator_new_debug(); \
         struct lgv_block  *b0 = lgv_block_new_constant_##typ_id(alloc, value); \
         test_expr(b0, typ, value, fmt); \
         cork_allocator_free(alloc); \
@@ -80,7 +80,7 @@ test_constant(int, int, INT_MAX, INT_MAX, "%d");
 START_TEST(test_if_true)
 {
     DESCRIBE_TEST;
-    cork_allocator_t  *alloc = cork_allocator_new_debug();
+    struct cork_alloc  *alloc = cork_allocator_new_debug();
     struct lgv_block  *bc = lgv_block_new_constant_bool(alloc, true);
     struct lgv_block  *bt = lgv_block_new_constant_int(alloc, 12);
     struct lgv_block  *bf = lgv_block_new_constant_int(alloc, 43);
@@ -93,7 +93,7 @@ END_TEST
 START_TEST(test_if_false)
 {
     DESCRIBE_TEST;
-    cork_allocator_t  *alloc = cork_allocator_new_debug();
+    struct cork_alloc  *alloc = cork_allocator_new_debug();
     struct lgv_block  *bc = lgv_block_new_constant_bool(alloc, false);
     struct lgv_block  *bt = lgv_block_new_constant_int(alloc, 12);
     struct lgv_block  *bf = lgv_block_new_constant_int(alloc, 43);

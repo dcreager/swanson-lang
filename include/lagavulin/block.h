@@ -99,19 +99,19 @@ struct lgv_block {
  * @brief Create a block that returns a constant <code>bool</code> value.
  */
 struct lgv_block *
-lgv_block_new_constant_bool(cork_allocator_t *alloc, bool value);
+lgv_block_new_constant_bool(struct cork_alloc *alloc, bool value);
 
 /**
  * @brief Create a block that returns a constant <code>int</code> value.
  */
 struct lgv_block *
-lgv_block_new_constant_int(cork_allocator_t *alloc, int value);
+lgv_block_new_constant_int(struct cork_alloc *alloc, int value);
 
 /**
  * @brief Create a block that returns a constant <code>long</code> value.
  */
 struct lgv_block *
-lgv_block_new_constant_long(cork_allocator_t *alloc, long value);
+lgv_block_new_constant_long(struct cork_alloc *alloc, long value);
 
 
 /*-----------------------------------------------------------------------
@@ -122,7 +122,7 @@ lgv_block_new_constant_long(cork_allocator_t *alloc, long value);
  * @brief Create a block for an <code>if</code> statement.
  */
 struct lgv_block *
-lgv_block_new_if(cork_allocator_t *alloc,
+lgv_block_new_if(struct cork_alloc *alloc,
                  struct lgv_block *condition,
                  struct lgv_block *true_branch,
                  struct lgv_block *false_branch);
@@ -131,14 +131,14 @@ lgv_block_new_if(cork_allocator_t *alloc,
  * @brief Create a block for a <code>return</code> statement.
  */
 struct lgv_block *
-lgv_block_new_return(cork_allocator_t *alloc);
+lgv_block_new_return(struct cork_alloc *alloc);
 
 /**
  * @brief Create a block that stores the input pointer into
  * <code>dest</code> whenever it's called.
  */
 struct lgv_block *
-lgv_block_new_collect(cork_allocator_t *alloc, void **dest);
+lgv_block_new_collect(struct cork_alloc *alloc, void **dest);
 
 
 /*-----------------------------------------------------------------------
