@@ -62,13 +62,20 @@ struct lgv_block {
     (*execute)(struct lgv_block *self, struct lgv_state *state, void *input);
 
     /**
+     * @brief A debug name for the block.
+     * @since 0.0-dev
+     */
+    const char  *name;
+
+    /**
      * @brief Sets the “next” pointer for this block.
      * @param [in] self  The block object
      * @param [in] next  The block to pass control to after this block
      * @since 0.0-dev
      */
     void
-    (*set_next)(struct lgv_block *self, struct lgv_block *next);
+    (*set_next)(struct cork_gc *gc,
+                struct lgv_block *self, struct lgv_block *next);
 };
 
 /**
@@ -87,8 +94,8 @@ struct lgv_block {
  * @param [in] next  The block to pass control to after this block
  * @since 0.0-dev
  */
-#define lgv_block_set_next(block, next) \
-    ((block)->set_next((block), (next)))
+#define lgv_block_set_next(gc, block, next) \
+    ((block)->set_next((gc), (block), (next)))
 
 
 /*-----------------------------------------------------------------------
@@ -99,19 +106,19 @@ struct lgv_block {
  * @brief Create a block that returns a constant <code>bool</code> value.
  */
 struct lgv_block *
-lgv_block_new_constant_bool(struct cork_alloc *alloc, bool value);
+lgv_block_new_constant_bool(struct cork_gc *gc, bool value);
 
 /**
  * @brief Create a block that returns a constant <code>int</code> value.
  */
 struct lgv_block *
-lgv_block_new_constant_int(struct cork_alloc *alloc, int value);
+lgv_block_new_constant_int(struct cork_gc *gc, int value);
 
 /**
  * @brief Create a block that returns a constant <code>long</code> value.
  */
 struct lgv_block *
-lgv_block_new_constant_long(struct cork_alloc *alloc, long value);
+lgv_block_new_constant_long(struct cork_gc *gc, long value);
 
 
 /*-----------------------------------------------------------------------
@@ -122,7 +129,7 @@ lgv_block_new_constant_long(struct cork_alloc *alloc, long value);
  * @brief Create a block for an <code>if</code> statement.
  */
 struct lgv_block *
-lgv_block_new_if(struct cork_alloc *alloc,
+lgv_block_new_if(struct cork_gc *gc,
                  struct lgv_block *condition,
                  struct lgv_block *true_branch,
                  struct lgv_block *false_branch);
@@ -131,14 +138,14 @@ lgv_block_new_if(struct cork_alloc *alloc,
  * @brief Create a block for a <code>return</code> statement.
  */
 struct lgv_block *
-lgv_block_new_return(struct cork_alloc *alloc);
+lgv_block_new_return(struct cork_gc *gc);
 
 /**
  * @brief Create a block that stores the input pointer into
  * <code>dest</code> whenever it's called.
  */
 struct lgv_block *
-lgv_block_new_collect(struct cork_alloc *alloc, void **dest);
+lgv_block_new_collect(struct cork_gc *gc, void **dest);
 
 
 /*-----------------------------------------------------------------------
@@ -164,7 +171,7 @@ struct lgv_state {
  * @since 0.0-dev
  */
 int
-lgv_state_init(struct lgv_state *state);
+lgv_state_init(struct cork_gc *gc, struct lgv_state *state);
 
 /**
  * @brief Finalize an execution state.
@@ -172,7 +179,7 @@ lgv_state_init(struct lgv_state *state);
  * @since 0.0-dev
  */
 void
-lgv_state_done(struct lgv_state *state);
+lgv_state_done(struct cork_gc *gc, struct lgv_state *state);
 
 /* end of block group */
 /**

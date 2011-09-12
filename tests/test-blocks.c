@@ -28,20 +28,20 @@
     do { \
         void  *dest = NULL; \
         struct lgv_state  state; \
-        lgv_state_init(&state); \
-        state.ret = lgv_block_new_collect(alloc, &dest); \
+        lgv_state_init(&gc, &state); \
+        state.ret = lgv_block_new_collect(&gc, &dest); \
         lgv_block_execute(block, &state, NULL); \
         typ  actual = *((typ *) dest); \
         fail_unless(actual == expected, \
                     "Unexpected result: got " fmt ", expected " fmt, \
                     actual, expected); \
-        lgv_state_done(&state); \
+        lgv_state_done(&gc, &state); \
     } while (0)
 
 #define test_expr(block, typ, expected, fmt) \
     do { \
-        struct lgv_block  *b_ret = lgv_block_new_return(alloc); \
-        lgv_block_set_next(block, b_ret); \
+        struct lgv_block  *b_ret = lgv_block_new_return(&gc); \
+        lgv_block_set_next(&gc, block, b_ret); \
         test_stmt(block, typ, expected, fmt); \
     } while (0)
 
@@ -55,8 +55,12 @@
     { \
         DESCRIBE_TEST; \
         struct cork_alloc  *alloc = cork_allocator_new_debug(); \
-        struct lgv_block  *b0 = lgv_block_new_constant_##typ_id(alloc, value); \
+        struct cork_gc  gc; \
+        cork_gc_init(&gc, alloc); \
+        struct lgv_block  *b0 = lgv_block_new_constant_##typ_id(&gc, value); \
         test_expr(b0, typ, value, fmt); \
+        cork_gc_decref(&gc, b0); \
+        cork_gc_done(&gc); \
         cork_allocator_free(alloc); \
     } \
     END_TEST
@@ -81,11 +85,17 @@ START_TEST(test_if_true)
 {
     DESCRIBE_TEST;
     struct cork_alloc  *alloc = cork_allocator_new_debug();
-    struct lgv_block  *bc = lgv_block_new_constant_bool(alloc, true);
-    struct lgv_block  *bt = lgv_block_new_constant_int(alloc, 12);
-    struct lgv_block  *bf = lgv_block_new_constant_int(alloc, 43);
-    struct lgv_block  *b0 = lgv_block_new_if(alloc, bc, bt, bf);
+    struct cork_gc  gc;
+    cork_gc_init(&gc, alloc);
+
+    struct lgv_block  *bc = lgv_block_new_constant_bool(&gc, true);
+    struct lgv_block  *bt = lgv_block_new_constant_int(&gc, 12);
+    struct lgv_block  *bf = lgv_block_new_constant_int(&gc, 43);
+    struct lgv_block  *b0 = lgv_block_new_if(&gc, bc, bt, bf);
     test_expr(b0, int, 12, "%d");
+
+    cork_gc_decref(&gc, b0);
+    cork_gc_done(&gc);
     cork_allocator_free(alloc);
 }
 END_TEST
@@ -94,11 +104,17 @@ START_TEST(test_if_false)
 {
     DESCRIBE_TEST;
     struct cork_alloc  *alloc = cork_allocator_new_debug();
-    struct lgv_block  *bc = lgv_block_new_constant_bool(alloc, false);
-    struct lgv_block  *bt = lgv_block_new_constant_int(alloc, 12);
-    struct lgv_block  *bf = lgv_block_new_constant_int(alloc, 43);
-    struct lgv_block  *b0 = lgv_block_new_if(alloc, bc, bt, bf);
+    struct cork_gc  gc;
+    cork_gc_init(&gc, alloc);
+
+    struct lgv_block  *bc = lgv_block_new_constant_bool(&gc, false);
+    struct lgv_block  *bt = lgv_block_new_constant_int(&gc, 12);
+    struct lgv_block  *bf = lgv_block_new_constant_int(&gc, 43);
+    struct lgv_block  *b0 = lgv_block_new_if(&gc, bc, bt, bf);
     test_expr(b0, int, 43, "%d");
+
+    cork_gc_decref(&gc, b0);
+    cork_gc_done(&gc);
     cork_allocator_free(alloc);
 }
 END_TEST
