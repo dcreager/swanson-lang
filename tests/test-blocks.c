@@ -24,25 +24,24 @@
 #define DESCRIBE_TEST \
     fprintf(stderr, "--- %s\n", __func__);
 
-#define test_stmt(block, typ, expected, fmt) \
+#define test_stmt(block, typ, union_branch, expected, fmt) \
     do { \
-        void  *dest = NULL; \
         struct lgv_state  state; \
         lgv_state_init(&gc, &state); \
-        state.ret = lgv_block_new_collect(&gc, &dest); \
-        lgv_block_execute(block, &state, NULL); \
-        typ  actual = *((typ *) dest); \
+        state.ret = lgv_block_new_halt(&gc); \
+        lgv_block_execute(&gc, block, &state); \
+        typ  actual = lgv_stack_get(&state.stack, -1, union_branch); \
         fail_unless(actual == expected, \
                     "Unexpected result: got " fmt ", expected " fmt, \
                     actual, expected); \
         lgv_state_done(&gc, &state); \
     } while (0)
 
-#define test_expr(block, typ, expected, fmt) \
+#define test_expr(block, typ, union_branch, expected, fmt) \
     do { \
         struct lgv_block  *b_ret = lgv_block_new_return(&gc); \
         lgv_block_set_next(&gc, block, b_ret); \
-        test_stmt(block, typ, expected, fmt); \
+        test_stmt(block, typ, union_branch, expected, fmt); \
     } while (0)
 
 
@@ -50,7 +49,7 @@
  * Constants
  */
 
-#define test_constant(typ_id, typ, value, name, fmt) \
+#define test_constant(typ_id, typ, union_branch, value, name, fmt) \
     START_TEST(test_constant_##typ_id##_##name) \
     { \
         DESCRIBE_TEST; \
@@ -58,23 +57,23 @@
         struct cork_gc  gc; \
         cork_gc_init(&gc, alloc); \
         struct lgv_block  *b0 = lgv_block_new_constant_##typ_id(&gc, value); \
-        test_expr(b0, typ, value, fmt); \
+        test_expr(b0, typ, union_branch, value, fmt); \
         cork_gc_decref(&gc, b0); \
         cork_gc_done(&gc); \
         cork_allocator_free(alloc); \
     } \
     END_TEST
 
-test_constant(bool, bool, false, false, "%d");
-test_constant(bool, bool, true, true, "%d");
+test_constant(bool, bool, b, false, false, "%d");
+test_constant(bool, bool, b, true, true, "%d");
 
-test_constant(int, int, 0, 0, "%d");
-test_constant(int, int, 1, 1, "%d");
-test_constant(int, int, -1, _1, "%d");
-test_constant(int, int, 100, 100, "%d");
-test_constant(int, int, -100, _100, "%d");
-test_constant(int, int, INT_MIN, INT_MIN, "%d");
-test_constant(int, int, INT_MAX, INT_MAX, "%d");
+test_constant(int, int, si, 0, 0, "%d");
+test_constant(int, int, si, 1, 1, "%d");
+test_constant(int, int, si, -1, _1, "%d");
+test_constant(int, int, si, 100, 100, "%d");
+test_constant(int, int, si, -100, _100, "%d");
+test_constant(int, int, si, INT_MIN, INT_MIN, "%d");
+test_constant(int, int, si, INT_MAX, INT_MAX, "%d");
 
 
 /*-----------------------------------------------------------------------
@@ -92,7 +91,7 @@ START_TEST(test_if_true)
     struct lgv_block  *bt = lgv_block_new_constant_int(&gc, 12);
     struct lgv_block  *bf = lgv_block_new_constant_int(&gc, 43);
     struct lgv_block  *b0 = lgv_block_new_if(&gc, bc, bt, bf);
-    test_expr(b0, int, 12, "%d");
+    test_expr(b0, int, si, 12, "%d");
 
     cork_gc_decref(&gc, b0);
     cork_gc_done(&gc);
@@ -111,7 +110,7 @@ START_TEST(test_if_false)
     struct lgv_block  *bt = lgv_block_new_constant_int(&gc, 12);
     struct lgv_block  *bf = lgv_block_new_constant_int(&gc, 43);
     struct lgv_block  *b0 = lgv_block_new_if(&gc, bc, bt, bf);
-    test_expr(b0, int, 43, "%d");
+    test_expr(b0, int, si, 43, "%d");
 
     cork_gc_decref(&gc, b0);
     cork_gc_done(&gc);

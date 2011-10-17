@@ -18,6 +18,8 @@
 
 #include <libcork/core.h>
 
+#include <lagavulin/stack.h>
+
 /**
  * @addtogroup block Blocks
  *
@@ -55,11 +57,11 @@ struct lgv_block {
     /**
      * @brief Execute the code block.
      * @param [in] self  The block object
-     * @param [in] input  The input value to pass in to the block
      * @since 0.0-dev
      */
     int
-    (*execute)(struct lgv_block *self, struct lgv_state *state, void *input);
+    (*execute)(struct cork_gc *gc,
+               struct lgv_block *self, struct lgv_state *state);
 
     /**
      * @brief A debug name for the block.
@@ -81,12 +83,10 @@ struct lgv_block {
 /**
  * @brief Execute a code block.
  * @param [in] block  A block object
- * @param [in] input  The input value to pass in to the block
- * finishes
  * @since 0.0-dev
  */
-#define lgv_block_execute(block, state, input) \
-    ((block)->execute((block), (state), (input)))
+#define lgv_block_execute(gc, block, state) \
+    ((block)->execute((gc), (block), (state)))
 
 /**
  * @brief Sets the “next” pointer for this block.
@@ -141,11 +141,10 @@ struct lgv_block *
 lgv_block_new_return(struct cork_gc *gc);
 
 /**
- * @brief Create a block that stores the input pointer into
- * <code>dest</code> whenever it's called.
+ * @brief Create a block that halts execution.
  */
 struct lgv_block *
-lgv_block_new_collect(struct cork_gc *gc, void **dest);
+lgv_block_new_halt(struct cork_gc *gc);
 
 
 /*-----------------------------------------------------------------------
@@ -158,6 +157,12 @@ lgv_block_new_collect(struct cork_gc *gc, void **dest);
  */
 
 struct lgv_state {
+    /**
+     * @brief The stack for the current function.
+     * @since 0.0-dev
+     */
+    struct lgv_stack  stack;
+
     /**
      * @brief The “return” pointer for the currently executing function.
      * @since 0.0-dev
@@ -180,6 +185,7 @@ lgv_state_init(struct cork_gc *gc, struct lgv_state *state);
  */
 void
 lgv_state_done(struct cork_gc *gc, struct lgv_state *state);
+
 
 /* end of block group */
 /**

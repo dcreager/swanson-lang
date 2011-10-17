@@ -11,6 +11,8 @@
 #include <libcork/core.h>
 
 #include "lagavulin/block.h"
+#include "lagavulin/checkers.h"
+#include "lagavulin/stack.h"
 
 #if !defined(BLOCK_DEBUG)
 #define BLOCK_DEBUG 0
@@ -41,6 +43,7 @@
 int
 lgv_state_init(struct cork_gc *gc, struct lgv_state *state)
 {
+    r_check(lgv_stack_init(gc, &state->stack, LGV_STACK_DEFAULT_INITIAL_SIZE));
     state->ret = NULL;
     return 0;
 }
@@ -49,6 +52,7 @@ void
 lgv_state_done(struct cork_gc *gc, struct lgv_state *state)
 {
     cork_gc_decref(gc, state->ret);
+    lgv_stack_done(gc, &state->stack);
     state->ret = NULL;
 }
 
@@ -78,11 +82,6 @@ struct lgv_block_if {
     struct lgv_block  parent;
     struct lgv_block  *condition;
     struct lgv_block  *brancher;
-};
-
-struct lgv_block_collect {
-    struct lgv_block  parent;
-    void  **dest;
 };
 
 
@@ -146,64 +145,64 @@ static struct cork_gc_obj_iface  lgv_block_if_gc = {
  * -fomit-frame-pointer.
  */
 
-#define constant_execute(typ_id, typ) \
+#define constant_execute(typ_id, typ, union_branch) \
     static int \
-    lgv_block_constant_##typ_id(struct lgv_block *vself, \
-                                struct lgv_state *state, void *vinput) \
+    lgv_block_constant_##typ_id(struct cork_gc *gc, struct lgv_block *vself, \
+                                struct lgv_state *state) \
     { \
         struct lgv_block_constant_##typ_id  *self = \
             cork_container_of \
             (vself, struct lgv_block_constant_##typ_id, parent); \
         DEBUG("%p %s", vself, vself->name); \
-        return lgv_block_execute(self->next, state, &self->value); \
+        union lgv_stack_contents  value; \
+        value.union_branch = self->value; \
+        r_check(lgv_stack_push(gc, &state->stack, value)); \
+        return lgv_block_execute(gc, self->next, state); \
     }
 
-constant_execute(bool, bool);
-constant_execute(int, int);
-constant_execute(long, long);
+constant_execute(bool, bool, b);
+constant_execute(int, int, si);
+constant_execute(long, long, sl);
 
 static int
-lgv_block_if(struct lgv_block *vself,
-             struct lgv_state *state, void *vinput)
+lgv_block_if(struct cork_gc *gc, struct lgv_block *vself,
+             struct lgv_state *state)
 {
     struct lgv_block_if  *self =
         cork_container_of(vself, struct lgv_block_if, parent);
     DEBUG("%p %s", vself, vself->name);
-    return lgv_block_execute(self->condition, state, NULL);
+    return lgv_block_execute(gc, self->condition, state);
 }
 
 static int
-lgv_block_brancher(struct lgv_block *vself,
-                   struct lgv_state *state, void *vinput)
+lgv_block_brancher(struct cork_gc *gc, struct lgv_block *vself,
+                   struct lgv_state *state)
 {
     struct lgv_block_brancher  *self =
         cork_container_of(vself, struct lgv_block_brancher, parent);
-    bool  *input = vinput;
-    DEBUG("%p %s: %s", vself, vself->name, *input? "true": "false");
+    bool  input = lgv_stack_get(&state->stack, -1, b);
+    DEBUG("%p %s: %s", vself, vself->name, input? "true": "false");
 
-    if (*input) {
-        return lgv_block_execute(self->true_branch, state, NULL);
+    if (input) {
+        return lgv_block_execute(gc, self->true_branch, state);
     } else {
-        return lgv_block_execute(self->false_branch, state, NULL);
+        return lgv_block_execute(gc, self->false_branch, state);
     }
 }
 
 static int
-lgv_block_return(struct lgv_block *vself,
-                 struct lgv_state *state, void *vinput)
+lgv_block_return(struct cork_gc *gc, struct lgv_block *vself,
+                 struct lgv_state *state)
 {
-    DEBUG("%p %s: %p", vself, vself->name, vinput);
-    return lgv_block_execute(state->ret, state, vinput);
+    DEBUG("%p %s", vself, vself->name);
+    return lgv_block_execute(gc, state->ret, state);
 }
 
 static int
-lgv_block_collect(struct lgv_block *vself,
-                  struct lgv_state *state, void *vinput)
+lgv_block_halt(struct cork_gc *gc, struct lgv_block *vself,
+               struct lgv_state *state)
 {
-    struct lgv_block_collect  *self =
-        cork_container_of(vself, struct lgv_block_collect, parent);
-    DEBUG("%p %s: %p", vself, vself->name, vinput);
-    *self->dest = vinput;
+    DEBUG("%p %s", vself, vself->name);
     return 0;
 }
 
@@ -254,6 +253,17 @@ lgv_block_if_set_next(struct cork_gc *gc,
 static void
 lgv_block_return_set_next(struct cork_gc *gc,
                           struct lgv_block *vself, struct lgv_block *next)
+{
+    /*
+     * We're taking control of the reference, but we don't actually need
+     * it.
+     */
+    cork_gc_decref(gc, next);
+}
+
+static void
+lgv_block_halt_set_next(struct cork_gc *gc,
+                        struct lgv_block *vself, struct lgv_block *next)
 {
     /*
      * We're taking control of the reference, but we don't actually need
@@ -340,12 +350,11 @@ lgv_block_new_return(struct cork_gc *gc)
 }
 
 struct lgv_block *
-lgv_block_new_collect(struct cork_gc *gc, void **dest)
+lgv_block_new_halt(struct cork_gc *gc)
 {
-    make_new(gc, struct lgv_block_collect, lgv_block_leaf);
-    self->parent.name = "collect";
-    self->parent.execute = lgv_block_collect;
-    self->parent.set_next = NULL;
-    self->dest = dest;
-    return &self->parent;
+    make_new(gc, struct lgv_block, lgv_block_leaf);
+    self->name = "halt";
+    self->execute = lgv_block_halt;
+    self->set_next = lgv_block_halt_set_next;
+    return self;
 }
