@@ -18,6 +18,8 @@
 
 #include <libcork/core.h>
 
+#include <lagavulin/checkers.h>
+
 /**
  * @addtogroup stack Stacks
  *
@@ -73,12 +75,12 @@ struct lgv_stack_entry {
  * @since 0.0-dev
  */
 struct lgv_stack {
+    /** @brief A pointer to the top-most element of the stack. */
+    struct lgv_stack_entry  *top;
     /** @brief A resizable array of the entries in this stack. */
     struct lgv_stack_entry  *entries;
-    /** @brief The number of entries in the stack that are in use. */
-    size_t  size;
     /** @brief The number of allocated entries in the stack. */
-    size_t  allocated_size;
+    size_t  allocated_count;
 };
 
 /**
@@ -100,7 +102,7 @@ struct lgv_stack {
  * @since 0.0-dev
  */
 int
-lgv_stack_init(struct cork_gc *gc, struct lgv_stack *stack, size_t initial_size);
+lgv_stack_init(struct cork_gc *gc, struct lgv_stack *stack, size_t initial_count);
 
 /**
  * @brief Finalize a stack object.
@@ -111,13 +113,33 @@ void
 lgv_stack_done(struct cork_gc *gc, struct lgv_stack *stack);
 
 /**
- * @brief Push a new element onto the stack.
+ * @brief Return the number of used entries in the stack.
+ * @public @memberof lgv_stack
+ * @since 0.0-dev
+ */
+#define lgv_stack_count(stack) \
+    ((size_t) ((stack)->top - (stack)->entries + 1))
+
+/**
+ * @brief Make sure that a stack is at least the given size.
  * @public @memberof lgv_stack
  * @since 0.0-dev
  */
 int
-lgv_stack_push(struct cork_gc *gc, struct lgv_stack *stack,
-               union lgv_stack_contents value);
+lgv_stack_ensure_size(struct cork_gc *gc, struct lgv_stack *self, size_t count);
+
+
+/**
+ * @brief Push a new element onto the stack.
+ * @public @memberof lgv_stack
+ * @since 0.0-dev
+ */
+
+#define lgv_stack_push(gc, stack, union_branch, value) \
+    do { \
+        (stack)->top++; \
+        (stack)->top->contents.union_branch = (value); \
+    } while (0)
 
 /**
  * @brief Pop an element off of the stack.
@@ -134,7 +156,7 @@ lgv_stack_pop(struct cork_gc *gc, struct lgv_stack *stack, size_t count);
  */
 #define lgv_stack_get(stack, index, union_branch) \
     ((index) >= 0? (stack)->entries[(index)].contents.union_branch: \
-     (stack)->entries[(stack)->size + (index)].contents.union_branch)
+     (stack)->top[1 + (index)].contents.union_branch)
 
 
 #endif  /* LAGAVULIN_STACK_H */

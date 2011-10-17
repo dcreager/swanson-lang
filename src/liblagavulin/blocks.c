@@ -154,9 +154,7 @@ static struct cork_gc_obj_iface  lgv_block_if_gc = {
             cork_container_of \
             (vself, struct lgv_block_constant_##typ_id, parent); \
         DEBUG("%p %s", vself, vself->name); \
-        union lgv_stack_contents  value; \
-        value.union_branch = self->value; \
-        r_check(lgv_stack_push(gc, &state->stack, value)); \
+        lgv_stack_push(gc, &state->stack, union_branch, self->value); \
         return lgv_block_execute(gc, self->next, state); \
     }
 
