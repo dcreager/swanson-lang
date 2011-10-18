@@ -126,7 +126,13 @@ lgv_block_new_constant_long(struct cork_gc *gc, long value);
  */
 
 struct lgv_block *
+lgv_block_new_dup(struct cork_gc *gc);
+
+struct lgv_block *
 lgv_block_new_add_int(struct cork_gc *gc);
+
+struct lgv_block *
+lgv_block_new_lt_int(struct cork_gc *gc);
 
 
 /*-----------------------------------------------------------------------
@@ -154,6 +160,14 @@ lgv_block_new_return(struct cork_gc *gc);
 struct lgv_block *
 lgv_block_new_seq(struct cork_gc *gc,
                   struct lgv_block *b1, struct lgv_block *b2);
+
+/**
+ * @brief Create a block for a <code>while</code> statement.
+ */
+struct lgv_block *
+lgv_block_new_while(struct cork_gc *gc,
+                    struct lgv_block *condition,
+                    struct lgv_block *body);
 
 /**
  * @brief Create a block that halts execution.

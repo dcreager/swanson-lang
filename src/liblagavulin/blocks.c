@@ -89,7 +89,7 @@ struct lgv_block_brancher {
 struct lgv_block_if {
     struct lgv_block  parent;
     struct lgv_block  *condition;
-    struct lgv_block  *brancher;
+    struct lgv_block_brancher  *brancher;
 };
 
 struct lgv_block_seq {
@@ -97,6 +97,12 @@ struct lgv_block_seq {
     /* We hold a reference to head, but not to tail */
     struct lgv_block  *head;
     struct lgv_block  *tail;
+};
+
+struct lgv_block_while {
+    struct lgv_block  parent;
+    struct lgv_block  *condition;
+    struct lgv_block_brancher  *brancher;
 };
 
 
@@ -172,6 +178,19 @@ static struct cork_gc_obj_iface  lgv_block_seq_gc = {
 };
 
 
+static void
+lgv_block_while_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+{
+    struct lgv_block_while  *self = vself;
+    recurse(self->condition, ud);
+    recurse(self->brancher, ud);
+}
+
+static struct cork_gc_obj_iface  lgv_block_while_gc = {
+    BLOCK_FREE, lgv_block_while_recurse
+};
+
+
 /*-----------------------------------------------------------------------
  * Execute functions
  */
@@ -199,6 +218,18 @@ constant_execute(int, int, si);
 constant_execute(long, long, sl);
 
 static int
+lgv_block_dup(struct cork_gc *gc, struct lgv_block *vself,
+              struct lgv_state *state)
+{
+    struct lgv_block_simple  *self =
+        cork_container_of(vself, struct lgv_block_simple, parent);
+    DEBUG("%p %s", vself, vself->name);
+    state->stack.top++;
+    state->stack.top[0] = state->stack.top[-1];
+    return lgv_block_execute(gc, self->next, state);
+}
+
+static int
 lgv_block_add_int(struct cork_gc *gc, struct lgv_block *vself,
                   struct lgv_state *state)
 {
@@ -209,6 +240,20 @@ lgv_block_add_int(struct cork_gc *gc, struct lgv_block *vself,
     DEBUG("%p %s: %d %d", vself, vself->name, lhs, rhs);
     lgv_stack_pop(gc, &state->stack, 2);
     lgv_stack_push(gc, &state->stack, si, lhs + rhs);
+    return lgv_block_execute(gc, self->next, state);
+}
+
+static int
+lgv_block_lt_int(struct cork_gc *gc, struct lgv_block *vself,
+                 struct lgv_state *state)
+{
+    struct lgv_block_simple  *self =
+        cork_container_of(vself, struct lgv_block_simple, parent);
+    int  lhs = lgv_stack_get(&state->stack, -2, si);
+    int  rhs = lgv_stack_get(&state->stack, -1, si);
+    DEBUG("%p %s: %d %d", vself, vself->name, lhs, rhs);
+    lgv_stack_pop(gc, &state->stack, 2);
+    lgv_stack_push(gc, &state->stack, b, lhs < rhs);
     return lgv_block_execute(gc, self->next, state);
 }
 
@@ -233,12 +278,23 @@ lgv_block_seq(struct cork_gc *gc, struct lgv_block *vself,
 }
 
 static int
+lgv_block_while(struct cork_gc *gc, struct lgv_block *vself,
+                struct lgv_state *state)
+{
+    struct lgv_block_while  *self =
+        cork_container_of(vself, struct lgv_block_while, parent);
+    DEBUG("%p %s", vself, vself->name);
+    return lgv_block_execute(gc, self->condition, state);
+}
+
+static int
 lgv_block_brancher(struct cork_gc *gc, struct lgv_block *vself,
                    struct lgv_state *state)
 {
     struct lgv_block_brancher  *self =
         cork_container_of(vself, struct lgv_block_brancher, parent);
     bool  input = lgv_stack_get(&state->stack, -1, b);
+    lgv_stack_pop(gc, &state->stack, 1);
     DEBUG("%p %s: %s", vself, vself->name, input? "true": "false");
 
     if (input) {
@@ -280,36 +336,36 @@ lgv_block_simple_set_next(struct cork_gc *gc,
 }
 
 static void
-lgv_block_brancher_set_next(struct cork_gc *gc,
-                            struct lgv_block *vself, struct lgv_block *next)
-{
-    struct lgv_block_brancher  *self =
-        cork_container_of(vself, struct lgv_block_brancher, parent);
-
-    /*
-     * We're assuming control of one reference, which we can pass on to
-     * one of the branches.  The other branch needs a new reference.
-     */
-    lgv_block_set_next(gc, self->true_branch, next);
-    lgv_block_set_next(gc, self->false_branch, cork_gc_incref(gc, next));
-}
-
-static void
 lgv_block_if_set_next(struct cork_gc *gc,
                       struct lgv_block *vself, struct lgv_block *next)
 {
     struct lgv_block_if  *self =
         cork_container_of(vself, struct lgv_block_if, parent);
-    lgv_block_set_next(gc, self->brancher, next);
+
+    /*
+     * We're assuming control of one reference, which we can pass on to
+     * one of the branches.  The other branch needs a new reference.
+     */
+    lgv_block_set_next(gc, self->brancher->true_branch, next);
+    lgv_block_set_next(gc, self->brancher->false_branch, cork_gc_incref(gc, next));
 }
 
 static void
 lgv_block_seq_set_next(struct cork_gc *gc,
-                       struct lgv_block *vself, struct lgv_block *next)
+                         struct lgv_block *vself, struct lgv_block *next)
 {
     struct lgv_block_seq  *self =
         cork_container_of(vself, struct lgv_block_seq, parent);
     lgv_block_set_next(gc, self->tail, next);
+}
+
+static void
+lgv_block_while_set_next(struct cork_gc *gc,
+                         struct lgv_block *vself, struct lgv_block *next)
+{
+    struct lgv_block_while  *self =
+        cork_container_of(vself, struct lgv_block_while, parent);
+    self->brancher->false_branch = next;
 }
 
 static void
@@ -362,6 +418,16 @@ constant_new(int, int);
 constant_new(long, long);
 
 struct lgv_block *
+lgv_block_new_dup(struct cork_gc *gc)
+{
+    make_new(gc, struct lgv_block_simple, lgv_block_simple);
+    self->parent.name = "dup";
+    self->parent.execute = lgv_block_dup;
+    self->parent.set_next = lgv_block_simple_set_next;
+    return &self->parent;
+}
+
+struct lgv_block *
 lgv_block_new_add_int(struct cork_gc *gc)
 {
     make_new(gc, struct lgv_block_simple, lgv_block_simple);
@@ -371,7 +437,17 @@ lgv_block_new_add_int(struct cork_gc *gc)
     return &self->parent;
 }
 
-static struct lgv_block *
+struct lgv_block *
+lgv_block_new_lt_int(struct cork_gc *gc)
+{
+    make_new(gc, struct lgv_block_simple, lgv_block_simple);
+    self->parent.name = "lt-int";
+    self->parent.execute = lgv_block_lt_int;
+    self->parent.set_next = lgv_block_simple_set_next;
+    return &self->parent;
+}
+
+static struct lgv_block_brancher *
 lgv_block_new_brancher(struct cork_gc *gc,
                        const char *name,
                        struct lgv_block *true_branch,
@@ -380,10 +456,10 @@ lgv_block_new_brancher(struct cork_gc *gc,
     make_new(gc, struct lgv_block_brancher, lgv_block_brancher);
     self->parent.name = name;
     self->parent.execute = lgv_block_brancher;
-    self->parent.set_next = lgv_block_brancher_set_next;
+    self->parent.set_next = NULL;
     self->true_branch = true_branch;
     self->false_branch = false_branch;
-    return &self->parent;
+    return self;
 }
 
 struct lgv_block *
@@ -406,7 +482,7 @@ lgv_block_new_if(struct cork_gc *gc,
     self->parent.set_next = lgv_block_if_set_next;
     self->condition = condition;
     cork_gc_incref(gc, self->brancher);
-    lgv_block_set_next(gc, self->condition, self->brancher);
+    lgv_block_set_next(gc, self->condition, &self->brancher->parent);
     return &self->parent;
 }
 
@@ -467,6 +543,31 @@ lgv_block_new_seq(struct cork_gc *gc,
             return &self->parent;
         }
     }
+}
+
+struct lgv_block *
+lgv_block_new_while(struct cork_gc *gc,
+                    struct lgv_block *condition,
+                    struct lgv_block *body)
+{
+    make_new(gc, struct lgv_block_while, lgv_block_while);
+
+    self->brancher =
+        lgv_block_new_brancher(gc, "while-brancher", body, NULL);
+    if (self->brancher == NULL) {
+        cork_gc_decref(gc, self);
+        return NULL;
+    }
+
+    self->parent.name = "while";
+    self->parent.execute = lgv_block_while;
+    self->parent.set_next = lgv_block_while_set_next;
+    self->condition = condition;
+    cork_gc_incref(gc, self->brancher);
+    lgv_block_set_next(gc, self->condition, &self->brancher->parent);
+    cork_gc_incref(gc, self->condition);
+    lgv_block_set_next(gc, body, self->condition);
+    return &self->parent;
 }
 
 struct lgv_block *

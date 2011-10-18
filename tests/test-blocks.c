@@ -15,6 +15,7 @@
 #include <check.h>
 
 #include "lagavulin/block.h"
+#include "lagavulin/stack.h"
 
 
 /*-----------------------------------------------------------------------
@@ -199,6 +200,38 @@ START_TEST(test_seq_03)
 }
 END_TEST
 
+START_TEST(test_while_01)
+{
+    DESCRIBE_TEST;
+    struct cork_alloc  *alloc = cork_allocator_new_debug();
+    struct cork_gc  gc;
+    cork_gc_init(&gc, alloc);
+
+    struct lgv_block  *binit = lgv_block_new_constant_int(&gc, 0);
+
+    struct lgv_block  *bcond_0 = lgv_block_new_dup(&gc);
+    struct lgv_block  *bcond_1 = lgv_block_new_constant_int(&gc, 5);
+    struct lgv_block  *bcond_2 = lgv_block_new_lt_int(&gc);
+    struct lgv_block  *bcond_s0 = lgv_block_new_seq(&gc, bcond_0, bcond_1);
+    struct lgv_block  *bcond_s1 = lgv_block_new_seq(&gc, bcond_s0, bcond_2);
+    struct lgv_block  *bcond = bcond_s1;
+
+    struct lgv_block  *bbody_0 = lgv_block_new_constant_int(&gc, 1);
+    struct lgv_block  *bbody_1 = lgv_block_new_add_int(&gc);
+    struct lgv_block  *bbody_s0 = lgv_block_new_seq(&gc, bbody_0, bbody_1);
+    struct lgv_block  *bbody = bbody_s0;
+
+    struct lgv_block  *bwhile = lgv_block_new_while(&gc, bcond, bbody);
+    struct lgv_block  *b0 = lgv_block_new_seq(&gc, binit, bwhile);
+    test_expr(b0, int, si, 5, "%d");
+
+    cork_gc_decref(&gc, b0);
+    cork_gc_done(&gc);
+    cork_allocator_free(alloc);
+}
+END_TEST
+
+
 /*-----------------------------------------------------------------------
  * Testing harness
  */
@@ -230,6 +263,10 @@ test_suite()
     tcase_add_test(tc_seq, test_seq_02);
     tcase_add_test(tc_seq, test_seq_03);
     suite_add_tcase(s, tc_seq);
+
+    TCase  *tc_while = tcase_create("while");
+    tcase_add_test(tc_while, test_while_01);
+    suite_add_tcase(s, tc_while);
 
     return s;
 }
