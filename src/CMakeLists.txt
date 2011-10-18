@@ -14,6 +14,11 @@ include_directories(../include)
 
 file(GLOB_RECURSE LIBLAGAVULIN_SRC liblagavulin/*.c)
 
+set_property(
+    SOURCE liblagavulin/blocks.c
+    PROPERTY COMPILE_FLAGS -fomit-frame-pointer
+)
+
 add_library(liblagavulin SHARED ${LIBLAGAVULIN_SRC})
 set_target_properties(liblagavulin PROPERTIES
     OUTPUT_NAME lagavulin
