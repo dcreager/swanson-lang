@@ -30,8 +30,9 @@
         struct lgv_state  state; \
         lgv_state_init(&gc, &state); \
         state.ret = lgv_block_new_halt(&gc); \
-        lgv_block_execute(&gc, block, &state); \
-        typ  actual = lgv_stack_get(&state.stack, -1, union_branch); \
+        lgv_block_execute(&gc, block, &state, state.stack.top); \
+        typ  actual = \
+            lgv_stack_get(&state.stack, state.stack.top, -1, union_branch); \
         fail_unless(actual == expected, \
                     "Unexpected result: got " fmt ", expected " fmt, \
                     actual, expected); \

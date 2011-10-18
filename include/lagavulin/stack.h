@@ -135,10 +135,10 @@ lgv_stack_ensure_size(struct cork_gc *gc, struct lgv_stack *self, size_t count);
  * @since 0.0-dev
  */
 
-#define lgv_stack_push(gc, stack, union_branch, value) \
+#define lgv_stack_push(gc, stack, top, union_branch, value) \
     do { \
-        (stack)->top++; \
-        (stack)->top->contents.union_branch = (value); \
+        (top)++; \
+        (top)->contents.union_branch = (value); \
     } while (0)
 
 /**
@@ -146,9 +146,9 @@ lgv_stack_ensure_size(struct cork_gc *gc, struct lgv_stack *self, size_t count);
  * @public @memberof lgv_stack
  * @since 0.0-dev
  */
-#define lgv_stack_pop(gc, stack, count) \
+#define lgv_stack_pop(gc, stack, top, count) \
     do { \
-        (stack)->top -= count; \
+        (top) -= count; \
     } while (0)
 
 /**
@@ -156,9 +156,9 @@ lgv_stack_ensure_size(struct cork_gc *gc, struct lgv_stack *self, size_t count);
  * @public @memberof lgv_stack
  * @since 0.0-dev
  */
-#define lgv_stack_get(stack, index, union_branch) \
+#define lgv_stack_get(stack, top, index, union_branch) \
     ((index) >= 0? (stack)->entries[(index)].contents.union_branch: \
-     (stack)->top[1 + (index)].contents.union_branch)
+     (top)[1 + (index)].contents.union_branch)
 
 
 #endif  /* LAGAVULIN_STACK_H */

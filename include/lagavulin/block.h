@@ -60,8 +60,8 @@ struct lgv_block {
      * @since 0.0-dev
      */
     int
-    (*execute)(struct cork_gc *gc,
-               struct lgv_block *self, struct lgv_state *state);
+    (*execute)(struct cork_gc *gc, struct lgv_block *self,
+               struct lgv_state *state, struct lgv_stack_entry *top);
 
     /**
      * @brief A debug name for the block.
@@ -85,8 +85,8 @@ struct lgv_block {
  * @param [in] block  A block object
  * @since 0.0-dev
  */
-#define lgv_block_execute(gc, block, state) \
-    ((block)->execute((gc), (block), (state)))
+#define lgv_block_execute(gc, block, state, top) \
+    ((block)->execute((gc), (block), (state), (top)))
 
 /**
  * @brief Sets the “next” pointer for this block.

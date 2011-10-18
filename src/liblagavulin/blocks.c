@@ -203,14 +203,14 @@ static struct cork_gc_obj_iface  lgv_block_while_gc = {
 #define constant_execute(typ_id, typ, union_branch) \
     static int \
     lgv_block_constant_##typ_id(struct cork_gc *gc, struct lgv_block *vself, \
-                                struct lgv_state *state) \
+                                struct lgv_state *state, struct lgv_stack_entry *top) \
     { \
         struct lgv_block_constant_##typ_id  *self = \
             cork_container_of \
             (vself, struct lgv_block_constant_##typ_id, parent.parent); \
         DEBUG("%p %s", vself, vself->name); \
-        lgv_stack_push(gc, &state->stack, union_branch, self->value); \
-        return lgv_block_execute(gc, self->parent.next, state); \
+        lgv_stack_push(gc, &state->stack, top, union_branch, self->value); \
+        return lgv_block_execute(gc, self->parent.next, state, top); \
     }
 
 constant_execute(bool, bool, b);
@@ -219,104 +219,105 @@ constant_execute(long, long, sl);
 
 static int
 lgv_block_dup(struct cork_gc *gc, struct lgv_block *vself,
-              struct lgv_state *state)
+              struct lgv_state *state, struct lgv_stack_entry *top)
 {
     struct lgv_block_simple  *self =
         cork_container_of(vself, struct lgv_block_simple, parent);
     DEBUG("%p %s", vself, vself->name);
-    state->stack.top++;
-    state->stack.top[0] = state->stack.top[-1];
-    return lgv_block_execute(gc, self->next, state);
+    top++;
+    top[0] = top[-1];
+    return lgv_block_execute(gc, self->next, state, top);
 }
 
 static int
 lgv_block_add_int(struct cork_gc *gc, struct lgv_block *vself,
-                  struct lgv_state *state)
+                  struct lgv_state *state, struct lgv_stack_entry *top)
 {
     struct lgv_block_simple  *self =
         cork_container_of(vself, struct lgv_block_simple, parent);
-    int  lhs = lgv_stack_get(&state->stack, -2, si);
-    int  rhs = lgv_stack_get(&state->stack, -1, si);
+    int  lhs = lgv_stack_get(&state->stack, top, -2, si);
+    int  rhs = lgv_stack_get(&state->stack, top, -1, si);
     DEBUG("%p %s: %d %d", vself, vself->name, lhs, rhs);
-    lgv_stack_pop(gc, &state->stack, 2);
-    lgv_stack_push(gc, &state->stack, si, lhs + rhs);
-    return lgv_block_execute(gc, self->next, state);
+    lgv_stack_pop(gc, &state->stack, top, 2);
+    lgv_stack_push(gc, &state->stack, top, si, lhs + rhs);
+    return lgv_block_execute(gc, self->next, state, top);
 }
 
 static int
 lgv_block_lt_int(struct cork_gc *gc, struct lgv_block *vself,
-                 struct lgv_state *state)
+                 struct lgv_state *state, struct lgv_stack_entry *top)
 {
     struct lgv_block_simple  *self =
         cork_container_of(vself, struct lgv_block_simple, parent);
-    int  lhs = lgv_stack_get(&state->stack, -2, si);
-    int  rhs = lgv_stack_get(&state->stack, -1, si);
+    int  lhs = lgv_stack_get(&state->stack, top, -2, si);
+    int  rhs = lgv_stack_get(&state->stack, top, -1, si);
     DEBUG("%p %s: %d %d", vself, vself->name, lhs, rhs);
-    lgv_stack_pop(gc, &state->stack, 2);
-    lgv_stack_push(gc, &state->stack, b, lhs < rhs);
-    return lgv_block_execute(gc, self->next, state);
+    lgv_stack_pop(gc, &state->stack, top, 2);
+    lgv_stack_push(gc, &state->stack, top, b, lhs < rhs);
+    return lgv_block_execute(gc, self->next, state, top);
 }
 
 static int
 lgv_block_if(struct cork_gc *gc, struct lgv_block *vself,
-             struct lgv_state *state)
+             struct lgv_state *state, struct lgv_stack_entry *top)
 {
     struct lgv_block_if  *self =
         cork_container_of(vself, struct lgv_block_if, parent);
     DEBUG("%p %s", vself, vself->name);
-    return lgv_block_execute(gc, self->condition, state);
+    return lgv_block_execute(gc, self->condition, state, top);
 }
 
 static int
 lgv_block_seq(struct cork_gc *gc, struct lgv_block *vself,
-              struct lgv_state *state)
+              struct lgv_state *state, struct lgv_stack_entry *top)
 {
     struct lgv_block_seq  *self =
         cork_container_of(vself, struct lgv_block_seq, parent);
     DEBUG("%p %s", vself, vself->name);
-    return lgv_block_execute(gc, self->head, state);
+    return lgv_block_execute(gc, self->head, state, top);
 }
 
 static int
 lgv_block_while(struct cork_gc *gc, struct lgv_block *vself,
-                struct lgv_state *state)
+                struct lgv_state *state, struct lgv_stack_entry *top)
 {
     struct lgv_block_while  *self =
         cork_container_of(vself, struct lgv_block_while, parent);
     DEBUG("%p %s", vself, vself->name);
-    return lgv_block_execute(gc, self->condition, state);
+    return lgv_block_execute(gc, self->condition, state, top);
 }
 
 static int
 lgv_block_brancher(struct cork_gc *gc, struct lgv_block *vself,
-                   struct lgv_state *state)
+                   struct lgv_state *state, struct lgv_stack_entry *top)
 {
     struct lgv_block_brancher  *self =
         cork_container_of(vself, struct lgv_block_brancher, parent);
-    bool  input = lgv_stack_get(&state->stack, -1, b);
-    lgv_stack_pop(gc, &state->stack, 1);
+    bool  input = lgv_stack_get(&state->stack, top, -1, b);
+    lgv_stack_pop(gc, &state->stack, top, 1);
     DEBUG("%p %s: %s", vself, vself->name, input? "true": "false");
 
     if (input) {
-        return lgv_block_execute(gc, self->true_branch, state);
+        return lgv_block_execute(gc, self->true_branch, state, top);
     } else {
-        return lgv_block_execute(gc, self->false_branch, state);
+        return lgv_block_execute(gc, self->false_branch, state, top);
     }
 }
 
 static int
 lgv_block_return(struct cork_gc *gc, struct lgv_block *vself,
-                 struct lgv_state *state)
+                 struct lgv_state *state, struct lgv_stack_entry *top)
 {
     DEBUG("%p %s", vself, vself->name);
-    return lgv_block_execute(gc, state->ret, state);
+    return lgv_block_execute(gc, state->ret, state, top);
 }
 
 static int
 lgv_block_halt(struct cork_gc *gc, struct lgv_block *vself,
-               struct lgv_state *state)
+               struct lgv_state *state, struct lgv_stack_entry *top)
 {
     DEBUG("%p %s", vself, vself->name);
+    state->stack.top = top;
     return 0;
 }
 
