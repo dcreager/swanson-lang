@@ -122,6 +122,14 @@ lgv_block_new_constant_long(struct cork_gc *gc, long value);
 
 
 /*-----------------------------------------------------------------------
+ * Arithmetic
+ */
+
+struct lgv_block *
+lgv_block_new_add_int(struct cork_gc *gc);
+
+
+/*-----------------------------------------------------------------------
  * Control structures
  */
 
@@ -139,6 +147,13 @@ lgv_block_new_if(struct cork_gc *gc,
  */
 struct lgv_block *
 lgv_block_new_return(struct cork_gc *gc);
+
+/**
+ * @brief Create a block for a <code>seq</code> statement.
+ */
+struct lgv_block *
+lgv_block_new_seq(struct cork_gc *gc,
+                  struct lgv_block *b1, struct lgv_block *b2);
 
 /**
  * @brief Create a block that halts execution.

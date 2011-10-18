@@ -146,8 +146,10 @@ lgv_stack_ensure_size(struct cork_gc *gc, struct lgv_stack *self, size_t count);
  * @public @memberof lgv_stack
  * @since 0.0-dev
  */
-int
-lgv_stack_pop(struct cork_gc *gc, struct lgv_stack *stack, size_t count);
+#define lgv_stack_pop(gc, stack, count) \
+    do { \
+        (stack)->top -= count; \
+    } while (0)
 
 /**
  * @brief Get the element at the given index of the stack.

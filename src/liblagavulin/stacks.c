@@ -81,13 +81,3 @@ lgv_stack_ensure_size(struct cork_gc *gc, struct lgv_stack *self, size_t count)
     self->entries = new_entries;
     return 0;
 }
-
-int
-lgv_stack_pop(struct cork_gc *gc, struct lgv_stack *self, size_t count)
-{
-    if (self->top == self->entries - 1) {
-        return -1;
-    }
-    self->top--;
-    return 0;
-}
