@@ -49,6 +49,40 @@
 struct lgv_state;
 
 /**
+ * @brief The interface that each block class must implement.
+ *
+ * @note The @code execute method is not included in this class struct;
+ * instead, it's placed directly into the block's instance struct.  This
+ * lets us access the function pointer for this method with one fewer
+ * instruction.
+ *
+ * @since 0.0-dev
+ */
+
+struct lgv_block_iface {
+    /**
+     * @brief Returns the actual block that starts this block.
+     *
+     * (This is different for many control structures that immediately
+     * pass control to some inner block.)
+     *
+     * @since 0.0-dev
+     */
+    struct lgv_block *
+    (*get_head)(struct lgv_block *self);
+
+    /**
+     * @brief Sets the “next” pointer for this block.
+     * @param [in] self  The block object
+     * @param [in] next  The block to pass control to after this block
+     * @since 0.0-dev
+     */
+    void
+    (*set_next)(struct cork_gc *gc,
+                struct lgv_block *self, struct lgv_block *next);
+};
+
+/**
  * @brief A chunk of code that can be executed.
  * @since 0.0-dev
  */
@@ -70,14 +104,10 @@ struct lgv_block {
     const char  *name;
 
     /**
-     * @brief Sets the “next” pointer for this block.
-     * @param [in] self  The block object
-     * @param [in] next  The block to pass control to after this block
+     * @brief The implementation for this block.
      * @since 0.0-dev
      */
-    void
-    (*set_next)(struct cork_gc *gc,
-                struct lgv_block *self, struct lgv_block *next);
+    const struct lgv_block_iface  *iface;
 };
 
 /**
@@ -89,13 +119,24 @@ struct lgv_block {
     ((block)->execute((gc), (block), (state), (top)))
 
 /**
+ * @brief Returns the actual block that starts this block.
+ *
+ * (This is different for many control structures that immediately pass
+ * control to some inner block.)
+ *
+ * @since 0.0-dev
+ */
+#define lgv_block_get_head(block) \
+    ((block)->iface->get_head((block)))
+
+/**
  * @brief Sets the “next” pointer for this block.
  * @param [in] block  A block object
  * @param [in] next  The block to pass control to after this block
  * @since 0.0-dev
  */
 #define lgv_block_set_next(gc, block, next) \
-    ((block)->set_next((gc), (block), (next)))
+    ((block)->iface->set_next((gc), (block), (next)))
 
 
 /*-----------------------------------------------------------------------
