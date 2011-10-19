@@ -29,3 +29,6 @@ macro(make_test test_name)
 endmacro(make_test)
 
 make_test(test-blocks)
+
+add_executable(simple-speed-test simple-speed-test.c)
+target_link_libraries(simple-speed-test liblagavulin)
