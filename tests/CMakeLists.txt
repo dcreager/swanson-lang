@@ -24,11 +24,14 @@ link_directories(${CHECK_LIBRARY_DIRS})
 
 macro(make_test test_name)
     add_executable(${test_name} ${test_name}.c)
-    target_link_libraries(${test_name} ${CHECK_LIBRARIES} liblagavulin)
+    target_link_libraries(
+        ${test_name} ${CHECK_LIBRARIES}
+        libswanson liblagavulin
+    )
     add_test(NAME ${test_name} COMMAND ${test_name})
 endmacro(make_test)
 
 make_test(test-blocks)
 
 add_executable(simple-speed-test simple-speed-test.c)
-target_link_libraries(simple-speed-test liblagavulin)
+target_link_libraries(simple-speed-test libswanson liblagavulin)

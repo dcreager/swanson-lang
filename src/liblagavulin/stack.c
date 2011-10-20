@@ -10,7 +10,8 @@
 
 #include <libcork/core.h>
 
-#include "lagavulin/checkers.h"
+#include "swanson/checkers.h"
+
 #include "lagavulin/stack.h"
 
 #if !defined(STACK_DEBUG)
@@ -30,10 +31,10 @@
 
 
 int
-lgv_stack_init(struct cork_gc *gc, struct lgv_stack *self, size_t initial_count)
+lgv_stack_init(struct swan *s, struct lgv_stack *self, size_t initial_count)
 {
     size_t  allocated_size = sizeof(struct lgv_stack_entry) * initial_count;
-    self->entries = cork_malloc(gc->alloc, allocated_size);
+    self->entries = cork_malloc(swan_alloc(s), allocated_size);
     if (self->entries == NULL) {
         return -1;
     }
@@ -44,19 +45,19 @@ lgv_stack_init(struct cork_gc *gc, struct lgv_stack *self, size_t initial_count)
 }
 
 void
-lgv_stack_done(struct cork_gc *gc, struct lgv_stack *self)
+lgv_stack_done(struct swan *s, struct lgv_stack *self)
 {
     if (self->entries != NULL) {
         size_t  allocated_size =
             sizeof(struct lgv_stack_entry) * self->allocated_count;
-        cork_free(gc->alloc, self->entries, allocated_size);
+        cork_free(swan_alloc(s), self->entries, allocated_size);
         self->entries = NULL;
     }
     self->top = NULL;
 }
 
 int
-lgv_stack_ensure_size(struct cork_gc *gc, struct lgv_stack *self, size_t count)
+lgv_stack_ensure_size(struct swan *s, struct lgv_stack *self, size_t count)
 {
     if (self->allocated_count >= count) {
         return 0;
@@ -71,7 +72,7 @@ lgv_stack_ensure_size(struct cork_gc *gc, struct lgv_stack *self, size_t count)
     }
 
     struct lgv_stack_entry  *new_entries =
-        cork_realloc(gc->alloc, self->entries,
+        cork_realloc(swan_alloc(s), self->entries,
                      old_allocated_size, new_allocated_size);
     if (new_entries == NULL) {
         return -1;

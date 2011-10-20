@@ -18,7 +18,7 @@
 
 #include <libcork/core.h>
 
-#include <lagavulin/checkers.h>
+#include <swanson/state.h>
 
 /**
  * @addtogroup stack Stacks
@@ -102,7 +102,7 @@ struct lgv_stack {
  * @since 0.0-dev
  */
 int
-lgv_stack_init(struct cork_gc *gc, struct lgv_stack *stack, size_t initial_count);
+lgv_stack_init(struct swan *s, struct lgv_stack *stack, size_t initial_count);
 
 /**
  * @brief Finalize a stack object.
@@ -110,7 +110,7 @@ lgv_stack_init(struct cork_gc *gc, struct lgv_stack *stack, size_t initial_count
  * @since 0.0-dev
  */
 void
-lgv_stack_done(struct cork_gc *gc, struct lgv_stack *stack);
+lgv_stack_done(struct swan *s, struct lgv_stack *stack);
 
 /**
  * @brief Return the number of used entries in the stack.
@@ -126,7 +126,7 @@ lgv_stack_done(struct cork_gc *gc, struct lgv_stack *stack);
  * @since 0.0-dev
  */
 int
-lgv_stack_ensure_size(struct cork_gc *gc, struct lgv_stack *self, size_t count);
+lgv_stack_ensure_size(struct swan *s, struct lgv_stack *self, size_t count);
 
 
 /**
@@ -135,7 +135,7 @@ lgv_stack_ensure_size(struct cork_gc *gc, struct lgv_stack *self, size_t count);
  * @since 0.0-dev
  */
 
-#define lgv_stack_push(gc, stack, top, union_branch, value) \
+#define lgv_stack_push(s, stack, top, union_branch, value) \
     do { \
         (top)++; \
         (top)->contents.union_branch = (value); \
@@ -146,7 +146,7 @@ lgv_stack_ensure_size(struct cork_gc *gc, struct lgv_stack *self, size_t count);
  * @public @memberof lgv_stack
  * @since 0.0-dev
  */
-#define lgv_stack_pop(gc, stack, top, count) \
+#define lgv_stack_pop(s, stack, top, count) \
     do { \
         (top) -= count; \
     } while (0)

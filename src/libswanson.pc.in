@@ -1,0 +1,7 @@
+Name: libswanson
+Description: A statically typed dynamic language
+Version: @VERSION@
+URL: http://swanson-lang.org/
+Requires: libcork
+Libs: -L@prefix@/lib -lswanson
+Cflags: -I@prefix@/include

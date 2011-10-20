@@ -28,22 +28,22 @@
 #define test_stmt(block, typ, union_branch, expected, fmt) \
     do { \
         struct lgv_state  state; \
-        lgv_state_init(&gc, &state); \
-        state.ret = lgv_block_new_halt(&gc); \
-        lgv_block_execute(&gc, lgv_block_get_head(block), \
+        lgv_state_init(&s, &state); \
+        state.ret = lgv_block_new_halt(&s); \
+        lgv_block_execute(&s, lgv_block_get_head(&s, block), \
                           &state, state.stack.top); \
         typ  actual = \
             lgv_stack_get(&state.stack, state.stack.top, -1, union_branch); \
         fail_unless(actual == expected, \
                     "Unexpected result: got " fmt ", expected " fmt, \
                     actual, expected); \
-        lgv_state_done(&gc, &state); \
+        lgv_state_done(&s, &state); \
     } while (0)
 
 #define test_expr(block, typ, union_branch, expected, fmt) \
     do { \
-        struct lgv_block  *b_ret = lgv_block_new_return(&gc); \
-        lgv_block_set_next(&gc, block, b_ret); \
+        struct lgv_block  *b_ret = lgv_block_new_return(&s); \
+        lgv_block_set_next(&s, block, b_ret); \
         test_stmt(block, typ, union_branch, expected, fmt); \
     } while (0)
 
@@ -57,12 +57,12 @@
     { \
         DESCRIBE_TEST; \
         struct cork_alloc  *alloc = cork_allocator_new_debug(); \
-        struct cork_gc  gc; \
-        cork_gc_init(&gc, alloc); \
-        struct lgv_block  *b0 = lgv_block_new_constant_##typ_id(&gc, value); \
+        struct swan  s; \
+        swan_init(&s, alloc); \
+        struct lgv_block  *b0 = lgv_block_new_constant_##typ_id(&s, value); \
         test_expr(b0, typ, union_branch, value, fmt); \
-        cork_gc_decref(&gc, b0); \
-        cork_gc_done(&gc); \
+        cork_gc_decref(swan_gc(&s), b0); \
+        swan_done(&s); \
         cork_allocator_free(alloc); \
     } \
     END_TEST
@@ -87,17 +87,17 @@ START_TEST(test_if_true)
 {
     DESCRIBE_TEST;
     struct cork_alloc  *alloc = cork_allocator_new_debug();
-    struct cork_gc  gc;
-    cork_gc_init(&gc, alloc);
+    struct swan  s;
+    swan_init(&s, alloc);
 
-    struct lgv_block  *bc = lgv_block_new_constant_bool(&gc, true);
-    struct lgv_block  *bt = lgv_block_new_constant_int(&gc, 12);
-    struct lgv_block  *bf = lgv_block_new_constant_int(&gc, 43);
-    struct lgv_block  *b0 = lgv_block_new_if(&gc, bc, bt, bf);
+    struct lgv_block  *bc = lgv_block_new_constant_bool(&s, true);
+    struct lgv_block  *bt = lgv_block_new_constant_int(&s, 12);
+    struct lgv_block  *bf = lgv_block_new_constant_int(&s, 43);
+    struct lgv_block  *b0 = lgv_block_new_if(&s, bc, bt, bf);
     test_expr(b0, int, si, 12, "%d");
 
-    cork_gc_decref(&gc, b0);
-    cork_gc_done(&gc);
+    cork_gc_decref(swan_gc(&s), b0);
+    swan_done(&s);
     cork_allocator_free(alloc);
 }
 END_TEST
@@ -106,17 +106,17 @@ START_TEST(test_if_false)
 {
     DESCRIBE_TEST;
     struct cork_alloc  *alloc = cork_allocator_new_debug();
-    struct cork_gc  gc;
-    cork_gc_init(&gc, alloc);
+    struct swan  s;
+    swan_init(&s, alloc);
 
-    struct lgv_block  *bc = lgv_block_new_constant_bool(&gc, false);
-    struct lgv_block  *bt = lgv_block_new_constant_int(&gc, 12);
-    struct lgv_block  *bf = lgv_block_new_constant_int(&gc, 43);
-    struct lgv_block  *b0 = lgv_block_new_if(&gc, bc, bt, bf);
+    struct lgv_block  *bc = lgv_block_new_constant_bool(&s, false);
+    struct lgv_block  *bt = lgv_block_new_constant_int(&s, 12);
+    struct lgv_block  *bf = lgv_block_new_constant_int(&s, 43);
+    struct lgv_block  *b0 = lgv_block_new_if(&s, bc, bt, bf);
     test_expr(b0, int, si, 43, "%d");
 
-    cork_gc_decref(&gc, b0);
-    cork_gc_done(&gc);
+    cork_gc_decref(swan_gc(&s), b0);
+    swan_done(&s);
     cork_allocator_free(alloc);
 }
 END_TEST
@@ -125,25 +125,25 @@ START_TEST(test_seq_01)
 {
     DESCRIBE_TEST;
     struct cork_alloc  *alloc = cork_allocator_new_debug();
-    struct cork_gc  gc;
-    cork_gc_init(&gc, alloc);
+    struct swan  s;
+    swan_init(&s, alloc);
 
-    struct lgv_block  *bc0 = lgv_block_new_constant_int(&gc, 5);
-    struct lgv_block  *bc1 = lgv_block_new_constant_int(&gc, 10);
-    struct lgv_block  *bc2 = lgv_block_new_constant_int(&gc, 15);
-    struct lgv_block  *badd0 = lgv_block_new_add_int(&gc);
-    struct lgv_block  *badd1 = lgv_block_new_add_int(&gc);
+    struct lgv_block  *bc0 = lgv_block_new_constant_int(&s, 5);
+    struct lgv_block  *bc1 = lgv_block_new_constant_int(&s, 10);
+    struct lgv_block  *bc2 = lgv_block_new_constant_int(&s, 15);
+    struct lgv_block  *badd0 = lgv_block_new_add_int(&s);
+    struct lgv_block  *badd1 = lgv_block_new_add_int(&s);
 
-    struct lgv_block  *bseq0 = lgv_block_new_seq(&gc, bc0, bc1);
-    struct lgv_block  *bseq1 = lgv_block_new_seq(&gc, bc2, badd0);
-    struct lgv_block  *bseq2 = lgv_block_new_seq(&gc, bseq0, bseq1);
-    struct lgv_block  *bseq3 = lgv_block_new_seq(&gc, bseq2, badd1);
+    struct lgv_block  *bseq0 = lgv_block_new_seq(&s, bc0, bc1);
+    struct lgv_block  *bseq1 = lgv_block_new_seq(&s, bc2, badd0);
+    struct lgv_block  *bseq2 = lgv_block_new_seq(&s, bseq0, bseq1);
+    struct lgv_block  *bseq3 = lgv_block_new_seq(&s, bseq2, badd1);
 
     struct lgv_block  *b0 = bseq3;
     test_expr(b0, int, si, 30, "%d");
 
-    cork_gc_decref(&gc, b0);
-    cork_gc_done(&gc);
+    cork_gc_decref(swan_gc(&s), b0);
+    swan_done(&s);
     cork_allocator_free(alloc);
 }
 END_TEST
@@ -152,25 +152,25 @@ START_TEST(test_seq_02)
 {
     DESCRIBE_TEST;
     struct cork_alloc  *alloc = cork_allocator_new_debug();
-    struct cork_gc  gc;
-    cork_gc_init(&gc, alloc);
+    struct swan  s;
+    swan_init(&s, alloc);
 
-    struct lgv_block  *bc0 = lgv_block_new_constant_int(&gc, 5);
-    struct lgv_block  *bc1 = lgv_block_new_constant_int(&gc, 10);
-    struct lgv_block  *bc2 = lgv_block_new_constant_int(&gc, 15);
-    struct lgv_block  *badd0 = lgv_block_new_add_int(&gc);
-    struct lgv_block  *badd1 = lgv_block_new_add_int(&gc);
+    struct lgv_block  *bc0 = lgv_block_new_constant_int(&s, 5);
+    struct lgv_block  *bc1 = lgv_block_new_constant_int(&s, 10);
+    struct lgv_block  *bc2 = lgv_block_new_constant_int(&s, 15);
+    struct lgv_block  *badd0 = lgv_block_new_add_int(&s);
+    struct lgv_block  *badd1 = lgv_block_new_add_int(&s);
 
-    struct lgv_block  *bseq0 = lgv_block_new_seq(&gc, bc0, bc1);
-    struct lgv_block  *bseq1 = lgv_block_new_seq(&gc, bseq0, bc2);
-    struct lgv_block  *bseq2 = lgv_block_new_seq(&gc, bseq1, badd0);
-    struct lgv_block  *bseq3 = lgv_block_new_seq(&gc, bseq2, badd1);
+    struct lgv_block  *bseq0 = lgv_block_new_seq(&s, bc0, bc1);
+    struct lgv_block  *bseq1 = lgv_block_new_seq(&s, bseq0, bc2);
+    struct lgv_block  *bseq2 = lgv_block_new_seq(&s, bseq1, badd0);
+    struct lgv_block  *bseq3 = lgv_block_new_seq(&s, bseq2, badd1);
 
     struct lgv_block  *b0 = bseq3;
     test_expr(b0, int, si, 30, "%d");
 
-    cork_gc_decref(&gc, b0);
-    cork_gc_done(&gc);
+    cork_gc_decref(swan_gc(&s), b0);
+    swan_done(&s);
     cork_allocator_free(alloc);
 }
 END_TEST
@@ -179,25 +179,25 @@ START_TEST(test_seq_03)
 {
     DESCRIBE_TEST;
     struct cork_alloc  *alloc = cork_allocator_new_debug();
-    struct cork_gc  gc;
-    cork_gc_init(&gc, alloc);
+    struct swan  s;
+    swan_init(&s, alloc);
 
-    struct lgv_block  *bc0 = lgv_block_new_constant_int(&gc, 5);
-    struct lgv_block  *bc1 = lgv_block_new_constant_int(&gc, 10);
-    struct lgv_block  *bc2 = lgv_block_new_constant_int(&gc, 15);
-    struct lgv_block  *badd0 = lgv_block_new_add_int(&gc);
-    struct lgv_block  *badd1 = lgv_block_new_add_int(&gc);
+    struct lgv_block  *bc0 = lgv_block_new_constant_int(&s, 5);
+    struct lgv_block  *bc1 = lgv_block_new_constant_int(&s, 10);
+    struct lgv_block  *bc2 = lgv_block_new_constant_int(&s, 15);
+    struct lgv_block  *badd0 = lgv_block_new_add_int(&s);
+    struct lgv_block  *badd1 = lgv_block_new_add_int(&s);
 
-    struct lgv_block  *bseq0 = lgv_block_new_seq(&gc, badd0, badd1);
-    struct lgv_block  *bseq1 = lgv_block_new_seq(&gc, bc2, bseq0);
-    struct lgv_block  *bseq2 = lgv_block_new_seq(&gc, bc1, bseq1);
-    struct lgv_block  *bseq3 = lgv_block_new_seq(&gc, bc0, bseq2);
+    struct lgv_block  *bseq0 = lgv_block_new_seq(&s, badd0, badd1);
+    struct lgv_block  *bseq1 = lgv_block_new_seq(&s, bc2, bseq0);
+    struct lgv_block  *bseq2 = lgv_block_new_seq(&s, bc1, bseq1);
+    struct lgv_block  *bseq3 = lgv_block_new_seq(&s, bc0, bseq2);
 
     struct lgv_block  *b0 = bseq3;
     test_expr(b0, int, si, 30, "%d");
 
-    cork_gc_decref(&gc, b0);
-    cork_gc_done(&gc);
+    cork_gc_decref(swan_gc(&s), b0);
+    swan_done(&s);
     cork_allocator_free(alloc);
 }
 END_TEST
@@ -206,29 +206,29 @@ START_TEST(test_while_01)
 {
     DESCRIBE_TEST;
     struct cork_alloc  *alloc = cork_allocator_new_debug();
-    struct cork_gc  gc;
-    cork_gc_init(&gc, alloc);
+    struct swan  s;
+    swan_init(&s, alloc);
 
-    struct lgv_block  *binit = lgv_block_new_constant_int(&gc, 0);
+    struct lgv_block  *binit = lgv_block_new_constant_int(&s, 0);
 
-    struct lgv_block  *bcond_0 = lgv_block_new_dup(&gc);
-    struct lgv_block  *bcond_1 = lgv_block_new_constant_int(&gc, 5);
-    struct lgv_block  *bcond_2 = lgv_block_new_lt_int(&gc);
-    struct lgv_block  *bcond_s0 = lgv_block_new_seq(&gc, bcond_0, bcond_1);
-    struct lgv_block  *bcond_s1 = lgv_block_new_seq(&gc, bcond_s0, bcond_2);
+    struct lgv_block  *bcond_0 = lgv_block_new_dup(&s);
+    struct lgv_block  *bcond_1 = lgv_block_new_constant_int(&s, 5);
+    struct lgv_block  *bcond_2 = lgv_block_new_lt_int(&s);
+    struct lgv_block  *bcond_s0 = lgv_block_new_seq(&s, bcond_0, bcond_1);
+    struct lgv_block  *bcond_s1 = lgv_block_new_seq(&s, bcond_s0, bcond_2);
     struct lgv_block  *bcond = bcond_s1;
 
-    struct lgv_block  *bbody_0 = lgv_block_new_constant_int(&gc, 1);
-    struct lgv_block  *bbody_1 = lgv_block_new_add_int(&gc);
-    struct lgv_block  *bbody_s0 = lgv_block_new_seq(&gc, bbody_0, bbody_1);
+    struct lgv_block  *bbody_0 = lgv_block_new_constant_int(&s, 1);
+    struct lgv_block  *bbody_1 = lgv_block_new_add_int(&s);
+    struct lgv_block  *bbody_s0 = lgv_block_new_seq(&s, bbody_0, bbody_1);
     struct lgv_block  *bbody = bbody_s0;
 
-    struct lgv_block  *bwhile = lgv_block_new_while(&gc, bcond, bbody);
-    struct lgv_block  *b0 = lgv_block_new_seq(&gc, binit, bwhile);
+    struct lgv_block  *bwhile = lgv_block_new_while(&s, bcond, bbody);
+    struct lgv_block  *b0 = lgv_block_new_seq(&s, binit, bwhile);
     test_expr(b0, int, si, 5, "%d");
 
-    cork_gc_decref(&gc, b0);
-    cork_gc_done(&gc);
+    cork_gc_decref(swan_gc(&s), b0);
+    swan_done(&s);
     cork_allocator_free(alloc);
 }
 END_TEST
@@ -273,7 +273,6 @@ test_suite()
     return s;
 }
 
-
 int
 main(int argc, const char **argv)
 {
@@ -287,4 +286,3 @@ main(int argc, const char **argv)
 
     return (number_failed == 0)? EXIT_SUCCESS: EXIT_FAILURE;
 }
-

@@ -18,6 +18,7 @@
 
 #include <libcork/core.h>
 
+#include <swanson/state.h>
 #include <lagavulin/stack.h>
 
 /**
@@ -69,7 +70,7 @@ struct lgv_block_iface {
      * @since 0.0-dev
      */
     struct lgv_block *
-    (*get_head)(struct lgv_block *self);
+    (*get_head)(struct swan *s, struct lgv_block *self);
 
     /**
      * @brief Sets the “next” pointer for this block.
@@ -78,7 +79,7 @@ struct lgv_block_iface {
      * @since 0.0-dev
      */
     void
-    (*set_next)(struct cork_gc *gc,
+    (*set_next)(struct swan *s,
                 struct lgv_block *self, struct lgv_block *next);
 };
 
@@ -94,7 +95,7 @@ struct lgv_block {
      * @since 0.0-dev
      */
     int
-    (*execute)(struct cork_gc *gc, struct lgv_block *self,
+    (*execute)(struct swan *s, struct lgv_block *self,
                struct lgv_state *state, struct lgv_stack_entry *top);
 
     /**
@@ -115,8 +116,8 @@ struct lgv_block {
  * @param [in] block  A block object
  * @since 0.0-dev
  */
-#define lgv_block_execute(gc, block, state, top) \
-    ((block)->execute((gc), (block), (state), (top)))
+#define lgv_block_execute(s, block, state, top) \
+    ((block)->execute((s), (block), (state), (top)))
 
 /**
  * @brief Returns the actual block that starts this block.
@@ -126,8 +127,8 @@ struct lgv_block {
  *
  * @since 0.0-dev
  */
-#define lgv_block_get_head(block) \
-    ((block)->iface->get_head((block)))
+#define lgv_block_get_head(s, block) \
+    ((block)->iface->get_head((s), (block)))
 
 /**
  * @brief Sets the “next” pointer for this block.
@@ -135,8 +136,8 @@ struct lgv_block {
  * @param [in] next  The block to pass control to after this block
  * @since 0.0-dev
  */
-#define lgv_block_set_next(gc, block, next) \
-    ((block)->iface->set_next((gc), (block), (next)))
+#define lgv_block_set_next(s, block, next) \
+    ((block)->iface->set_next((s), (block), (next)))
 
 
 /*-----------------------------------------------------------------------
@@ -147,19 +148,19 @@ struct lgv_block {
  * @brief Create a block that returns a constant <code>bool</code> value.
  */
 struct lgv_block *
-lgv_block_new_constant_bool(struct cork_gc *gc, bool value);
+lgv_block_new_constant_bool(struct swan *s, bool value);
 
 /**
  * @brief Create a block that returns a constant <code>int</code> value.
  */
 struct lgv_block *
-lgv_block_new_constant_int(struct cork_gc *gc, int value);
+lgv_block_new_constant_int(struct swan *s, int value);
 
 /**
  * @brief Create a block that returns a constant <code>long</code> value.
  */
 struct lgv_block *
-lgv_block_new_constant_long(struct cork_gc *gc, long value);
+lgv_block_new_constant_long(struct swan *s, long value);
 
 
 /*-----------------------------------------------------------------------
@@ -167,13 +168,13 @@ lgv_block_new_constant_long(struct cork_gc *gc, long value);
  */
 
 struct lgv_block *
-lgv_block_new_dup(struct cork_gc *gc);
+lgv_block_new_dup(struct swan *s);
 
 struct lgv_block *
-lgv_block_new_add_int(struct cork_gc *gc);
+lgv_block_new_add_int(struct swan *s);
 
 struct lgv_block *
-lgv_block_new_lt_int(struct cork_gc *gc);
+lgv_block_new_lt_int(struct swan *s);
 
 
 /*-----------------------------------------------------------------------
@@ -184,7 +185,7 @@ lgv_block_new_lt_int(struct cork_gc *gc);
  * @brief Create a block for an <code>if</code> statement.
  */
 struct lgv_block *
-lgv_block_new_if(struct cork_gc *gc,
+lgv_block_new_if(struct swan *s,
                  struct lgv_block *condition,
                  struct lgv_block *true_branch,
                  struct lgv_block *false_branch);
@@ -193,20 +194,20 @@ lgv_block_new_if(struct cork_gc *gc,
  * @brief Create a block for a <code>return</code> statement.
  */
 struct lgv_block *
-lgv_block_new_return(struct cork_gc *gc);
+lgv_block_new_return(struct swan *s);
 
 /**
  * @brief Create a block for a <code>seq</code> statement.
  */
 struct lgv_block *
-lgv_block_new_seq(struct cork_gc *gc,
+lgv_block_new_seq(struct swan *s,
                   struct lgv_block *b1, struct lgv_block *b2);
 
 /**
  * @brief Create a block for a <code>while</code> statement.
  */
 struct lgv_block *
-lgv_block_new_while(struct cork_gc *gc,
+lgv_block_new_while(struct swan *s,
                     struct lgv_block *condition,
                     struct lgv_block *body);
 
@@ -214,7 +215,7 @@ lgv_block_new_while(struct cork_gc *gc,
  * @brief Create a block that halts execution.
  */
 struct lgv_block *
-lgv_block_new_halt(struct cork_gc *gc);
+lgv_block_new_halt(struct swan *s);
 
 
 /*-----------------------------------------------------------------------
@@ -246,7 +247,7 @@ struct lgv_state {
  * @since 0.0-dev
  */
 int
-lgv_state_init(struct cork_gc *gc, struct lgv_state *state);
+lgv_state_init(struct swan *s, struct lgv_state *state);
 
 /**
  * @brief Finalize an execution state.
@@ -254,7 +255,7 @@ lgv_state_init(struct cork_gc *gc, struct lgv_state *state);
  * @since 0.0-dev
  */
 void
-lgv_state_done(struct cork_gc *gc, struct lgv_state *state);
+lgv_state_done(struct swan *s, struct lgv_state *state);
 
 
 /* end of block group */

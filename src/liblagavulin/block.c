@@ -10,8 +10,9 @@
 
 #include <libcork/core.h>
 
+#include "swanson/checkers.h"
+
 #include "lagavulin/block.h"
-#include "lagavulin/checkers.h"
 #include "lagavulin/stack.h"
 
 #if !defined(BLOCK_DEBUG)
@@ -45,18 +46,18 @@
  */
 
 int
-lgv_state_init(struct cork_gc *gc, struct lgv_state *state)
+lgv_state_init(struct swan *s, struct lgv_state *state)
 {
-    r_check(lgv_stack_init(gc, &state->stack, LGV_STACK_DEFAULT_INITIAL_SIZE));
+    r_check(lgv_stack_init(s, &state->stack, LGV_STACK_DEFAULT_INITIAL_SIZE));
     state->ret = NULL;
     return 0;
 }
 
 void
-lgv_state_done(struct cork_gc *gc, struct lgv_state *state)
+lgv_state_done(struct swan *s, struct lgv_state *state)
 {
-    cork_gc_decref(gc, state->ret);
-    lgv_stack_done(gc, &state->stack);
+    cork_gc_decref(swan_gc(s), state->ret);
+    lgv_stack_done(s, &state->stack);
     state->ret = NULL;
 }
 
@@ -202,15 +203,15 @@ static struct cork_gc_obj_iface  lgv_block_while_gc = {
 
 #define constant_execute(typ_id, typ, union_branch) \
     static int \
-    lgv_block_constant_##typ_id(struct cork_gc *gc, struct lgv_block *vself, \
+    lgv_block_constant_##typ_id(struct swan *s, struct lgv_block *vself, \
                                 struct lgv_state *state, struct lgv_stack_entry *top) \
     { \
         struct lgv_block_constant_##typ_id  *self = \
             cork_container_of \
             (vself, struct lgv_block_constant_##typ_id, parent.parent); \
         DEBUG("%p %s", vself, vself->name); \
-        lgv_stack_push(gc, &state->stack, top, union_branch, self->value); \
-        return lgv_block_execute(gc, self->parent.next, state, top); \
+        lgv_stack_push(s, &state->stack, top, union_branch, self->value); \
+        return lgv_block_execute(s, self->parent.next, state, top); \
     }
 
 constant_execute(bool, bool, b);
@@ -218,7 +219,7 @@ constant_execute(int, int, si);
 constant_execute(long, long, sl);
 
 static int
-lgv_block_dup(struct cork_gc *gc, struct lgv_block *vself,
+lgv_block_dup(struct swan *s, struct lgv_block *vself,
               struct lgv_state *state, struct lgv_stack_entry *top)
 {
     struct lgv_block_simple  *self =
@@ -226,11 +227,11 @@ lgv_block_dup(struct cork_gc *gc, struct lgv_block *vself,
     DEBUG("%p %s", vself, vself->name);
     top++;
     top[0] = top[-1];
-    return lgv_block_execute(gc, self->next, state, top);
+    return lgv_block_execute(s, self->next, state, top);
 }
 
 static int
-lgv_block_add_int(struct cork_gc *gc, struct lgv_block *vself,
+lgv_block_add_int(struct swan *s, struct lgv_block *vself,
                   struct lgv_state *state, struct lgv_stack_entry *top)
 {
     struct lgv_block_simple  *self =
@@ -238,13 +239,13 @@ lgv_block_add_int(struct cork_gc *gc, struct lgv_block *vself,
     int  lhs = lgv_stack_get(&state->stack, top, -2, si);
     int  rhs = lgv_stack_get(&state->stack, top, -1, si);
     DEBUG("%p %s: %d %d", vself, vself->name, lhs, rhs);
-    lgv_stack_pop(gc, &state->stack, top, 2);
-    lgv_stack_push(gc, &state->stack, top, si, lhs + rhs);
-    return lgv_block_execute(gc, self->next, state, top);
+    lgv_stack_pop(s, &state->stack, top, 2);
+    lgv_stack_push(s, &state->stack, top, si, lhs + rhs);
+    return lgv_block_execute(s, self->next, state, top);
 }
 
 static int
-lgv_block_lt_int(struct cork_gc *gc, struct lgv_block *vself,
+lgv_block_lt_int(struct swan *s, struct lgv_block *vself,
                  struct lgv_state *state, struct lgv_stack_entry *top)
 {
     struct lgv_block_simple  *self =
@@ -252,38 +253,38 @@ lgv_block_lt_int(struct cork_gc *gc, struct lgv_block *vself,
     int  lhs = lgv_stack_get(&state->stack, top, -2, si);
     int  rhs = lgv_stack_get(&state->stack, top, -1, si);
     DEBUG("%p %s: %d %d", vself, vself->name, lhs, rhs);
-    lgv_stack_pop(gc, &state->stack, top, 2);
-    lgv_stack_push(gc, &state->stack, top, b, lhs < rhs);
-    return lgv_block_execute(gc, self->next, state, top);
+    lgv_stack_pop(s, &state->stack, top, 2);
+    lgv_stack_push(s, &state->stack, top, b, lhs < rhs);
+    return lgv_block_execute(s, self->next, state, top);
 }
 
 static int
-lgv_block_brancher(struct cork_gc *gc, struct lgv_block *vself,
+lgv_block_brancher(struct swan *s, struct lgv_block *vself,
                    struct lgv_state *state, struct lgv_stack_entry *top)
 {
     struct lgv_block_brancher  *self =
         cork_container_of(vself, struct lgv_block_brancher, parent);
     bool  input = lgv_stack_get(&state->stack, top, -1, b);
-    lgv_stack_pop(gc, &state->stack, top, 1);
+    lgv_stack_pop(s, &state->stack, top, 1);
     DEBUG("%p %s: %s", vself, vself->name, input? "true": "false");
 
     if (input) {
-        return lgv_block_execute(gc, self->true_branch, state, top);
+        return lgv_block_execute(s, self->true_branch, state, top);
     } else {
-        return lgv_block_execute(gc, self->false_branch, state, top);
+        return lgv_block_execute(s, self->false_branch, state, top);
     }
 }
 
 static int
-lgv_block_return(struct cork_gc *gc, struct lgv_block *vself,
+lgv_block_return(struct swan *s, struct lgv_block *vself,
                  struct lgv_state *state, struct lgv_stack_entry *top)
 {
     DEBUG("%p %s", vself, vself->name);
-    return lgv_block_execute(gc, state->ret, state, top);
+    return lgv_block_execute(s, state->ret, state, top);
 }
 
 static int
-lgv_block_halt(struct cork_gc *gc, struct lgv_block *vself,
+lgv_block_halt(struct swan *s, struct lgv_block *vself,
                struct lgv_state *state, struct lgv_stack_entry *top)
 {
     DEBUG("%p %s", vself, vself->name);
@@ -297,33 +298,33 @@ lgv_block_halt(struct cork_gc *gc, struct lgv_block *vself,
  */
 
 static struct lgv_block *
-lgv_block_simple_get_head(struct lgv_block *vself)
+lgv_block_simple_get_head(struct swan *s, struct lgv_block *vself)
 {
     return vself;
 }
 
 static struct lgv_block *
-lgv_block_if_get_head(struct lgv_block *vself)
+lgv_block_if_get_head(struct swan *s, struct lgv_block *vself)
 {
     struct lgv_block_if  *self =
         cork_container_of(vself, struct lgv_block_if, parent);
-    return lgv_block_get_head(self->condition);
+    return lgv_block_get_head(s, self->condition);
 }
 
 static struct lgv_block *
-lgv_block_seq_get_head(struct lgv_block *vself)
+lgv_block_seq_get_head(struct swan *s, struct lgv_block *vself)
 {
     struct lgv_block_seq  *self =
         cork_container_of(vself, struct lgv_block_seq, parent);
-    return lgv_block_get_head(self->head);
+    return lgv_block_get_head(s, self->head);
 }
 
 static struct lgv_block *
-lgv_block_while_get_head(struct lgv_block *vself)
+lgv_block_while_get_head(struct swan *s, struct lgv_block *vself)
 {
     struct lgv_block_while  *self =
         cork_container_of(vself, struct lgv_block_while, parent);
-    return lgv_block_get_head(self->condition);
+    return lgv_block_get_head(s, self->condition);
 }
 
 
@@ -332,90 +333,90 @@ lgv_block_while_get_head(struct lgv_block *vself)
  */
 
 static void
-lgv_block_simple_set_next(struct cork_gc *gc,
+lgv_block_simple_set_next(struct swan *s,
                           struct lgv_block *vself, struct lgv_block *next)
 {
     struct lgv_block_simple  *self =
         cork_container_of(vself, struct lgv_block_simple, parent);
     DEBUG("%s(%p) ==> %s(%p)", vself->name, vself, next->name, next);
-    struct lgv_block  *head = lgv_block_get_head(next);
+    struct lgv_block  *head = lgv_block_get_head(s, next);
     if (head != next) {
-        cork_gc_incref(gc, head);
-        cork_gc_decref(gc, next);
+        cork_gc_incref(swan_gc(s), head);
+        cork_gc_decref(swan_gc(s), next);
     }
     self->next = head;
 }
 
 static void
-lgv_block_if_set_next(struct cork_gc *gc,
+lgv_block_if_set_next(struct swan *s,
                       struct lgv_block *vself, struct lgv_block *next)
 {
     struct lgv_block_if  *self =
         cork_container_of(vself, struct lgv_block_if, parent);
 
-    struct lgv_block  *head = lgv_block_get_head(next);
+    struct lgv_block  *head = lgv_block_get_head(s, next);
     if (head != next) {
-        cork_gc_incref(gc, head);
-        cork_gc_decref(gc, next);
+        cork_gc_incref(swan_gc(s), head);
+        cork_gc_decref(swan_gc(s), next);
     }
 
     /*
      * We're assuming control of one reference, which we can pass on to
      * one of the branches.  The other branch needs a new reference.
      */
-    cork_gc_incref(gc, head);
-    lgv_block_set_next(gc, self->brancher->true_branch, head);
-    lgv_block_set_next(gc, self->brancher->false_branch, head);
+    cork_gc_incref(swan_gc(s), head);
+    lgv_block_set_next(s, self->brancher->true_branch, head);
+    lgv_block_set_next(s, self->brancher->false_branch, head);
 }
 
 static void
-lgv_block_seq_set_next(struct cork_gc *gc,
+lgv_block_seq_set_next(struct swan *s,
                          struct lgv_block *vself, struct lgv_block *next)
 {
     struct lgv_block_seq  *self =
         cork_container_of(vself, struct lgv_block_seq, parent);
-    struct lgv_block  *head = lgv_block_get_head(next);
+    struct lgv_block  *head = lgv_block_get_head(s, next);
     if (head != next) {
-        cork_gc_incref(gc, head);
-        cork_gc_decref(gc, next);
+        cork_gc_incref(swan_gc(s), head);
+        cork_gc_decref(swan_gc(s), next);
     }
-    lgv_block_set_next(gc, self->tail, head);
+    lgv_block_set_next(s, self->tail, head);
 }
 
 static void
-lgv_block_while_set_next(struct cork_gc *gc,
+lgv_block_while_set_next(struct swan *s,
                          struct lgv_block *vself, struct lgv_block *next)
 {
     struct lgv_block_while  *self =
         cork_container_of(vself, struct lgv_block_while, parent);
-    struct lgv_block  *head = lgv_block_get_head(next);
+    struct lgv_block  *head = lgv_block_get_head(s, next);
     if (head != next) {
-        cork_gc_incref(gc, head);
-        cork_gc_decref(gc, next);
+        cork_gc_incref(swan_gc(s), head);
+        cork_gc_decref(swan_gc(s), next);
     }
     self->brancher->false_branch = head;
 }
 
 static void
-lgv_block_return_set_next(struct cork_gc *gc,
+lgv_block_return_set_next(struct swan *s,
                           struct lgv_block *vself, struct lgv_block *next)
 {
     /*
      * We're taking control of the reference, but we don't actually need
      * it.
      */
-    cork_gc_decref(gc, next);
+    cork_gc_decref(swan_gc(s), next);
 }
 
 static void
-lgv_block_halt_set_next(struct cork_gc *gc,
+lgv_block_halt_set_next(struct swan *s,
                         struct lgv_block *vself, struct lgv_block *next)
 {
     /*
      * We're taking control of the reference, but we don't actually need
      * it.
      */
-    cork_gc_decref(gc, next);
+    cork_gc_decref(swan_gc(s), next);
 }
 
 
@@ -423,8 +424,8 @@ lgv_block_halt_set_next(struct cork_gc *gc,
  * Constructors
  */
 
-#define make_new(gc, typ, iface) \
-    typ *self = cork_gc_new(gc, typ, &iface##_gc); \
+#define make_new(s, typ, iface) \
+    typ *self = cork_gc_new(swan_gc(s), typ, &iface##_gc); \
     if (self == NULL) { \
         return NULL; \
     }
@@ -436,9 +437,9 @@ static const struct lgv_block_iface  lgv_block_simple_iface = {
 
 #define constant_new(typ_id, typ) \
     struct lgv_block * \
-    lgv_block_new_constant_##typ_id(struct cork_gc *gc, typ value) \
+    lgv_block_new_constant_##typ_id(struct swan *s, typ value) \
     { \
-        make_new(gc, struct lgv_block_constant_##typ_id, lgv_block_simple); \
+        make_new(s, struct lgv_block_constant_##typ_id, lgv_block_simple); \
         self->parent.parent.name = "constant_" #typ_id; \
         self->parent.parent.execute = lgv_block_constant_##typ_id; \
         self->parent.parent.iface = &lgv_block_simple_iface; \
@@ -451,9 +452,9 @@ constant_new(int, int);
 constant_new(long, long);
 
 struct lgv_block *
-lgv_block_new_dup(struct cork_gc *gc)
+lgv_block_new_dup(struct swan *s)
 {
-    make_new(gc, struct lgv_block_simple, lgv_block_simple);
+    make_new(s, struct lgv_block_simple, lgv_block_simple);
     self->parent.name = "dup";
     self->parent.execute = lgv_block_dup;
     self->parent.iface = &lgv_block_simple_iface;
@@ -461,9 +462,9 @@ lgv_block_new_dup(struct cork_gc *gc)
 }
 
 struct lgv_block *
-lgv_block_new_add_int(struct cork_gc *gc)
+lgv_block_new_add_int(struct swan *s)
 {
-    make_new(gc, struct lgv_block_simple, lgv_block_simple);
+    make_new(s, struct lgv_block_simple, lgv_block_simple);
     self->parent.name = "add-int";
     self->parent.execute = lgv_block_add_int;
     self->parent.iface = &lgv_block_simple_iface;
@@ -471,9 +472,9 @@ lgv_block_new_add_int(struct cork_gc *gc)
 }
 
 struct lgv_block *
-lgv_block_new_lt_int(struct cork_gc *gc)
+lgv_block_new_lt_int(struct swan *s)
 {
-    make_new(gc, struct lgv_block_simple, lgv_block_simple);
+    make_new(s, struct lgv_block_simple, lgv_block_simple);
     self->parent.name = "lt-int";
     self->parent.execute = lgv_block_lt_int;
     self->parent.iface = &lgv_block_simple_iface;
@@ -486,20 +487,20 @@ static const struct lgv_block_iface  lgv_block_brancher_iface = {
 };
 
 static struct lgv_block_brancher *
-lgv_block_new_brancher(struct cork_gc *gc,
+lgv_block_new_brancher(struct swan *s,
                        const char *name,
                        struct lgv_block *true_branch,
                        struct lgv_block *false_branch)
 {
-    make_new(gc, struct lgv_block_brancher, lgv_block_brancher);
+    make_new(s, struct lgv_block_brancher, lgv_block_brancher);
     self->parent.name = name;
     self->parent.execute = lgv_block_brancher;
     self->parent.iface = &lgv_block_brancher_iface;
     if (true_branch != NULL) {
-        self->true_branch = lgv_block_get_head(true_branch);
+        self->true_branch = lgv_block_get_head(s, true_branch);
     }
     if (false_branch != NULL) {
-        self->false_branch = lgv_block_get_head(false_branch);
+        self->false_branch = lgv_block_get_head(s, false_branch);
     }
     return self;
 }
@@ -510,17 +511,17 @@ static const struct lgv_block_iface  lgv_block_if_iface = {
 };
 
 struct lgv_block *
-lgv_block_new_if(struct cork_gc *gc,
+lgv_block_new_if(struct swan *s,
                  struct lgv_block *condition,
                  struct lgv_block *true_branch,
                  struct lgv_block *false_branch)
 {
-    make_new(gc, struct lgv_block_if, lgv_block_if);
+    make_new(s, struct lgv_block_if, lgv_block_if);
 
     self->brancher =
-        lgv_block_new_brancher(gc, "if-brancher", true_branch, false_branch);
+        lgv_block_new_brancher(s, "if-brancher", true_branch, false_branch);
     if (self->brancher == NULL) {
-        cork_gc_decref(gc, self);
+        cork_gc_decref(swan_gc(s), self);
         return NULL;
     }
 
@@ -528,8 +529,8 @@ lgv_block_new_if(struct cork_gc *gc,
     self->parent.execute = NULL;
     self->parent.iface = &lgv_block_if_iface;
     self->condition = condition;
-    cork_gc_incref(gc, self->brancher);
-    lgv_block_set_next(gc, self->condition, &self->brancher->parent);
+    cork_gc_incref(swan_gc(s), self->brancher);
+    lgv_block_set_next(s, self->condition, &self->brancher->parent);
     return &self->parent;
 }
 
@@ -542,7 +543,7 @@ static const struct lgv_block_iface  lgv_block_seq_iface = {
 #define lgv_block_is_seq(block)  ((block)->iface == &lgv_block_seq_iface)
 
 struct lgv_block *
-lgv_block_new_seq(struct cork_gc *gc,
+lgv_block_new_seq(struct swan *s,
                   struct lgv_block *b1, struct lgv_block *b2)
 {
     /*
@@ -560,18 +561,18 @@ lgv_block_new_seq(struct cork_gc *gc,
 
             /* s2 will drop its reference to head later, so we need to
              * create a new one */
-            cork_gc_incref(gc, s2->head);
-            lgv_block_set_next(gc, s1->tail, s2->head);
+            cork_gc_incref(swan_gc(s), s2->head);
+            lgv_block_set_next(s, s1->tail, s2->head);
             s1->tail = s2->tail;
             /* s2 is no longer needed */
-            cork_gc_decref(gc, b2);
+            cork_gc_decref(swan_gc(s), b2);
             return b1;
         } else {
             /* b2 isn't a seq, so add it to b1 */
             struct lgv_block_seq  *s1 =
                 cork_container_of(b1, struct lgv_block_seq, parent);
             /* set_next takes over the reference to b2 */
-            lgv_block_set_next(gc, s1->tail, b2);
+            lgv_block_set_next(s, s1->tail, b2);
             s1->tail = b2;
             return b1;
         }
@@ -581,16 +582,16 @@ lgv_block_new_seq(struct cork_gc *gc,
             struct lgv_block_seq  *s2 =
                 cork_container_of(b2, struct lgv_block_seq, parent);
             /* set_next takes over the reference to s2->head */
-            lgv_block_set_next(gc, b1, s2->head);
+            lgv_block_set_next(s, b1, s2->head);
             s2->head = b1;
             return b2;
         } else {
             /* Neither is a seq; create a new one */
-            make_new(gc, struct lgv_block_seq, lgv_block_seq);
+            make_new(s, struct lgv_block_seq, lgv_block_seq);
             self->parent.name = "seq";
             self->parent.execute = NULL;
             self->parent.iface = &lgv_block_seq_iface;
-            lgv_block_set_next(gc, b1, b2);
+            lgv_block_set_next(s, b1, b2);
             self->head = b1;
             self->tail = b2;
             return &self->parent;
@@ -604,16 +605,16 @@ static const struct lgv_block_iface  lgv_block_while_iface = {
 };
 
 struct lgv_block *
-lgv_block_new_while(struct cork_gc *gc,
+lgv_block_new_while(struct swan *s,
                     struct lgv_block *condition,
                     struct lgv_block *body)
 {
-    make_new(gc, struct lgv_block_while, lgv_block_while);
+    make_new(s, struct lgv_block_while, lgv_block_while);
 
     self->brancher =
-        lgv_block_new_brancher(gc, "while-brancher", body, NULL);
+        lgv_block_new_brancher(s, "while-brancher", body, NULL);
     if (self->brancher == NULL) {
-        cork_gc_decref(gc, self);
+        cork_gc_decref(swan_gc(s), self);
         return NULL;
     }
 
@@ -621,10 +622,10 @@ lgv_block_new_while(struct cork_gc *gc,
     self->parent.execute = NULL;
     self->parent.iface = &lgv_block_while_iface;
     self->condition = condition;
-    cork_gc_incref(gc, self->brancher);
-    lgv_block_set_next(gc, self->condition, &self->brancher->parent);
-    cork_gc_incref(gc, self->condition);
-    lgv_block_set_next(gc, body, self->condition);
+    cork_gc_incref(swan_gc(s), self->brancher);
+    lgv_block_set_next(s, self->condition, &self->brancher->parent);
+    cork_gc_incref(swan_gc(s), self->condition);
+    lgv_block_set_next(s, body, self->condition);
     return &self->parent;
 }
 
@@ -634,9 +635,9 @@ static const struct lgv_block_iface  lgv_block_return_iface = {
 };
 
 struct lgv_block *
-lgv_block_new_return(struct cork_gc *gc)
+lgv_block_new_return(struct swan *s)
 {
-    make_new(gc, struct lgv_block, lgv_block_leaf);
+    make_new(s, struct lgv_block, lgv_block_leaf);
     self->name = "return";
     self->execute = lgv_block_return;
     self->iface = &lgv_block_return_iface;
@@ -649,9 +650,9 @@ static const struct lgv_block_iface  lgv_block_halt_iface = {
 };
 
 struct lgv_block *
-lgv_block_new_halt(struct cork_gc *gc)
+lgv_block_new_halt(struct swan *s)
 {
-    make_new(gc, struct lgv_block, lgv_block_leaf);
+    make_new(s, struct lgv_block, lgv_block_leaf);
     self->name = "halt";
     self->execute = lgv_block_halt;
     self->iface = &lgv_block_halt_iface;
