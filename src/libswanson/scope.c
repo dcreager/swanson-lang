@@ -52,6 +52,7 @@ swan_scope_recurse(void *vself, cork_gc_recurser recurse, void *ud)
     struct swan_scope  *self = vself;
     struct recurse_state  state = { recurse, ud };
     cork_hash_table_map(&self->entries, swan_scope_recurse_entries, &state);
+    recurse(self->parent_scope, ud);
 }
 
 static enum cork_hash_table_map_result
@@ -82,7 +83,8 @@ static struct cork_gc_obj_iface  swan_scope_gc = {
 };
 
 struct swan_scope *
-swan_scope_new(struct swan *s, const char *name, struct cork_error *err)
+swan_scope_new(struct swan *s, const char *name, struct swan_scope *parent,
+               struct cork_error *err)
 {
     struct swan_scope  *self = NULL;
 
@@ -91,6 +93,7 @@ swan_scope_new(struct swan *s, const char *name, struct cork_error *err)
         goto error;
     }
     self->parent.cls = SWAN_SCOPE_CLASS;
+    self->parent_scope = cork_gc_incref(swan_gc(s), parent);
 
     e_bcheck(cork_hash_table_init
              (swan_alloc(s), &self->entries, 0,
@@ -138,17 +141,28 @@ swan_scope_add(struct swan *s, struct swan_scope *self,
     return 0;
 }
 
-struct swan_obj *
-swan_scope_get(struct swan *s, struct swan_scope *self,
-               const char *name, struct cork_error *err)
+static struct swan_obj *
+swan_scope_get_(const char *scope_name, struct swan_scope *self,
+                const char *name, struct cork_error *err)
 {
     struct swan_obj  *result =
         cork_hash_table_get(&self->entries, name);
     if (result == NULL) {
-        cork_error_set(err, SWAN_SCOPE_ERROR,
-                       SWAN_SCOPE_ERROR_UNDEFINED,
-                       "No entry named %s in scope %s",
-                       name, self->name);
+        if (self->parent_scope == NULL) {
+            cork_error_set(err, SWAN_SCOPE_ERROR,
+                           SWAN_SCOPE_ERROR_UNDEFINED,
+                           "No entry named %s in scope %s",
+                           name, scope_name);
+        } else {
+            return swan_scope_get_(scope_name, self->parent_scope, name, err);
+        }
     }
     return result;
+}
+
+struct swan_obj *
+swan_scope_get(struct swan *s, struct swan_scope *self,
+               const char *name, struct cork_error *err)
+{
+    return swan_scope_get_(self->name, self, name, err);
 }

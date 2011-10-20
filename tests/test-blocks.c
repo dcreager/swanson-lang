@@ -17,13 +17,12 @@
 #include "lagavulin/block.h"
 #include "lagavulin/stack.h"
 
+#include "helpers.h"
+
 
 /*-----------------------------------------------------------------------
  * Helper functions
  */
-
-#define DESCRIBE_TEST \
-    fprintf(stderr, "--- %s\n", __func__);
 
 #define test_stmt(block, typ, union_branch, expected, fmt) \
     do { \

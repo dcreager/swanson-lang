@@ -57,10 +57,12 @@ struct swan_scope {
     struct swan_obj  parent;
     const char  *name;
     struct cork_hash_table  entries;
+    struct swan_scope  *parent_scope;
 };
 
 struct swan_scope *
-swan_scope_new(struct swan *s, const char *name, struct cork_error *err);
+swan_scope_new(struct swan *s, const char *name, struct swan_scope *parent,
+               struct cork_error *err);
 
 int
 swan_scope_add(struct swan *s, struct swan_scope *self,

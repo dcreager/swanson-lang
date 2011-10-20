@@ -17,13 +17,7 @@
 #include "swanson/swanson0.h"
 #include "swanson/state.h"
 
-
-/*-----------------------------------------------------------------------
- * Helper functions
- */
-
-#define DESCRIBE_TEST \
-    fprintf(stderr, "--- %s\n", __func__);
+#include "helpers.h"
 
 
 /*-----------------------------------------------------------------------
@@ -37,13 +31,26 @@ START_TEST(test_scope_01)
     struct swan  s;
     swan_init(&s, alloc);
 
-    struct swan_scope  *s0 = swan_scope_new(&s, "root", NULL);
-    struct swan_scope  *s1 = swan_scope_new(&s, "prelude", NULL);
-    swan_scope_add(&s, s0, "prelude", swan_scope_obj(s1), NULL);
-    fail_unless(swan_scope_get(&s, s0, "prelude", NULL) == swan_scope_obj(s1),
+    struct swan_scope  *s0;
+    struct swan_scope  *s1;
+    struct swan_obj  *out;
+
+    fail_if_error(s0 = swan_scope_new(&s, "root", NULL, &err));
+    fail_if_error(s1 = swan_scope_new(&s, "prelude", s0, &err));
+    fail_if_error(swan_scope_add(&s, s0, "prelude", swan_scope_obj(s1), &err));
+
+    fail_if_error(out = swan_scope_get(&s, s0, "prelude", &err));
+    fail_unless(out == swan_scope_obj(s1),
                 "Unexpected root.prelude scope");
-    fail_unless(swan_scope_get(&s, s0, "undefined", NULL) == NULL,
-                "Unexpected root.undefined scope");
+    fail_unless_error(out = swan_scope_get(&s, s0, "undefined", &err),
+                      "Unexpected root.undefined scope");
+
+    fail_if_error(out = swan_scope_get(&s, s1, "prelude", &err));
+    fail_unless(out == swan_scope_obj(s1),
+                "Unexpected prelude.prelude scope");
+    fail_unless_error(out = swan_scope_get(&s, s1, "undefined", &err),
+                      "Unexpected prelude.undefined scope");
+
     cork_gc_decref(swan_gc(&s), s0);
 
     swan_done(&s);
@@ -59,7 +66,7 @@ END_TEST
 Suite *
 test_suite()
 {
-    Suite  *s = suite_create("blocks");
+    Suite  *s = suite_create("scopes");
 
     TCase  *tc_scope = tcase_create("scope");
     tcase_add_test(tc_scope, test_scope_01);
@@ -81,4 +88,3 @@ main(int argc, const char **argv)
 
     return (number_failed == 0)? EXIT_SUCCESS: EXIT_FAILURE;
 }
-
