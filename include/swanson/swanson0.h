@@ -74,4 +74,27 @@ swan_scope_get(struct swan *s, struct swan_scope *self,
                const char *name, struct cork_error *err);
 
 
+/* Hash of "swanson.string" */
+#define SWAN_STRING_CLASS  0xe207edbd
+#define swan_is_string(obj) \
+    (swan_obj_class((obj)) == SWAN_STRING_CLASS)
+#define swan_obj_string(obj) \
+    (cork_container_of((obj), struct swan_string, parent))
+#define swan_string_obj(obj) \
+    (&((obj)->parent))
+
+struct swan_string {
+    struct swan_obj  parent;
+    size_t  length;
+    const char  *value;
+};
+
+struct swan_string *
+swan_string_new(struct swan *s, const char *value, size_t length,
+                struct cork_error *err);
+
+bool
+swan_string_equal(struct swan_string *s1, struct swan_string *s2);
+
+
 #endif  /* SWANSON_SWANSON0_H */
