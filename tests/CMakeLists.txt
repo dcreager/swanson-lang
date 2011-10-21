@@ -32,6 +32,7 @@ macro(make_test test_name)
 endmacro(make_test)
 
 make_test(test-blocks)
+make_test(test-engine)
 make_test(test-scopes)
 
 add_executable(simple-speed-test simple-speed-test.c)

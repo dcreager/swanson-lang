@@ -29,7 +29,7 @@
  */
 
 
-#define e_check_(call, file, line) \
+#define e0_check_(call, file, line, error) \
     do { \
         int  __rc = call; \
         if (__rc != 0) { \
@@ -37,7 +37,8 @@
         } \
     } while (0)
 
-#define e_check(call)  e_check_(call, __FILE__, __LINE__)
+#define e0_check(error, call)  e0_check_(call, __FILE__, __LINE__, error)
+#define e_check(call)  e0_check_(call, __FILE__, __LINE__, error)
 
 #define r_check_(call, file, line) \
     do { \
@@ -50,7 +51,7 @@
 #define r_check(call)  r_check_(call, __FILE__, __LINE__)
 
 
-#define e_bcheck_(call, file, line) \
+#define e0_bcheck_(call, file, line, error) \
     do { \
         bool  __result = call; \
         if (!__result) { \
@@ -58,7 +59,8 @@
         } \
     } while (0)
 
-#define e_bcheck(call)  e_bcheck_(call, __FILE__, __LINE__)
+#define e0_bcheck(error, call)  e0_bcheck_(call, __FILE__, __LINE__, error)
+#define e_bcheck(call)  e0_bcheck_(call, __FILE__, __LINE__, error)
 
 #define r_bcheck_(call, file, line) \
     do { \
@@ -69,6 +71,27 @@
     } while (0)
 
 #define r_bcheck(call)  r_bcheck_(call, __FILE__, __LINE__)
+
+
+#define e0_pcheck_(call, file, line, error) \
+    do { \
+        if ((call) == NULL) { \
+            goto error; \
+        } \
+    } while (0)
+
+#define e0_pcheck(error, call)  e0_pcheck_(call, __FILE__, __LINE__, error)
+#define e_pcheck(call)  e0_pcheck_(call, __FILE__, __LINE__, error)
+
+#define r_pcheck_(call, file, line) \
+    do { \
+        if ((call) == NULL) { \
+            return -1; \
+        } \
+    } while (0)
+
+#define r_pcheck(call)  r_pcheck_(call, __FILE__, __LINE__)
+
 
 /* end of checkers group */
 /**

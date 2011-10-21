@@ -65,12 +65,12 @@ swan_scope_new(struct swan *s, const char *name, struct swan_scope *parent,
                struct cork_error *err);
 
 int
-swan_scope_add(struct swan *s, struct swan_scope *self,
+swan_scope_add(struct swan *s, struct swan_scope *scope,
                const char *name, struct swan_obj *obj,
                struct cork_error *err);
 
 struct swan_obj *
-swan_scope_get(struct swan *s, struct swan_scope *self,
+swan_scope_get(struct swan *s, struct swan_scope *scope,
                const char *name, struct cork_error *err);
 
 
@@ -95,6 +95,61 @@ swan_string_new(struct swan *s, const char *value, size_t length,
 
 bool
 swan_string_equal(struct swan_string *s1, struct swan_string *s2);
+
+
+/* Hash of "swanson.macro" */
+#define SWAN_MACRO_CLASS  0xc007f757
+#define swan_is_macro(obj) \
+    (swan_obj_class((obj)) == SWAN_MACRO_CLASS)
+#define swan_obj_macro(obj) \
+    (cork_container_of((obj), struct swan_macro, parent))
+#define swan_macro_obj(obj) \
+    (&((obj)->parent))
+
+struct swan_macro;
+
+typedef struct swan_expression *
+(*swan_macro_execute_func)(struct swan *s, struct swan_macro *macro,
+                           struct cork_error *err, size_t num_args, ...);
+
+struct swan_macro {
+    struct swan_obj  parent;
+    const char  *name;
+    swan_macro_execute_func  execute;
+};
+
+struct swan_macro *
+swan_macro_new(struct swan *s, const char *name,
+               swan_macro_execute_func execute,
+               struct cork_error *err);
+
+#define swan_macro_execute(s, macro, err, ...) \
+    ((macro)->execute((s), (macro), (err), __VA_ARGS__))
+
+/* Hash of "swanson.macro" */
+#define SWAN_MACRO_ERROR  0xc007f757
+enum swan_macro_error {
+    SWAN_MACRO_ERROR_INVALID_ARGUMENT
+};
+
+
+/* Hash of "swanson.expression" */
+#define SWAN_EXPRESSION_CLASS  0x4a5257c1
+#define swan_is_expression(obj) \
+    (swan_obj_class((obj)) == SWAN_EXPRESSION_CLASS)
+#define swan_obj_expression(obj) \
+    (cork_container_of((obj), struct swan_expression, parent))
+#define swan_expression_obj(obj) \
+    (&((obj)->parent))
+
+struct swan_expression {
+    struct swan_obj  parent;
+    /* Additional fields as needed by the current engine */
+};
+
+int
+swan_expression_init(struct swan *s, struct swan_expression *expr,
+                     struct cork_error *err);
 
 
 #endif  /* SWANSON_SWANSON0_H */

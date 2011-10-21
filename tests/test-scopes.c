@@ -29,7 +29,7 @@ START_TEST(test_scope_01)
     DESCRIBE_TEST;
     struct cork_alloc  *alloc = cork_allocator_new_debug();
     struct swan  s;
-    swan_init(&s, alloc);
+    swan_init(&s, alloc, NULL);
 
     struct swan_scope  *s0;
     struct swan_scope  *s1;
@@ -37,26 +37,26 @@ START_TEST(test_scope_01)
     struct swan_obj  *out;
 
     fail_if_error(s0 = swan_scope_new(&s, "root", NULL, &err));
-    fail_if_error(s1 = swan_scope_new(&s, "prelude", s0, &err));
+    fail_if_error(s1 = swan_scope_new(&s, "kernel", s0, &err));
     fail_if_error(str1 = swan_string_new(&s, "hiya", 4, &err));
-    fail_if_error(swan_scope_add(&s, s0, "prelude", swan_scope_obj(s1), &err));
+    fail_if_error(swan_scope_add(&s, s0, "kernel", swan_scope_obj(s1), &err));
     fail_if_error(swan_scope_add(&s, s1, "name", swan_string_obj(str1), &err));
 
-    fail_if_error(out = swan_scope_get(&s, s0, "prelude", &err));
+    fail_if_error(out = swan_scope_get(&s, s0, "kernel", &err));
     fail_unless(out == swan_scope_obj(s1),
-                "Unexpected root.prelude scope");
+                "Unexpected root.kernel scope");
     fail_unless_error(out = swan_scope_get(&s, s0, "undefined", &err),
                       "Unexpected root.undefined scope");
 
-    fail_if_error(out = swan_scope_get(&s, s1, "prelude", &err));
+    fail_if_error(out = swan_scope_get(&s, s1, "kernel", &err));
     fail_unless(out == swan_scope_obj(s1),
-                "Unexpected prelude.prelude scope");
+                "Unexpected kernel.kernel scope");
     fail_unless_error(out = swan_scope_get(&s, s1, "undefined", &err),
-                      "Unexpected prelude.undefined scope");
+                      "Unexpected kernel.undefined scope");
 
     fail_if_error(out = swan_scope_get(&s, s1, "name", &err));
     fail_unless(out == swan_string_obj(str1),
-                "Unexpected prelude.name string");
+                "Unexpected kernel.name string");
 
     cork_gc_decref(swan_gc(&s), s0);
 

@@ -13,22 +13,6 @@ include_directories(../include)
 # Build the libraries
 
 
-file(GLOB_RECURSE LIBLAGAVULIN_SRC liblagavulin/*.c)
-
-set_property(
-    SOURCE liblagavulin/block.c
-    PROPERTY COMPILE_FLAGS -fomit-frame-pointer
-)
-
-add_library(liblagavulin SHARED ${LIBLAGAVULIN_SRC})
-set_target_properties(liblagavulin PROPERTIES
-    OUTPUT_NAME lagavulin
-    SOVERSION 0.0.0)
-target_link_libraries(liblagavulin
-    ${CORK_LIBRARIES}
-)
-
-
 file(GLOB_RECURSE LIBSWANSON_SRC libswanson/*.c)
 
 set_property(
@@ -41,7 +25,23 @@ set_target_properties(libswanson PROPERTIES
     OUTPUT_NAME swanson
     SOVERSION 0.0.0)
 target_link_libraries(libswanson
-    ${CORK_LIBRARIES} liblagavulin
+    ${CORK_LIBRARIES}
+)
+
+
+file(GLOB_RECURSE LIBLAGAVULIN_SRC liblagavulin/*.c)
+
+set_property(
+    SOURCE liblagavulin/block.c
+    PROPERTY COMPILE_FLAGS -fomit-frame-pointer
+)
+
+add_library(liblagavulin SHARED ${LIBLAGAVULIN_SRC})
+set_target_properties(liblagavulin PROPERTIES
+    OUTPUT_NAME lagavulin
+    SOVERSION 0.0.0)
+target_link_libraries(liblagavulin
+    ${CORK_LIBRARIES} libswanson
 )
 
 
