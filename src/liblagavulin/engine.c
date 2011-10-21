@@ -41,18 +41,11 @@ lgv_int_int_literal(struct swan *s, struct swan_macro *macro,
     }
 
     va_list  args;
-    struct swan_obj  *arg;
     va_start(args, num_args);
-    arg = va_arg(args, struct swan_obj *);
 
-    if (!swan_is_string(arg)) {
-        cork_error_set(err, SWAN_MACRO_ERROR,
-                       SWAN_MACRO_ERROR_INVALID_ARGUMENT,
-                       "Expected string constant in int:int_literal");
-        return NULL;
-    }
+    struct swan_string  *str;
+    e_pcheck(str = swan_check_arg_string(s, args, "int:int_literal", 1, err));
 
-    struct swan_string  *str = swan_obj_string(arg);
     char  *endptr;
     long  l_value = strtol(str->value, &endptr, 0);
     if (*endptr != '\0' || errno == ERANGE ||
@@ -86,31 +79,15 @@ lgv_int_add(struct swan *s, struct swan_macro *macro,
     }
 
     va_list  args;
-    struct swan_obj  *vlhs;
-    struct swan_obj  *vrhs;
     va_start(args, num_args);
-    vlhs = va_arg(args, struct swan_obj *);
-    vrhs = va_arg(args, struct swan_obj *);
 
-    if (!swan_is_expression(vlhs)) {
-        cork_error_set(err, SWAN_MACRO_ERROR,
-                       SWAN_MACRO_ERROR_INVALID_ARGUMENT,
-                       "Expected integer expression for LHS in int:add");
-        return NULL;
-    }
+    struct swan_expression  *lhs;
+    struct swan_expression  *rhs;
+    e_pcheck(lhs = swan_check_arg_expression(s, args, "int:add", 1, err));
+    e_pcheck(rhs = swan_check_arg_expression(s, args, "int:add", 2, err));
 
-    if (!swan_is_expression(vrhs)) {
-        cork_error_set(err, SWAN_MACRO_ERROR,
-                       SWAN_MACRO_ERROR_INVALID_ARGUMENT,
-                       "Expected integer expression for RHS in int:add");
-        return NULL;
-    }
-
-    struct swan_expression  *lhs = swan_obj_expression(vlhs);
-    struct swan_expression  *rhs = swan_obj_expression(vrhs);
     struct lgv_block  *blhs = lgv_expression_block(lhs);
     struct lgv_block  *brhs = lgv_expression_block(rhs);
-
     struct lgv_block  *block = NULL;
     struct swan_expression  *expr = NULL;
 

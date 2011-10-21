@@ -16,6 +16,8 @@
  * @brief Implementation of the @ref swanson0 module
  */
 
+#include <stdarg.h>
+
 #include <libcork/core.h>
 #include <libcork/ds.h>
 
@@ -150,6 +152,27 @@ struct swan_expression {
 int
 swan_expression_init(struct swan *s, struct swan_expression *expr,
                      struct cork_error *err);
+
+
+struct swan_scope *
+swan_check_arg_scope(struct swan *s, va_list args,
+                     const char *context, size_t arg_num,
+                     struct cork_error *err);
+
+struct swan_string *
+swan_check_arg_string(struct swan *s, va_list args,
+                      const char *context, size_t arg_num,
+                      struct cork_error *err);
+
+struct swan_macro *
+swan_check_arg_macro(struct swan *s, va_list args,
+                     const char *context, size_t arg_num,
+                     struct cork_error *err);
+
+struct swan_expression *
+swan_check_arg_expression(struct swan *s, va_list args,
+                          const char *context, size_t arg_num,
+                          struct cork_error *err);
 
 
 #endif  /* SWANSON_SWANSON0_H */
