@@ -1,5 +1,6 @@
 /.lock-wscript
 /build/
+/.build/
 
 RELEASE-VERSION
 libswanson.pc
