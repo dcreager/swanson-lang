@@ -3,6 +3,8 @@
 .. |S0| replace:: S\ :sub:`0`
 .. |S1| replace:: S₀
 
+.. index:: S₀
+
 ***********************
 Swanson bytecode (|S0|)
 ***********************
@@ -53,6 +55,8 @@ some representation at runtime.  Types, macros, and literals are only
 guaranteed to exist at compile time.
 
 
+.. index:: S₀; types
+
 Types
 -----
 
@@ -67,6 +71,8 @@ to be implemented in the C code that implements Swanson itself; but
 otherwise, they're no different than any function or macro methods you
 define yourself in Swanson code.
 
+
+.. index:: S₀; values
 
 Values
 ------
@@ -84,6 +90,8 @@ have no explicit control over their lifecycle, and there's no way to
 distinguish “identical” values from each other.  (There isn't even a
 built-in concept of “identical”.)
 
+
+.. index:: S₀; locations
 
 Locations
 ---------
@@ -107,6 +115,8 @@ allocated on the heap.  Local locations are allocated using the
 ``LOCAL`` |S0| instruction.  Global locations, on the other hand, are
 allocated using the built-in ``new`` function.
 
+
+.. index:: S₀; functions
 
 Functions
 ---------
@@ -138,6 +148,8 @@ values, locations, and other functions.  (You can't pass in a macro or a
 literal, for instance, as a parameter to a function.)
 
 
+.. index:: S₀; macros
+
 Macros
 ------
 
@@ -163,6 +175,8 @@ and upvalues can be any |S0| entity.  (Functions are limited to those
 entities that exist at runtime — i.e., values, locations, and
 functions.)
 
+
+.. index:: S₀; literals
 
 Literals
 --------
