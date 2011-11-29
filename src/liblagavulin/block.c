@@ -113,7 +113,7 @@ struct lgv_block_while {
 
 #if BLOCK_DEBUG_FREE
 static void
-lgv_block_free(struct cork_alloc *alloc, void *vself)
+lgv_block_free(struct cork_gc *gc, void *vself)
 {
     struct lgv_block  *self = vself;
     DEBUG("Freeing %s(%p)", self->name, self);

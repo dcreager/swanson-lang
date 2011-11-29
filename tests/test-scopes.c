@@ -27,9 +27,7 @@
 START_TEST(test_scope_01)
 {
     DESCRIBE_TEST;
-    struct cork_alloc  *alloc = cork_allocator_new_debug();
-    struct swan  s;
-    swan_init(&s, alloc, NULL);
+    DECLARE_SWAN;
 
     struct swan_scope  *s0;
     struct swan_scope  *s1;
@@ -60,8 +58,7 @@ START_TEST(test_scope_01)
 
     cork_gc_decref(swan_gc(&s), s0);
 
-    swan_done(&s);
-    cork_allocator_free(alloc);
+    CLEANUP_SWAN;
 }
 END_TEST
 

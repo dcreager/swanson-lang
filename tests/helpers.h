@@ -15,6 +15,24 @@
 #define DESCRIBE_TEST \
     fprintf(stderr, "--- %s\n", __func__);
 
+#define DECLARE_SWAN \
+    struct cork_alloc  *alloc = cork_allocator_new_debug(); \
+    struct swan  s; \
+    swan_init(&s, alloc, NULL);
+
+#define CLEANUP_SWAN \
+    swan_done(&s); \
+    cork_allocator_free(alloc);
+
+#define DECLARE_LGV \
+    struct cork_alloc  *alloc = cork_allocator_new_debug(); \
+    struct swan  *s; \
+    fail_if_error(s = lgv_new(alloc, &err));
+
+#define CLEANUP_LGV \
+    lgv_free(s); \
+    cork_allocator_free(alloc);
+
 
 #define fail_if_error(call) \
     do { \

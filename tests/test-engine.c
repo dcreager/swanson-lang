@@ -46,14 +46,12 @@
     START_TEST(test_constant_##typ_id##_##name) \
     { \
         DESCRIBE_TEST; \
-        struct cork_alloc  *alloc = cork_allocator_new_debug(); \
-        struct swan  *s; \
+        DECLARE_LGV; \
         struct swan_scope  *kernel; \
         struct swan_string  *str; \
         struct swan_obj  *obj; \
         struct swan_macro  *macro; \
         struct swan_expression  *expr; \
-        fail_if_error(s = lgv_new(alloc, &err)); \
         fail_if_error(kernel = swan_create_kernel(s, &err)); \
         fail_if_error(str = swan_string_new(s, #value, sizeof(#value), &err)); \
         fail_if_error(obj = swan_scope_get(s, kernel, #typ ":int-literal", &err)); \
@@ -65,8 +63,7 @@
         cork_gc_decref(swan_gc(s), expr); \
         cork_gc_decref(swan_gc(s), str); \
         cork_gc_decref(swan_gc(s), kernel); \
-        lgv_free(s); \
-        cork_allocator_free(alloc); \
+        CLEANUP_LGV; \
     } \
     END_TEST
 
@@ -79,8 +76,8 @@ test_constant(int, int, si, -100, _100, "%d");
 START_TEST(test_add_int_01)
 {
     DESCRIBE_TEST;
-    struct cork_alloc  *alloc = cork_allocator_new_debug();
-    struct swan  *s;
+    DECLARE_LGV;
+
     struct swan_scope  *kernel;
     struct swan_string  *str;
     struct swan_obj  *obj;
@@ -119,8 +116,7 @@ START_TEST(test_add_int_01)
 
     cork_gc_decref(swan_gc(s), expr);
     cork_gc_decref(swan_gc(s), kernel);
-    lgv_free(s);
-    cork_allocator_free(alloc);
+    CLEANUP_LGV;
 }
 END_TEST
 
