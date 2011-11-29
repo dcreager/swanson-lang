@@ -46,7 +46,8 @@ swan_done(struct swan *state);
 #define SWAN_GENERAL_ERROR  0xae419dc9
 
 enum swan_general_error {
-    SWAN_GENERAL_ERROR_CANNOT_ALLOCATE
+    SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
+    SWAN_GENERAL_ERROR_UNKNOWN
 };
 
 

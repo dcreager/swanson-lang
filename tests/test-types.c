@@ -1,0 +1,275 @@
+/* -*- coding: utf-8 -*-
+ * ----------------------------------------------------------------------
+ * Copyright © 2011, RedJack, LLC.
+ * All rights reserved.
+ *
+ * Please see the LICENSE.txt file in this distribution for license
+ * details.
+ * ----------------------------------------------------------------------
+ */
+
+#include <stdarg.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#include <check.h>
+
+#include "swanson/s0.h"
+#include "swanson/state.h"
+
+#include "helpers.h"
+
+
+/*-----------------------------------------------------------------------
+ * Helpers
+ */
+
+#define check_type(t, expected, expected_givens) \
+    do { \
+        struct cork_buffer  actual = CORK_BUFFER_INIT(alloc); \
+        struct cork_buffer  givens = CORK_BUFFER_INIT(alloc); \
+        fail_unless(cork_buffer_set_string(&actual, "")); \
+        fail_unless(cork_buffer_set_string(&givens, "")); \
+        fail_if_error(s0_type_print(&s, t, &actual, &givens, &err)); \
+        if ((strcmp(actual.buf, expected) != 0) || \
+            (strcmp(givens.buf, expected_givens) != 0)) { \
+            fail("Unexpected type: %s\n\n%s", \
+                 (char *) actual.buf, (char *) givens.buf); \
+        } \
+    } while (0)
+
+
+/*-----------------------------------------------------------------------
+ * Literals
+ */
+
+START_TEST(test_literal)
+{
+    DESCRIBE_TEST;
+    DECLARE_SWAN;
+
+    struct s0_type  *t0;
+    fail_if_error(t0 = s0_literal_type_new(&s, &err));
+    check_type(t0, "LITERAL", "");
+
+    cork_gc_decref(swan_gc(&s), t0);
+    CLEANUP_SWAN;
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
+ * Locations
+ */
+
+START_TEST(test_location_01)
+{
+    DESCRIBE_TEST;
+    DECLARE_SWAN;
+
+    struct s0_type  *t0;
+    struct s0_type  *t1;
+    fail_if_error(t1 = s0_literal_type_new(&s, &err));
+    fail_if_error(t0 = s0_location_type_new(&s, t1, &err));
+    check_type(t0, "*LITERAL", "");
+
+    cork_gc_decref(swan_gc(&s), t0);
+    cork_gc_decref(swan_gc(&s), t1);
+    CLEANUP_SWAN;
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
+ * Functions
+ */
+
+START_TEST(test_function_01)
+{
+    DESCRIBE_TEST;
+    DECLARE_SWAN;
+
+    struct s0_type  *t0;
+    struct s0_type  *t1;
+    struct s0_type_list  *params;
+    struct s0_type_list  *results;
+    fail_if_error(t1 = s0_literal_type_new(&s, &err));
+    fail_if_error(params = s0_type_list_new(&s, t1, NULL, &err));
+    fail_if_error(results = s0_type_list_new(&s, t1, NULL, &err));
+    fail_if_error(t0 = s0_function_type_new(&s, params, results, &err));
+    check_type(t0, "LITERAL -> LITERAL", "");
+
+    cork_gc_decref(swan_gc(&s), t0);
+    cork_gc_decref(swan_gc(&s), t1);
+    CLEANUP_SWAN;
+}
+END_TEST
+
+START_TEST(test_function_02)
+{
+    DESCRIBE_TEST;
+    DECLARE_SWAN;
+
+    struct s0_type  *t0;
+    struct s0_type  *t1;
+    struct s0_type_list  *params;
+    struct s0_type_list  *results;
+    fail_if_error(t1 = s0_literal_type_new(&s, &err));
+    fail_if_error(params = s0_type_list_new(&s, t1, NULL, &err));
+    fail_if_error(params = s0_type_list_new(&s, t1, params, &err));
+    fail_if_error(results = s0_type_list_new(&s, t1, NULL, &err));
+    fail_if_error(t0 = s0_function_type_new(&s, params, results, &err));
+    check_type(t0, "LITERAL,LITERAL -> LITERAL", "");
+
+    cork_gc_decref(swan_gc(&s), t0);
+    cork_gc_decref(swan_gc(&s), t1);
+    CLEANUP_SWAN;
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
+ * Interfaces
+ */
+
+START_TEST(test_interface_01)
+{
+    DESCRIBE_TEST;
+    DECLARE_SWAN;
+
+    struct s0_type  *t0;
+    struct s0_type  *t1;
+    struct s0_interface_entry  *entries;
+    fail_if_error(t1 = s0_literal_type_new(&s, &err));
+    fail_if_error(entries = s0_interface_entry_new
+                  (&s, "lit", t1, NULL, &err));
+    cork_gc_decref(swan_gc(&s), t1);
+    fail_if_error(t0 = s0_interface_type_new(&s, entries, &err));
+    check_type(t0, "α",
+        "interface α {\n"
+        "  lit LITERAL\n"
+        "}\n"
+    );
+
+    cork_gc_decref(swan_gc(&s), t0);
+    CLEANUP_SWAN;
+}
+END_TEST
+
+START_TEST(test_interface_02)
+{
+    DESCRIBE_TEST;
+    DECLARE_SWAN;
+
+    struct s0_type  *tr;
+    struct s0_type  *t0;
+    struct s0_type  *t1;
+    struct s0_type_list  *params;
+    struct s0_type_list  *results;
+    struct s0_interface_entry  *entries;
+    fail_if_error(tr = s0_recursive_type_new(&s, &err));
+
+    fail_if_error(params = s0_type_list_new(&s, tr, NULL, &err));
+    fail_if_error(params = s0_type_list_new(&s, tr, params, &err));
+    fail_if_error(results = s0_type_list_new(&s, tr, NULL, &err));
+    fail_if_error(t1 = s0_function_type_new(&s, params, results, &err));
+    fail_if_error(entries = s0_interface_entry_new
+                  (&s, "+", t1, NULL, &err));
+    cork_gc_decref(swan_gc(&s), t1);
+
+    fail_if_error(t0 = s0_interface_type_new(&s, entries, &err));
+    fail_if_error(s0_recursive_type_resolve(&s, tr, t0, &err));
+
+    check_type(t0, "α",
+        "interface α {\n"
+        "  + (α,α -> α)\n"
+        "}\n"
+    );
+
+    cork_gc_decref(swan_gc(&s), t0);
+    cork_gc_decref(swan_gc(&s), tr);
+    CLEANUP_SWAN;
+}
+END_TEST
+
+START_TEST(test_interface_03)
+{
+    DESCRIBE_TEST;
+    DECLARE_SWAN;
+
+    struct s0_type  *tr;
+    struct s0_type  *tl;
+    struct s0_type  *t0;
+    struct s0_type  *t1;
+    struct s0_type_list  *params;
+    struct s0_type_list  *results;
+    struct s0_interface_entry  *entries;
+    fail_if_error(tr = s0_recursive_type_new(&s, &err));
+    fail_if_error(tl = s0_location_type_new(&s, tr, &err));
+
+    fail_if_error(params = s0_type_list_new(&s, tr, NULL, &err));
+    fail_if_error(params = s0_type_list_new(&s, tl, params, &err));
+    fail_if_error(t1 = s0_function_type_new(&s, params, NULL, &err));
+    fail_if_error(entries = s0_interface_entry_new
+                  (&s, "=", t1, NULL, &err));
+    cork_gc_decref(swan_gc(&s), t1);
+
+    fail_if_error(params = s0_type_list_new(&s, tl, NULL, &err));
+    fail_if_error(results = s0_type_list_new(&s, tr, NULL, &err));
+    fail_if_error(t1 = s0_function_type_new(&s, params, results, &err));
+    fail_if_error(entries = s0_interface_entry_new
+                  (&s, "unary *", t1, entries, &err));
+    cork_gc_decref(swan_gc(&s), t1);
+
+    fail_if_error(t0 = s0_interface_type_new(&s, entries, &err));
+    fail_if_error(s0_recursive_type_resolve(&s, tr, t0, &err));
+
+    check_type(t0, "α",
+        "interface α {\n"
+        "  unary * (*α -> α)\n"
+        "  = (*α,α -> void)\n"
+        "}\n"
+    );
+
+    cork_gc_decref(swan_gc(&s), t0);
+    cork_gc_decref(swan_gc(&s), tr);
+    CLEANUP_SWAN;
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
+ * Testing harness
+ */
+
+Suite *
+test_suite()
+{
+    Suite  *s = suite_create("types");
+
+    TCase  *tc_print = tcase_create("print");
+    tcase_add_test(tc_print, test_literal);
+    tcase_add_test(tc_print, test_location_01);
+    tcase_add_test(tc_print, test_function_01);
+    tcase_add_test(tc_print, test_function_02);
+    tcase_add_test(tc_print, test_interface_01);
+    tcase_add_test(tc_print, test_interface_02);
+    tcase_add_test(tc_print, test_interface_03);
+    suite_add_tcase(s, tc_print);
+
+    return s;
+}
+
+int
+main(int argc, const char **argv)
+{
+    int  number_failed;
+    Suite  *suite = test_suite();
+    SRunner  *runner = srunner_create(suite);
+
+    srunner_run_all(runner, CK_NORMAL);
+    number_failed = srunner_ntests_failed(runner);
+    srunner_free(runner);
+
+    return (number_failed == 0)? EXIT_SUCCESS: EXIT_FAILURE;
+}

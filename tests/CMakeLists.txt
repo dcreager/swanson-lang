@@ -34,6 +34,7 @@ endmacro(make_test)
 make_test(test-blocks)
 make_test(test-engine)
 make_test(test-scopes)
+make_test(test-types)
 
 add_executable(simple-speed-test simple-speed-test.c)
 target_link_libraries(simple-speed-test libswanson liblagavulin)
