@@ -86,26 +86,18 @@ s0_location_type_new(struct swan *s, struct s0_type *referent,
                      struct cork_error *err);
 
 
-struct s0_interface_entry {
-    const char  *name;
-    struct s0_type  *type;
-    struct s0_interface_entry  *tail;
-};
-
-/* Creates new reference to type, steals reference to tail */
-struct s0_interface_entry *
-s0_interface_entry_new(struct swan *s, const char *name, struct s0_type *type,
-                       struct s0_interface_entry *tail, struct cork_error *err);
-
-
 struct s0_interface_type {
     struct s0_type  parent;
-    struct s0_interface_entry  *entries;
+    struct cork_hash_table  entries;
 };
 
-/* Steals reference to entries */
 struct s0_type *
-s0_interface_type_new(struct swan *s, struct s0_interface_entry *entries,
+s0_interface_type_new(struct swan *s, struct cork_error *err);
+
+/* Creates new reference to type */
+int
+s0_interface_type_add(struct swan *s, struct s0_type *self,
+                      const char *name, struct s0_type *type,
                       struct cork_error *err);
 
 

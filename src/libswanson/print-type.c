@@ -169,7 +169,8 @@ print_interface(struct swan *s, struct s0_printer *state,
                 size_t index, struct cork_buffer *dest)
 {
     struct s0_interface_type  *itype = NULL;
-    struct s0_interface_entry  *curr;
+    struct cork_hash_table_iterator  iter;
+    struct cork_hash_table_entry  *entry;
     r_pcheck(itype = cork_hash_table_get
              (&state->interfaces, (void *) (intptr_t) index));
 
@@ -180,9 +181,12 @@ print_interface(struct swan *s, struct s0_printer *state,
     r_bcheck(cork_buffer_append_string(dest, "interface "));
     r_check(print_interface_name(s, index, dest));
     r_bcheck(cork_buffer_append_string(dest, " {\n"));
-    for (curr = itype->entries; curr != NULL; curr = curr->tail) {
-        r_bcheck(cork_buffer_append_printf(dest, "  %s ", curr->name));
-        r_check(print_one(s, state, curr->type, dest, true));
+    cork_hash_table_iterator_init(&itype->entries, &iter);
+    while ((entry = cork_hash_table_iterator_next(&itype->entries, &iter))
+           != NULL) {
+        const char  *name = entry->key;
+        r_bcheck(cork_buffer_append_printf(dest, "  %s ", name));
+        r_check(print_one(s, state, entry->value, dest, true));
         r_bcheck(cork_buffer_append_string(dest, "\n"));
     }
     r_bcheck(cork_buffer_append_string(dest, "}\n"));
