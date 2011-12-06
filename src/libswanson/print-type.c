@@ -161,6 +161,17 @@ print_one(struct swan *s, struct s0_printer *state,
             return print_interface_name(s, index, dest, err);
         }
 
+        case S0_KIND_BLOCK:
+        {
+            struct s0_block_type  *btype =
+                cork_container_of(type, struct s0_block_type, parent);
+            rii_check(cork_buffer_append_string
+                      (swan_alloc(s), dest, "{", err));
+            rii_check(print_one(s, state, btype->result, dest, false, err));
+            return cork_buffer_append_string
+                (swan_alloc(s), dest, "}", err);
+        }
+
         case S0_KIND_RECURSIVE:
         {
             struct s0_recursive_type  *rtype =

@@ -48,7 +48,8 @@ enum s0_kind {
     S0_KIND_FUNCTION = 1,
     S0_KIND_LOCATION = 2,
     S0_KIND_INTERFACE = 3,
-    S0_KIND_RECURSIVE = 4
+    S0_KIND_BLOCK = 4,
+    S0_KIND_RECURSIVE = 5
 };
 
 struct s0_type {
@@ -112,6 +113,18 @@ int
 s0_interface_type_add(struct swan *s, struct s0_type *self,
                       const char *name, struct s0_type *type,
                       struct cork_error *err);
+
+
+struct s0_block_type {
+    struct s0_type  parent;
+    struct s0_type  *result;
+};
+
+
+/* Creates new reference to referent */
+struct s0_type *
+s0_block_type_new(struct swan *s, struct s0_type *result,
+                  struct cork_error *err);
 
 
 /* This is a placeholder for a recursive reference within the definition

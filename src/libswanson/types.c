@@ -323,6 +323,41 @@ s0_interface_type_add(struct swan *s, struct s0_type *self,
 }
 
 
+/*** block ***/
+
+static void
+s0_block_type_recurse(struct cork_gc *gc, void *vself,
+                      cork_gc_recurser recurse, void *ud)
+{
+    struct s0_block_type  *self = vself;
+    recurse(gc, self->result, ud);
+}
+
+static struct cork_gc_obj_iface  s0_block_type_gc = {
+    NULL, s0_block_type_recurse
+};
+
+struct s0_type *
+s0_block_type_new(struct swan *s, struct s0_type *result,
+                  struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+
+    struct s0_block_type  *self = NULL;
+    e_check_gc_new(s0_block_type, self, "block type");
+    self->parent.kind = S0_KIND_BLOCK;
+    self->result = cork_gc_incref(swan_gc(s), result);
+    return &self->parent;
+
+error:
+    cork_gc_decref(swan_gc(s), self);
+    return NULL;
+}
+
+
+/*** recursive ***/
+
 static void
 s0_recursive_type_recurse(struct cork_gc *gc, void *vself,
                           cork_gc_recurser recurse, void *ud)

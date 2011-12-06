@@ -252,6 +252,28 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
+ * Blocks
+ */
+
+START_TEST(test_block_01)
+{
+    DESCRIBE_TEST;
+    DECLARE_SWAN;
+
+    struct s0_type  *t0;
+    struct s0_type  *t1;
+    fail_if_error(t1 = s0_literal_type_new(&s, &err));
+    fail_if_error(t0 = s0_block_type_new(&s, t1, &err));
+    check_type(t0, "{LITERAL}", "");
+
+    cork_gc_decref(swan_gc(&s), t0);
+    cork_gc_decref(swan_gc(&s), t1);
+    CLEANUP_SWAN;
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
  * Testing harness
  */
 
@@ -269,6 +291,7 @@ test_suite()
     tcase_add_test(tc_types, test_interface_02);
     tcase_add_test(tc_types, test_interface_03);
     tcase_add_test(tc_types, test_interface_no_duplicates);
+    tcase_add_test(tc_types, test_block_01);
     suite_add_tcase(s, tc_types);
 
     return s;
