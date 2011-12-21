@@ -11,8 +11,8 @@
 #include <string.h>
 
 #include <libcork/core.h>
+#include <libcork/core/checkers.h>
 
-#include "swanson/checkers.h"
 #include "swanson/state.h"
 #include "swanson/swanson0.h"
 
@@ -34,19 +34,14 @@ struct swan_string *
 swan_string_new(struct swan *s, const char *value, size_t length,
                 struct cork_error *err)
 {
-    struct swan_string  *self = NULL;
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
 
-    self = cork_gc_new(swan_gc(s), struct swan_string, &swan_string_gc);
-    if (self == NULL) {
-        goto error;
-    }
+    struct swan_string  *self = NULL;
+    e_check_gc_new(swan_string, self, "string");
     self->parent.cls = SWAN_STRING_CLASS;
 
-    self->value = cork_malloc(swan_alloc(s), length);
-    if (self->value == NULL) {
-        goto error;
-    }
-
+    ep_check(self->value = cork_malloc(swan_alloc(s), length));
     memcpy((void *) self->value, value, length);
     self->length = length;
 
@@ -57,9 +52,6 @@ error:
         cork_gc_decref(swan_gc(s), self);
     }
 
-    cork_error_set(err, SWAN_GENERAL_ERROR,
-                   SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                   "Cannot allocate new string %s", value);
     return NULL;
 }
 

@@ -11,11 +11,69 @@
 #include <string.h>
 
 #include <libcork/core.h>
+#include <libcork/core/checkers.h>
 #include <libcork/ds.h>
 
-#include "swanson/checkers.h"
 #include "swanson/state.h"
 #include "swanson/swanson0.h"
+
+/*-----------------------------------------------------------------------
+ * Error handling
+ */
+
+struct swan_scope_error_extra {
+    const char  *id;
+    const char  *scope_name;
+};
+
+static int
+swan_scope_redefined(struct cork_alloc *alloc, struct cork_error *err,
+                     struct cork_buffer *dest)
+{
+    struct swan_scope_error_extra  *extra = cork_error_extra(err);
+    return cork_buffer_printf
+        (alloc, dest, NULL, "%s redefined in scope %s",
+         extra->id, extra->scope_name);
+}
+
+int
+swan_scope_redefined_set(struct cork_alloc *alloc, struct cork_error *err,
+                         const char *id, const char *scope_name)
+{
+    struct swan_scope_error_extra  extra = { id, scope_name };
+    return cork_error_set_extra(alloc, err,
+                                SWAN_SCOPE_ERROR,
+                                SWAN_SCOPE_REDEFINED,
+                                swan_scope_redefined,
+                                extra);
+}
+
+static int
+swan_scope_undefined(struct cork_alloc *alloc, struct cork_error *err,
+                     struct cork_buffer *dest)
+{
+    struct swan_scope_error_extra  *extra = cork_error_extra(err);
+    return cork_buffer_printf
+        (alloc, dest, NULL, "No entry named %s in scope %s",
+         extra->id, extra->scope_name);
+}
+
+int
+swan_scope_undefined_set(struct cork_alloc *alloc, struct cork_error *err,
+                         const char *id, const char *scope_name)
+{
+    struct swan_scope_error_extra  extra = { id, scope_name };
+    return cork_error_set_extra(alloc, err,
+                                SWAN_SCOPE_ERROR,
+                                SWAN_SCOPE_UNDEFINED,
+                                swan_scope_undefined,
+                                extra);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Scopes
+ */
 
 static bool
 swan_scope_comparator(const void *vk1, const void *vk2)
@@ -33,33 +91,28 @@ swan_scope_hasher(const void *vk)
     return cork_hash_buffer(0, k, len);
 }
 
-struct recurse_state {
-    cork_gc_recurser  recurse;
-    void  *ud;
-};
-
-static enum cork_hash_table_map_result
-swan_scope_recurse_entries(struct cork_hash_table_entry *entry, void *ud)
-{
-    struct recurse_state  *state = ud;
-    state->recurse(entry->value, state->ud);
-    return CORK_HASH_TABLE_MAP_CONTINUE;
-}
-
 static void
-swan_scope_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+swan_scope_recurse(struct cork_gc *gc, void *vself,
+                   cork_gc_recurser recurse, void *ud)
 {
     struct swan_scope  *self = vself;
-    struct recurse_state  state = { recurse, ud };
-    cork_hash_table_map(&self->entries, swan_scope_recurse_entries, &state);
-    recurse(self->parent_scope, ud);
+    struct cork_hash_table_iterator  iter;
+    struct cork_hash_table_entry  *entry;
+
+    cork_hash_table_iterator_init(&self->entries, &iter);
+    while ((entry = cork_hash_table_iterator_next(&self->entries, &iter))
+           != NULL) {
+        recurse(gc, entry->value, ud);
+    }
+
+    recurse(gc, self->parent_scope, ud);
 }
 
 static enum cork_hash_table_map_result
-swan_scope_free_entries(struct cork_hash_table_entry *entry, void *ud)
+swan_scope_free_entries(struct cork_alloc *alloc,
+                        struct cork_hash_table_entry *entry, void *ud)
 {
-    struct swan  *s = ud;
-    cork_strfree(swan_alloc(s), entry->key);
+    cork_strfree(alloc, entry->key);
     /* We don't have to decref the value, since the recurse function
      * will do that for us. */
     return CORK_HASH_TABLE_MAP_DELETE;
@@ -71,8 +124,9 @@ swan_scope_free(struct cork_gc *gc, void *vself)
     struct swan  *s = cork_container_of(gc, struct swan, gc);
     struct swan_scope  *self = vself;
 
-    cork_hash_table_map(&self->entries, swan_scope_free_entries, s);
-    cork_hash_table_done(&self->entries);
+    cork_hash_table_map
+        (swan_alloc(s), &self->entries, swan_scope_free_entries, NULL);
+    cork_hash_table_done(swan_alloc(s), &self->entries);
     if (self->name != NULL) {
         cork_strfree(swan_alloc(s), self->name);
     }
@@ -86,34 +140,24 @@ struct swan_scope *
 swan_scope_new(struct swan *s, const char *name, struct swan_scope *parent,
                struct cork_error *err)
 {
-    struct swan_scope  *self = NULL;
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
 
-    self = cork_gc_new(swan_gc(s), struct swan_scope, &swan_scope_gc);
-    if (self == NULL) {
-        goto error;
-    }
+    struct swan_scope  *self = NULL;
+    e_check_gc_new(swan_scope, self, "scope");
     self->parent.cls = SWAN_SCOPE_CLASS;
     self->parent_scope = cork_gc_incref(swan_gc(s), parent);
 
-    e_bcheck(cork_hash_table_init
-             (swan_alloc(s), &self->entries, 0,
-              swan_scope_hasher, swan_scope_comparator));
-
-    self->name = cork_strdup(swan_alloc(s), name);
-    if (self->name == NULL) {
-        goto error;
-    }
-
+    ei_check(cork_hash_table_init
+             (alloc, &self->entries, 0,
+              swan_scope_hasher, swan_scope_comparator, err));
+    e_check_alloc(self->name = cork_strdup(swan_alloc(s), name), "scope name");
     return self;
 
 error:
     if (self != NULL) {
         cork_gc_decref(swan_gc(s), self);
     }
-
-    cork_error_set(err, SWAN_GENERAL_ERROR,
-                   SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                   "Cannot allocate new scope %s", name);
     return NULL;
 }
 
@@ -125,13 +169,10 @@ swan_scope_add(struct swan *s, struct swan_scope *self,
     bool  is_new;
     struct cork_hash_table_entry  *entry =
         cork_hash_table_get_or_create
-        (&self->entries, (void *) name, &is_new);
+        (swan_alloc(s), &self->entries, (void *) name, &is_new, err);
 
     if (!is_new) {
-        cork_error_set(err, SWAN_SCOPE_ERROR,
-                       SWAN_SCOPE_ERROR_REDEFINED,
-                       "%s redefined in scope %s",
-                       name, self->name);
+        swan_scope_redefined_set(swan_alloc(s), err, name, self->name);
         cork_gc_decref(swan_gc(s), obj);
         return -1;
     }
@@ -142,19 +183,16 @@ swan_scope_add(struct swan *s, struct swan_scope *self,
 }
 
 static struct swan_obj *
-swan_scope_get_(const char *scope_name, struct swan_scope *self,
+swan_scope_get_(struct swan *s, const char *scope_name, struct swan_scope *self,
                 const char *name, struct cork_error *err)
 {
     struct swan_obj  *result =
-        cork_hash_table_get(&self->entries, name);
+        cork_hash_table_get(swan_alloc(s), &self->entries, name);
     if (result == NULL) {
         if (self->parent_scope == NULL) {
-            cork_error_set(err, SWAN_SCOPE_ERROR,
-                           SWAN_SCOPE_ERROR_UNDEFINED,
-                           "No entry named %s in scope %s",
-                           name, scope_name);
+            swan_scope_undefined_set(swan_alloc(s), err, name, self->name);
         } else {
-            return swan_scope_get_(scope_name, self->parent_scope, name, err);
+            return swan_scope_get_(s, scope_name, self->parent_scope, name, err);
         }
     }
     return result;
@@ -164,5 +202,5 @@ struct swan_obj *
 swan_scope_get(struct swan *s, struct swan_scope *self,
                const char *name, struct cork_error *err)
 {
-    return swan_scope_get_(self->name, self, name, err);
+    return swan_scope_get_(s, self->name, self, name, err);
 }

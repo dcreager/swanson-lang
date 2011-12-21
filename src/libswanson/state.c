@@ -9,21 +9,19 @@
  */
 
 #include <libcork/core.h>
+#include <libcork/core/checkers.h>
 
-#include "swanson/checkers.h"
 #include "swanson/state.h"
 
 int
 swan_init(struct swan *self, struct cork_alloc *alloc,
           struct cork_error *err)
 {
-    e_check(cork_gc_init(&self->gc, alloc));
+    ei_check(cork_gc_init(&self->gc, alloc));
     return 0;
 
 error:
-    cork_error_set(err, SWAN_GENERAL_ERROR,
-                   SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                   "Can't initialize Swanson state");
+    cork_alloc_cannot_allocate_set(alloc, err, "Swanson state");
     return -1;
 }
 

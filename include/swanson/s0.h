@@ -19,16 +19,29 @@
 
 
 /*-----------------------------------------------------------------------
- * Types and type constructors
+ * Error handling
  */
 
 /* Hash of "swanson.s0" */
 #define SWAN_S0_ERROR  0x4972f292
 
 enum swan_s0_error {
-    SWAN_S0_ERROR_REDEFINITION
+    SWAN_S0_REDEFINITION
 };
 
+int
+swan_s0_interface_redefinition_set(struct cork_alloc *alloc,
+                                   struct cork_error *err,
+                                   const char *id);
+
+int
+swan_s0_recursive_redefinition_set(struct cork_alloc *alloc,
+                                   struct cork_error *err);
+
+
+/*-----------------------------------------------------------------------
+ * Types and type constructors
+ */
 
 enum s0_kind {
     S0_KIND_LITERAL = 0,

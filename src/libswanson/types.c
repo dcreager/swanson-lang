@@ -11,18 +11,89 @@
 #include <string.h>
 
 #include <libcork/core.h>
+#include <libcork/core/checkers.h>
 
-#include "swanson/checkers.h"
 #include "swanson/s0.h"
 #include "swanson/state.h"
 
 
+/*-----------------------------------------------------------------------
+ * Error handling
+ */
+
+static int
+swan_general_bad_type(struct cork_alloc *alloc, struct cork_error *err,
+                      struct cork_buffer *dest)
+{
+    const char  **reason = cork_error_extra(err);
+    return cork_buffer_set_string(alloc, dest, *reason, NULL);
+}
+
+int
+swan_general_bad_type_set(struct cork_alloc *alloc, struct cork_error *err,
+                          const char *reason)
+{
+    return cork_error_set_extra(alloc, err,
+                                SWAN_GENERAL_ERROR,
+                                SWAN_GENERAL_BAD_TYPE,
+                                swan_general_bad_type,
+                                reason);
+}
+
+static int
+swan_s0_interface_redefinition(struct cork_alloc *alloc,
+                               struct cork_error *err,
+                               struct cork_buffer *dest)
+{
+    const char  **id = cork_error_extra(err);
+    return cork_buffer_printf
+        (alloc, dest, NULL,
+         "Interface already has an entry named \"%s\"", *id);
+}
+
+int
+swan_s0_interface_redefinition_set(struct cork_alloc *alloc,
+                                   struct cork_error *err,
+                                   const char *id)
+{
+    return cork_error_set_extra(alloc, err,
+                                SWAN_S0_ERROR,
+                                SWAN_S0_REDEFINITION,
+                                swan_s0_interface_redefinition,
+                                id);
+}
+
+static int
+swan_s0_recursive_redefinition(struct cork_alloc *alloc,
+                               struct cork_error *err,
+                               struct cork_buffer *dest)
+{
+    return cork_buffer_set_string
+        (alloc, dest, "Recursive type redefined", NULL);
+}
+
+int
+swan_s0_recursive_redefinition_set(struct cork_alloc *alloc,
+                                   struct cork_error *err)
+{
+    return cork_error_set(alloc, err,
+                          SWAN_S0_ERROR,
+                          SWAN_S0_REDEFINITION,
+                          swan_s0_recursive_redefinition);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Types
+ */
+
 static void
-s0_type_list_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+s0_type_list_recurse(struct cork_gc *gc, void *vself,
+                     cork_gc_recurser recurse, void *ud)
 {
     struct s0_type_list  *self = vself;
-    recurse(self->head, ud);
-    recurse(self->tail, ud);
+    recurse(gc, self->head, ud);
+    recurse(gc, self->tail, ud);
 }
 
 static struct cork_gc_obj_iface  s0_type_list_gc = {
@@ -33,9 +104,11 @@ struct s0_type_list *
 s0_type_list_new(struct swan *s, struct s0_type *head,
                  struct s0_type_list *tail, struct cork_error *err)
 {
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+
     struct s0_type_list  *self = NULL;
-    e_pcheck(self = cork_gc_new(swan_gc(s), struct s0_type_list,
-                                &s0_type_list_gc));
+    e_check_gc_new(s0_type_list, self, "type list");
     self->head = cork_gc_incref(swan_gc(s), head);
     self->tail = tail;
     return self;
@@ -47,9 +120,6 @@ error:
         cork_gc_decref(swan_gc(s), self);
     }
 
-    cork_error_set(err, SWAN_GENERAL_ERROR,
-                   SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                   "Cannot allocate new tagged ID list");
     return NULL;
 }
 
@@ -59,27 +129,27 @@ static struct cork_gc_obj_iface  s0_literal_type_gc = { NULL, NULL };
 struct s0_type *
 s0_literal_type_new(struct swan *s, struct cork_error *err)
 {
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+
     struct s0_literal_type  *self = NULL;
-    e_pcheck(self = cork_gc_new(swan_gc(s), struct s0_literal_type,
-                                &s0_literal_type_gc));
+    e_check_gc_new(s0_literal_type, self, "literal type");
     self->parent.kind = S0_KIND_LITERAL;
     return &self->parent;
 
 error:
     cork_gc_decref(swan_gc(s), self);
-    cork_error_set(err, SWAN_GENERAL_ERROR,
-                   SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                   "Cannot allocate new literal type");
     return NULL;
 }
 
 
 static void
-s0_function_type_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+s0_function_type_recurse(struct cork_gc *gc, void *vself,
+                         cork_gc_recurser recurse, void *ud)
 {
     struct s0_function_type  *self = vself;
-    recurse(self->params, ud);
-    recurse(self->results, ud);
+    recurse(gc, self->params, ud);
+    recurse(gc, self->results, ud);
 }
 
 static struct cork_gc_obj_iface  s0_function_type_gc = {
@@ -91,9 +161,11 @@ s0_function_type_new(struct swan *s,
                      struct s0_type_list *params, struct s0_type_list *results,
                      struct cork_error *err)
 {
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+
     struct s0_function_type  *self = NULL;
-    e_pcheck(self = cork_gc_new(swan_gc(s), struct s0_function_type,
-                                &s0_function_type_gc));
+    e_check_gc_new(s0_function_type, self, "function type");
     self->parent.kind = S0_KIND_FUNCTION;
     self->params = params;
     self->results = results;
@@ -107,18 +179,16 @@ error:
         cork_gc_decref(swan_gc(s), self);
     }
 
-    cork_error_set(err, SWAN_GENERAL_ERROR,
-                   SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                   "Cannot allocate new function type");
     return NULL;
 }
 
 
 static void
-s0_location_type_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+s0_location_type_recurse(struct cork_gc *gc, void *vself,
+                         cork_gc_recurser recurse, void *ud)
 {
     struct s0_location_type  *self = vself;
-    recurse(self->referent, ud);
+    recurse(gc, self->referent, ud);
 }
 
 static struct cork_gc_obj_iface  s0_location_type_gc = {
@@ -129,26 +199,25 @@ struct s0_type *
 s0_location_type_new(struct swan *s, struct s0_type *referent,
                      struct cork_error *err)
 {
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+
     struct s0_location_type  *self = NULL;
-    e_pcheck(self = cork_gc_new(swan_gc(s), struct s0_location_type,
-                                &s0_location_type_gc));
+    e_check_gc_new(s0_location_type, self, "location type");
     self->parent.kind = S0_KIND_LOCATION;
     self->referent = cork_gc_incref(swan_gc(s), referent);
     return &self->parent;
 
 error:
     cork_gc_decref(swan_gc(s), self);
-    cork_error_set(err, SWAN_GENERAL_ERROR,
-                   SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                   "Cannot allocate new location type");
     return NULL;
 }
 
 
 static enum cork_hash_table_map_result
-s0_interface_type_free_keys(struct cork_hash_table_entry *entry, void *ud)
+s0_interface_type_free_keys(struct cork_alloc *alloc,
+                            struct cork_hash_table_entry *entry, void *ud)
 {
-    struct cork_alloc  *alloc = ud;
     if (entry->key != NULL) {
         cork_strfree(alloc, entry->key);
     }
@@ -163,13 +232,14 @@ s0_interface_type_free(struct cork_gc *gc, void *vself)
     /* The types in the hash table will be decref'ed automatically by
      * the recurse method.  We need to free the keys, though, before
      * freeing the hash table itself. */
-    cork_hash_table_map(&self->entries, s0_interface_type_free_keys,
-                        gc->alloc);
-    cork_hash_table_done(&self->entries);
+    cork_hash_table_map
+        (gc->alloc, &self->entries, s0_interface_type_free_keys, NULL);
+    cork_hash_table_done(gc->alloc, &self->entries);
 }
 
 static void
-s0_interface_type_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+s0_interface_type_recurse(struct cork_gc *gc, void *vself,
+                          cork_gc_recurser recurse, void *ud)
 {
     struct s0_interface_type  *self = vself;
     struct cork_hash_table_iterator  iter;
@@ -178,7 +248,7 @@ s0_interface_type_recurse(void *vself, cork_gc_recurser recurse, void *ud)
     cork_hash_table_iterator_init(&self->entries, &iter);
     while ((entry = cork_hash_table_iterator_next(&self->entries, &iter))
            != NULL) {
-        recurse(entry->value, ud);
+        recurse(gc, entry->value, ud);
     }
 }
 
@@ -205,19 +275,19 @@ string_hasher(const void *vk)
 struct s0_type *
 s0_interface_type_new(struct swan *s, struct cork_error *err)
 {
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+
     struct s0_interface_type  *self = NULL;
-    e_pcheck(self = cork_gc_new(swan_gc(s), struct s0_interface_type,
-                                &s0_interface_type_gc));
+    e_check_gc_new(s0_interface_type, self, "interface type");
     self->parent.kind = S0_KIND_INTERFACE;
-    cork_hash_table_init(swan_alloc(s), &self->entries, 0,
-                         string_hasher, string_comparator);
+    ei_check(cork_hash_table_init
+             (swan_alloc(s), &self->entries, 0,
+              string_hasher, string_comparator, err));
     return &self->parent;
 
 error:
     cork_gc_decref(swan_gc(s), self);
-    cork_error_set(err, SWAN_GENERAL_ERROR,
-                   SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                   "Cannot allocate new interface type");
     return NULL;
 }
 
@@ -226,46 +296,39 @@ s0_interface_type_add(struct swan *s, struct s0_type *self,
                       const char *name, struct s0_type *type,
                       struct cork_error *err)
 {
+    struct cork_alloc  *alloc = swan_alloc(s);
     struct s0_interface_type  *iself;
     bool  is_new;
     struct cork_hash_table_entry  *entry = NULL;
 
     if (self->kind != S0_KIND_INTERFACE) {
-        cork_error_set(err, SWAN_GENERAL_ERROR,
-                       SWAN_GENERAL_ERROR_BAD_TYPE,
-                       "Cannot only add entries to interface types");
+        swan_general_bad_type_set
+            (swan_alloc(s), err, "Can only add entries to interface types");
         return -1;
     }
 
     iself = cork_container_of(self, struct s0_interface_type, parent);
-    e_pcheck(entry = cork_hash_table_get_or_create
-             (&iself->entries, (char *) name, &is_new));
+    rip_check(entry = cork_hash_table_get_or_create
+              (swan_alloc(s), &iself->entries, (char *) name, &is_new, err));
 
     if (!is_new) {
-        cork_error_set(err, SWAN_S0_ERROR,
-                       SWAN_S0_ERROR_REDEFINITION,
-                       "Interface already has an entry named \"%s\"",
-                       name);
+        swan_s0_interface_redefinition_set(swan_alloc(s), err, name);
         return -1;
     }
 
-    e_pcheck(entry->key = (char *) cork_strdup(swan_alloc(s), name));
+    ri_check_alloc(entry->key = (char *) cork_strdup(swan_alloc(s), name),
+                   "interface entry name");
     entry->value = cork_gc_incref(swan_gc(s), type);
     return 0;
-
-error:
-    cork_error_set(err, SWAN_GENERAL_ERROR,
-                   SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                   "Cannot allocate new interface entry");
-    return -1;
 }
 
 
 static void
-s0_recursive_type_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+s0_recursive_type_recurse(struct cork_gc *gc, void *vself,
+                          cork_gc_recurser recurse, void *ud)
 {
     struct s0_recursive_type  *self = vself;
-    recurse(self->resolved, ud);
+    recurse(gc, self->resolved, ud);
 }
 
 static struct cork_gc_obj_iface  s0_recursive_type_gc = {
@@ -275,18 +338,17 @@ static struct cork_gc_obj_iface  s0_recursive_type_gc = {
 struct s0_type *
 s0_recursive_type_new(struct swan *s, struct cork_error *err)
 {
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+
     struct s0_recursive_type  *self = NULL;
-    e_pcheck(self = cork_gc_new(swan_gc(s), struct s0_recursive_type,
-                                &s0_recursive_type_gc));
+    e_check_gc_new(s0_recursive_type, self, "recursive type");
     self->parent.kind = S0_KIND_RECURSIVE;
     self->resolved = NULL;
     return &self->parent;
 
 error:
     cork_gc_decref(swan_gc(s), self);
-    cork_error_set(err, SWAN_GENERAL_ERROR,
-                   SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                   "Cannot allocate new recursive type");
     return NULL;
 }
 
@@ -297,17 +359,14 @@ s0_recursive_type_resolve(struct swan *s, struct s0_type *self,
     struct s0_recursive_type  *rself;
 
     if (self->kind != S0_KIND_RECURSIVE) {
-        cork_error_set(err, SWAN_GENERAL_ERROR,
-                       SWAN_GENERAL_ERROR_BAD_TYPE,
-                       "Cannot resolve non-recursive type");
+        swan_general_bad_type_set
+            (swan_alloc(s), err, "Cannot resolve non-recursive type");
         return -1;
     }
 
     rself = cork_container_of(self, struct s0_recursive_type, parent);
     if (rself->resolved != NULL) {
-        cork_error_set(err, SWAN_S0_ERROR,
-                       SWAN_S0_ERROR_REDEFINITION,
-                       "Recursive type redefined");
+        swan_s0_recursive_redefinition_set(swan_alloc(s), err);
         return -1;
     }
 

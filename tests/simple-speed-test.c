@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 
     cork_gc_decref(swan_gc(s), b0);
     lgv_free(s);
-    cork_error_done(&err);
+    cork_error_done(swan_alloc(s), &err);
     cork_allocator_free(alloc);
 
     return 0;

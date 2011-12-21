@@ -9,8 +9,7 @@
  */
 
 #include <libcork/core.h>
-
-#include "swanson/checkers.h"
+#include <libcork/core/checkers.h>
 
 #include "lagavulin/block.h"
 #include "lagavulin/stack.h"
@@ -48,7 +47,8 @@
 int
 lgv_state_init(struct swan *s, struct lgv_state *state)
 {
-    r_check(lgv_stack_init(s, &state->stack, LGV_STACK_DEFAULT_INITIAL_SIZE));
+    rii_check(lgv_stack_init
+              (s, &state->stack, LGV_STACK_DEFAULT_INITIAL_SIZE));
     state->ret = NULL;
     return 0;
 }
@@ -129,10 +129,11 @@ static struct cork_gc_obj_iface  lgv_block_leaf_gc = {
 
 
 static void
-lgv_block_simple_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+lgv_block_simple_recurse(struct cork_gc *gc, void *vself,
+                         cork_gc_recurser recurse, void *ud)
 {
     struct lgv_block_simple  *self = vself;
-    recurse(self->next, ud);
+    recurse(gc, self->next, ud);
 }
 
 static struct cork_gc_obj_iface  lgv_block_simple_gc = {
@@ -141,11 +142,12 @@ static struct cork_gc_obj_iface  lgv_block_simple_gc = {
 
 
 static void
-lgv_block_brancher_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+lgv_block_brancher_recurse(struct cork_gc *gc, void *vself,
+                           cork_gc_recurser recurse, void *ud)
 {
     struct lgv_block_brancher  *self = vself;
-    recurse(self->true_branch, ud);
-    recurse(self->false_branch, ud);
+    recurse(gc, self->true_branch, ud);
+    recurse(gc, self->false_branch, ud);
 }
 
 static struct cork_gc_obj_iface  lgv_block_brancher_gc = {
@@ -154,11 +156,12 @@ static struct cork_gc_obj_iface  lgv_block_brancher_gc = {
 
 
 static void
-lgv_block_if_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+lgv_block_if_recurse(struct cork_gc *gc, void *vself,
+                     cork_gc_recurser recurse, void *ud)
 {
     struct lgv_block_if  *self = vself;
-    recurse(self->condition, ud);
-    recurse(self->brancher, ud);
+    recurse(gc, self->condition, ud);
+    recurse(gc, self->brancher, ud);
 }
 
 static struct cork_gc_obj_iface  lgv_block_if_gc = {
@@ -167,11 +170,12 @@ static struct cork_gc_obj_iface  lgv_block_if_gc = {
 
 
 static void
-lgv_block_seq_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+lgv_block_seq_recurse(struct cork_gc *gc, void *vself,
+                      cork_gc_recurser recurse, void *ud)
 {
     struct lgv_block_seq  *self = vself;
     /* We don't keep a reference to tail, since it's reachable from head */
-    recurse(self->head, ud);
+    recurse(gc, self->head, ud);
 }
 
 static struct cork_gc_obj_iface  lgv_block_seq_gc = {
@@ -180,11 +184,12 @@ static struct cork_gc_obj_iface  lgv_block_seq_gc = {
 
 
 static void
-lgv_block_while_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+lgv_block_while_recurse(struct cork_gc *gc, void *vself,
+                        cork_gc_recurser recurse, void *ud)
 {
     struct lgv_block_while  *self = vself;
-    recurse(self->condition, ud);
-    recurse(self->brancher, ud);
+    recurse(gc, self->condition, ud);
+    recurse(gc, self->brancher, ud);
 }
 
 static struct cork_gc_obj_iface  lgv_block_while_gc = {
