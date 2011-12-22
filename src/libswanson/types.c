@@ -41,7 +41,7 @@ swan_general_bad_type_set(struct cork_alloc *alloc, struct cork_error *err,
 }
 
 static int
-swan_s0_interface_redefinition(struct cork_alloc *alloc,
+s0_interface_redefinition(struct cork_alloc *alloc,
                                struct cork_error *err,
                                struct cork_buffer *dest)
 {
@@ -52,19 +52,19 @@ swan_s0_interface_redefinition(struct cork_alloc *alloc,
 }
 
 int
-swan_s0_interface_redefinition_set(struct cork_alloc *alloc,
+s0_interface_redefinition_set(struct cork_alloc *alloc,
                                    struct cork_error *err,
                                    const char *id)
 {
     return cork_error_set_extra(alloc, err,
-                                SWAN_S0_ERROR,
-                                SWAN_S0_REDEFINITION,
-                                swan_s0_interface_redefinition,
+                                S0_ERROR,
+                                S0_REDEFINITION,
+                                s0_interface_redefinition,
                                 id);
 }
 
 static int
-swan_s0_recursive_redefinition(struct cork_alloc *alloc,
+s0_recursive_redefinition(struct cork_alloc *alloc,
                                struct cork_error *err,
                                struct cork_buffer *dest)
 {
@@ -73,13 +73,13 @@ swan_s0_recursive_redefinition(struct cork_alloc *alloc,
 }
 
 int
-swan_s0_recursive_redefinition_set(struct cork_alloc *alloc,
+s0_recursive_redefinition_set(struct cork_alloc *alloc,
                                    struct cork_error *err)
 {
     return cork_error_set(alloc, err,
-                          SWAN_S0_ERROR,
-                          SWAN_S0_REDEFINITION,
-                          swan_s0_recursive_redefinition);
+                          S0_ERROR,
+                          S0_REDEFINITION,
+                          s0_recursive_redefinition);
 }
 
 
@@ -134,7 +134,7 @@ s0_literal_type_new(struct swan *s, struct cork_error *err)
 
     struct s0_literal_type  *self = NULL;
     e_check_gc_new(s0_literal_type, self, "literal type");
-    self->parent.kind = S0_KIND_LITERAL;
+    self->parent.kind = S0_TYPE_LITERAL;
     return &self->parent;
 
 error:
@@ -166,7 +166,7 @@ s0_function_type_new(struct swan *s,
 
     struct s0_function_type  *self = NULL;
     e_check_gc_new(s0_function_type, self, "function type");
-    self->parent.kind = S0_KIND_FUNCTION;
+    self->parent.kind = S0_TYPE_FUNCTION;
     self->params = params;
     self->results = results;
     return &self->parent;
@@ -204,7 +204,7 @@ s0_location_type_new(struct swan *s, struct s0_type *referent,
 
     struct s0_location_type  *self = NULL;
     e_check_gc_new(s0_location_type, self, "location type");
-    self->parent.kind = S0_KIND_LOCATION;
+    self->parent.kind = S0_TYPE_LOCATION;
     self->referent = cork_gc_incref(swan_gc(s), referent);
     return &self->parent;
 
@@ -280,7 +280,7 @@ s0_interface_type_new(struct swan *s, struct cork_error *err)
 
     struct s0_interface_type  *self = NULL;
     e_check_gc_new(s0_interface_type, self, "interface type");
-    self->parent.kind = S0_KIND_INTERFACE;
+    self->parent.kind = S0_TYPE_INTERFACE;
     ei_check(cork_hash_table_init
              (swan_alloc(s), &self->entries, 0,
               string_hasher, string_comparator, err));
@@ -301,7 +301,7 @@ s0_interface_type_add(struct swan *s, struct s0_type *self,
     bool  is_new;
     struct cork_hash_table_entry  *entry = NULL;
 
-    if (self->kind != S0_KIND_INTERFACE) {
+    if (self->kind != S0_TYPE_INTERFACE) {
         swan_general_bad_type_set
             (swan_alloc(s), err, "Can only add entries to interface types");
         return -1;
@@ -312,7 +312,7 @@ s0_interface_type_add(struct swan *s, struct s0_type *self,
               (swan_alloc(s), &iself->entries, (char *) name, &is_new, err));
 
     if (!is_new) {
-        swan_s0_interface_redefinition_set(swan_alloc(s), err, name);
+        s0_interface_redefinition_set(swan_alloc(s), err, name);
         return -1;
     }
 
@@ -346,7 +346,7 @@ s0_block_type_new(struct swan *s, struct s0_type *result,
 
     struct s0_block_type  *self = NULL;
     e_check_gc_new(s0_block_type, self, "block type");
-    self->parent.kind = S0_KIND_BLOCK;
+    self->parent.kind = S0_TYPE_BLOCK;
     self->result = cork_gc_incref(swan_gc(s), result);
     return &self->parent;
 
@@ -378,7 +378,7 @@ s0_recursive_type_new(struct swan *s, struct cork_error *err)
 
     struct s0_recursive_type  *self = NULL;
     e_check_gc_new(s0_recursive_type, self, "recursive type");
-    self->parent.kind = S0_KIND_RECURSIVE;
+    self->parent.kind = S0_TYPE_RECURSIVE;
     self->resolved = NULL;
     return &self->parent;
 
@@ -393,7 +393,7 @@ s0_recursive_type_resolve(struct swan *s, struct s0_type *self,
 {
     struct s0_recursive_type  *rself;
 
-    if (self->kind != S0_KIND_RECURSIVE) {
+    if (self->kind != S0_TYPE_RECURSIVE) {
         swan_general_bad_type_set
             (swan_alloc(s), err, "Cannot resolve non-recursive type");
         return -1;
@@ -401,7 +401,7 @@ s0_recursive_type_resolve(struct swan *s, struct s0_type *self,
 
     rself = cork_container_of(self, struct s0_recursive_type, parent);
     if (rself->resolved != NULL) {
-        swan_s0_recursive_redefinition_set(swan_alloc(s), err);
+        s0_recursive_redefinition_set(swan_alloc(s), err);
         return -1;
     }
 

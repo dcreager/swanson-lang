@@ -119,11 +119,11 @@ print_one(struct swan *s, struct s0_printer *state,
           bool parenthize, struct cork_error *err)
 {
     switch (type->kind) {
-        case S0_KIND_LITERAL:
+        case S0_TYPE_LITERAL:
             return cork_buffer_append_string
                 (swan_alloc(s), dest, "LITERAL", err);
 
-        case S0_KIND_FUNCTION:
+        case S0_TYPE_FUNCTION:
         {
             struct s0_function_type  *ftype =
                 cork_container_of(type, struct s0_function_type, parent);
@@ -143,7 +143,7 @@ print_one(struct swan *s, struct s0_printer *state,
             return 0;
         }
 
-        case S0_KIND_LOCATION:
+        case S0_TYPE_LOCATION:
         {
             struct s0_location_type  *ltype =
                 cork_container_of(type, struct s0_location_type, parent);
@@ -152,7 +152,7 @@ print_one(struct swan *s, struct s0_printer *state,
             return print_one(s, state, ltype->referent, dest, true, err);
         }
 
-        case S0_KIND_INTERFACE:
+        case S0_TYPE_INTERFACE:
         {
             struct s0_interface_type  *itype =
                 cork_container_of(type, struct s0_interface_type, parent);
@@ -161,7 +161,7 @@ print_one(struct swan *s, struct s0_printer *state,
             return print_interface_name(s, index, dest, err);
         }
 
-        case S0_KIND_BLOCK:
+        case S0_TYPE_BLOCK:
         {
             struct s0_block_type  *btype =
                 cork_container_of(type, struct s0_block_type, parent);
@@ -172,7 +172,7 @@ print_one(struct swan *s, struct s0_printer *state,
                 (swan_alloc(s), dest, "}", err);
         }
 
-        case S0_KIND_RECURSIVE:
+        case S0_TYPE_RECURSIVE:
         {
             struct s0_recursive_type  *rtype =
                 cork_container_of(type, struct s0_recursive_type, parent);
