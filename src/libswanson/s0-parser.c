@@ -167,7 +167,7 @@ s0_unterminated_string_set(struct cork_alloc *alloc, struct cork_error *err,
  */
 
 static const char  *OPERAND_NAMES[] = {
-#define DEFINE_NAME(name, val)  #name,
+#define DEFINE_NAME(name)  #name,
     S0_OPCODES(DEFINE_NAME)
 #undef DEFINE_NAME
     NULL
@@ -718,7 +718,7 @@ s0_parse_instruction(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_operand_name(s, sp, &op, err));
 
     switch (op) {
-#define PARSE_OPCODE(name, val) \
+#define PARSE_OPCODE(name) \
         case S0_##name: \
             return s0_parse_##name(s, sp, err);
         S0_OPCODES(PARSE_OPCODE)

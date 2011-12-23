@@ -322,7 +322,7 @@ s0_evaluate_instruction(struct swan *s, struct s0_scope *scope,
                         struct s0_instruction *instr, struct cork_error *err)
 {
     switch (instr->op) {
-#define EVALUATE_OPCODE(name, val) \
+#define EVALUATE_OPCODE(name) \
         case S0_##name: \
             return s0_evaluate_##name(s, scope, instr, err);
         S0_OPCODES(EVALUATE_OPCODE)

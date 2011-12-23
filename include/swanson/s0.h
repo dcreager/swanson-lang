@@ -23,13 +23,13 @@
  */
 
 enum s0_type_kind {
-    S0_TYPE_RECURSIVE = 0,
-    S0_TYPE_TYPE = 1,
-    S0_TYPE_LITERAL = 2,
-    S0_TYPE_FUNCTION = 3,
-    S0_TYPE_LOCATION = 4,
-    S0_TYPE_INTERFACE = 5,
-    S0_TYPE_BLOCK = 6
+    S0_TYPE_RECURSIVE,
+    S0_TYPE_TYPE,
+    S0_TYPE_LITERAL,
+    S0_TYPE_FUNCTION,
+    S0_TYPE_LOCATION,
+    S0_TYPE_INTERFACE,
+    S0_TYPE_BLOCK
 };
 
 struct s0_type;
@@ -129,11 +129,11 @@ typedef uintptr_t  s0_id;
 typedef uintptr_t  s0_tagged_id;
 
 enum s0_id_tag {
-    S0_ID_TAG_TYPE = 0,
-    S0_ID_TAG_LOCAL = 1,
-    S0_ID_TAG_UPVALUE = 2,
-    S0_ID_TAG_PARAM = 3,
-    S0_ID_TAG_LABEL = 4
+    S0_ID_TAG_TYPE,
+    S0_ID_TAG_LOCAL,
+    S0_ID_TAG_UPVALUE,
+    S0_ID_TAG_PARAM,
+    S0_ID_TAG_LABEL
 };
 
 #define s0_id_tag_name(tag) \
@@ -153,29 +153,29 @@ typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
 
 
 #define S0_OPCODES(_) \
-    _(TRECURSIVE, 0) \
-    _(TLITERAL, 1) \
-    _(TFUNCTION, 2) \
-    _(TLOCATION, 3) \
-    _(TINTERFACE, 4) \
-    _(TBLOCK, 5) \
-    _(TTYPE, 6) \
-    _(LITERAL, 7) \
+    _(TRECURSIVE) \
+    _(TLITERAL) \
+    _(TFUNCTION) \
+    _(TLOCATION) \
+    _(TINTERFACE) \
+    _(TBLOCK) \
+    _(TTYPE) \
+    _(LITERAL) \
 
 #if 0
-    _(PRELUDE, x) \
-    _(GET, x) \
-    _(CALL, x) \
-    _(RETURN, x) \
-    _(LABEL, x) \
-    _(JTRUE, x) \
-    _(JFALSE, x) \
-    _(JUMP, x) \
+    _(PRELUDE) \
+    _(GET) \
+    _(CALL) \
+    _(RETURN) \
+    _(LABEL) \
+    _(JTRUE) \
+    _(JFALSE) \
+    _(JUMP) \
 
 #endif
 
 enum s0_opcode {
-#define OPCODE_ENUM(name, val)  S0_##name = val,
+#define OPCODE_ENUM(name)  S0_##name,
     S0_OPCODES(OPCODE_ENUM)
     S0_OPCODE_COUNT
 #undef OPCODE_ENUM
@@ -279,8 +279,8 @@ s0_parse(struct swan *s, struct cork_slice *src, struct cork_error *err);
  */
 
 enum s0_value_kind {
-    S0_VALUE_TYPE = 0,
-    S0_VALUE_LITERAL = 1
+    S0_VALUE_TYPE,
+    S0_VALUE_LITERAL
 };
 
 struct s0_value {
