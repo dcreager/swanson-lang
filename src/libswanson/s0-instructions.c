@@ -145,6 +145,18 @@ s0_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
     return self;
 }
 
+struct s0_instruction *
+s0_ttype_new(struct swan *s, s0_id dest, struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_instruction  *self = NULL;
+    rp_check_gc_new(s0_instruction, self, "TTYPE instruction");
+    self->op = S0_TTYPE;
+    self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
+    return self;
+}
+
 
 /*-----------------------------------------------------------------------
  * Basic blocks

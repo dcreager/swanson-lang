@@ -58,6 +58,9 @@ struct s0_type *
 s0_literal_type_new(struct swan *s, struct cork_error *err);
 
 struct s0_type *
+s0_type_type_new(struct swan *s, struct cork_error *err);
+
+struct s0_type *
 s0_function_type_new(struct swan *s, struct cork_error *err);
 
 /* Creates new reference to type */
@@ -156,6 +159,7 @@ typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
     _(TLOCATION, 3) \
     _(TINTERFACE, 4) \
     _(TBLOCK, 5) \
+    _(TTYPE, 6) \
 
 #if 0
     _(LITERAL, x) \
@@ -232,6 +236,9 @@ s0_tinterface_add_entry(struct swan *s, struct s0_instruction *self,
 struct s0_instruction *
 s0_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
               struct cork_error *err);
+
+struct s0_instruction *
+s0_ttype_new(struct swan *s, s0_id dest, struct cork_error *err);
 
 
 typedef cork_array(struct s0_instruction *)  s0_instruction_array;

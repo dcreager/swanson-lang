@@ -293,6 +293,23 @@ error:
 }
 
 static struct s0_value *
+s0_evaluate_TTYPE(struct swan *s, struct s0_scope *scope,
+                  struct s0_instruction *instr, struct cork_error *err)
+{
+    DEBUG("--- Evaluating TTYPE");
+    struct s0_type  *type;
+    struct s0_value  *value;
+    rpp_check(type = s0_type_type_new(s, err));
+    ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
+    cork_gc_decref(swan_gc(s), type);
+    return value;
+
+error:
+    cork_gc_decref(swan_gc(s), type);
+    return NULL;
+}
+
+static struct s0_value *
 s0_evaluate_instruction(struct swan *s, struct s0_scope *scope,
                         struct s0_instruction *instr, struct cork_error *err)
 {

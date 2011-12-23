@@ -186,6 +186,17 @@ static struct cork_gc_obj_iface  s0_type_gc = {
 
 
 struct s0_type *
+s0_type_type_new(struct swan *s, struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_type  *self;
+    rp_check_gc_new(s0_type, self, "type type");
+    self->kind = S0_TYPE_TYPE;
+    return self;
+}
+
+struct s0_type *
 s0_literal_type_new(struct swan *s, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);

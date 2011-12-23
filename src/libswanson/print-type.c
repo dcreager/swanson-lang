@@ -171,6 +171,10 @@ print_one(struct swan *s, struct s0_printer *state,
                 (s, state, type->_.recursive.resolved, dest, parenthize, err);
         }
 
+        case S0_TYPE_TYPE:
+            return cork_buffer_append_string
+                (swan_alloc(s), dest, "TYPE", err);
+
         default:
             return -1;
     }

@@ -72,6 +72,7 @@ START_TEST(test_parsing)
 
     check_good_parse("trecursive %0;");
     check_good_parse("tliteral %0;");
+    check_good_parse("ttype %0;");
     check_good_parse(
         "tliteral %0; "
         "tlocation %1 = %0; "
@@ -122,6 +123,21 @@ START_TEST(test_parsing)
         "tfunction %2 = (%1, %1) -> (%0); "
     );
 
+    check_good_parse(
+        "ttype %0; "
+        "tlocation %1 = %0; "
+    );
+    check_good_parse(
+        "ttype %0; "
+        "tlocation %1 = %0; "
+        "tfunction %2 = () -> (%0); "
+    );
+    check_good_parse(
+        "ttype %0; "
+        "tlocation %1 = %0; "
+        "tfunction %2 = (%1, %1) -> (%0); "
+    );
+
     check_bad_parse("foobar");
 
     check_bad_parse("trecursive");
@@ -167,6 +183,11 @@ START_TEST(test_parsing)
     check_bad_parse("tblock %1 = %1");
     check_bad_parse("tblock $1 = %0;");
     check_bad_parse("tblock foo;");
+
+    check_bad_parse("ttype");
+    check_bad_parse("ttype %0");
+    check_bad_parse("ttype $0;");
+    check_bad_parse("ttype foo;");
 
     check_bad_parse(
         "tliteral %0; "
