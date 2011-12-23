@@ -135,6 +135,33 @@ s0_bad_symbol_set(struct cork_alloc *alloc, struct cork_error *err,
 }
 
 
+struct s0_unterminated_string_extra {
+    struct s0_position  pos;
+};
+
+static int
+s0_unterminated_string(struct cork_alloc *alloc, struct cork_error *err,
+                       struct cork_buffer *dest)
+{
+    struct s0_unterminated_string_extra  *extra = cork_error_extra(err);
+    return cork_buffer_printf
+        (alloc, dest, NULL, "Unterminated string literal at %zu.%zu",
+         extra->pos.line, extra->pos.column);
+}
+
+static int
+s0_unterminated_string_set(struct cork_alloc *alloc, struct cork_error *err,
+                           struct s0_position pos)
+{
+    struct s0_unterminated_string_extra  extra = { pos };
+    return cork_error_set_extra(alloc, err,
+                                S0_ERROR,
+                                S0_SYNTAX_ERROR,
+                                s0_unterminated_string,
+                                extra);
+}
+
+
 /*-----------------------------------------------------------------------
  * Parser
  */
@@ -286,6 +313,62 @@ s0_parse_require_symbol(struct swan *s, struct s0_parser *sp,
     } else {
         return rc;
     }
+}
+
+
+/* Tries to parse a string literal.  We don't support the full range of
+ * C escape sequences; the only things that need to be escaped are the
+ * closing quote and the escape character itself.  Everything can be
+ * included into the string literal directly.  The result will be in the
+ * scratch buffer. */
+static int
+s0_parse_string(struct swan *s, struct s0_parser *sp,
+                struct cork_error *err)
+{
+    rii_check(s0_parse_skip_leading(s, sp, err));
+    DEBUG("[%4zu:%2zu] Trying to parse string literal",
+          sp->pos.line, sp->pos.column);
+    struct s0_position  start = sp->pos;
+
+    size_t  i = 0;
+    const char  *curr = sp->slice->buf;
+
+    if (sp->slice->size == 0 || *curr != '"') {
+        s0_bad_symbol_set(swan_alloc(s), err, start, "string literal");
+        return -1;
+    }
+
+    /* Advance past the opening quote */
+    s0_advance_char(i, curr, &sp->pos);
+    cork_buffer_clear(swan_alloc(s), &sp->scratch);
+
+    while (i < sp->slice->size) {
+        /* Closing quote? */
+        if (*curr == '"') {
+            s0_advance_char(i, curr, &sp->pos);
+            return cork_slice_slice_offset
+                (swan_alloc(s), sp->slice, i, err);
+        }
+
+        /* Escaped character? */
+        if (*curr == '\\') {
+            s0_advance_char(i, curr, &sp->pos);
+            if (sp->slice->size == 0) {
+                s0_unterminated_string_set(swan_alloc(s), err, start);
+                return -1;
+            }
+        }
+
+        /* add the current character to the buffer */
+        rii_check(cork_buffer_append
+                  (swan_alloc(s), &sp->scratch, curr, 1, err));
+        s0_advance_char(i, curr, &sp->pos);
+    }
+
+    /* If we fall through the loop, then we've run out of characters
+     * without seeing the end of the string. */
+    s0_unterminated_string_set(swan_alloc(s), err, start);
+    return -1;
 }
 
 
@@ -450,6 +533,51 @@ s0_parse_id_list(struct swan *s, struct s0_parser *sp,
 }
 
 
+/* Parse a list of interface entries. */
+static int
+s0_parse_interface_entries(struct swan *s, struct s0_parser *sp,
+                           struct s0_instruction *dest, struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    rii_check(s0_parse_require_symbol(s, sp, "{", 1, err));
+    bool  first = true;
+
+    do {
+        int  rc;
+
+        /* At this point, we can try to read a close-brace to end the
+         * list. */
+        rc = s0_parse_try_symbol(s, sp, "}", 1, err);
+        if (rc != -2) {
+            return rc;
+        }
+
+        /* If this isn't the first element of the list, there needs to
+         * be a comma next. */
+        if (first) {
+            first = false;
+        } else {
+            rii_check(s0_parse_require_symbol(s, sp, ",", 1, err));
+        }
+
+        /* And then we have to parse an individual entry. */
+        s0_tagged_id  id;
+        const char  *key;
+        rii_check(s0_parse_string(s, sp, err));
+        ri_check_alloc(key = cork_strdup(swan_alloc(s), sp->scratch.buf),
+                       "TINTERFACE entry key");
+
+        rii_check(s0_parse_require_symbol(s, sp, ":", 1, err));
+        rii_check(s0_parse_any_id(s, sp, &id, err));
+        rii_check(s0_tinterface_add_entry(s, dest, key, id, err));
+    } while (true);
+
+    /* Should be unreachable */
+    cork_unknown_error_set(swan_alloc(s), err);
+    return -1;
+}
+
+
 /* A bunch of parsers for each opcode.  Each of these assume that the
  * operand name has already been parsed, since we'll need to switch on
  * that before these functions are ever called. */
@@ -515,6 +643,25 @@ s0_parse_TLOCATION(struct swan *s, struct s0_parser *sp,
     rip_check(instr = s0_tlocation_new(s, dest, referent, err));
     rii_check(s0_basic_block_add(s, sp->block, instr, err));
     return 0;
+}
+
+static int
+s0_parse_TINTERFACE(struct swan *s, struct s0_parser *sp,
+                    struct cork_error *err)
+{
+    s0_id  dest;
+    struct s0_instruction  *instr;
+    rii_check(s0_parse_id(s, sp, '%', &dest, err));
+    rii_check(s0_parse_require_symbol(s, sp, "=", 1, err));
+    rip_check(instr = s0_tinterface_new(s, dest, err));
+    ei_check(s0_parse_interface_entries(s, sp, instr, err));
+    ei_check(s0_parse_require_symbol(s, sp, ";", 1, err));
+    ei_check(s0_basic_block_add(s, sp->block, instr, err));
+    return 0;
+
+error:
+    cork_gc_decref(swan_gc(s), instr);
+    return -1;
 }
 
 

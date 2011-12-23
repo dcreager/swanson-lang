@@ -158,9 +158,9 @@ typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
     _(TLITERAL, 1) \
     _(TFUNCTION, 2) \
     _(TLOCATION, 3) \
+    _(TINTERFACE, 4) \
 
 #if 0
-    _(TINTERFACE, 4) \
     _(LITERAL, 5) \
     _(PRELUDE, 6) \
     _(GET, 7) \
@@ -180,6 +180,13 @@ enum s0_opcode {
 #undef OPCODE_ENUM
 };
 
+struct s0_tinterface_entry {
+    const char  *key;
+    s0_tagged_id  entry;
+};
+
+typedef cork_array(struct s0_tinterface_entry)  s0_tinterface_entries;
+
 struct s0_instruction {
     enum s0_opcode  op;
     s0_tagged_id  dest;
@@ -191,6 +198,9 @@ struct s0_instruction {
         struct {
             s0_tagged_id  referent;
         } tlocation;
+        struct {
+            s0_tinterface_entries  entries;
+        } tinterface;
     } _;
     struct cork_dllist_item  siblings;
 };
@@ -215,6 +225,15 @@ s0_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err);
 struct s0_instruction *
 s0_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
                  struct cork_error *err);
+
+struct s0_instruction *
+s0_tinterface_new(struct swan *s, s0_id dest, struct cork_error *err);
+
+/* key must have been allocated using cork_strdup */
+int
+s0_tinterface_add_entry(struct swan *s, struct s0_instruction *self,
+                        const char *key, s0_tagged_id entry,
+                        struct cork_error *err);
 
 
 struct s0_basic_block {

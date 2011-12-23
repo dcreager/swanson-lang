@@ -1,0 +1,6 @@
+# Expected type: interface α
+tliteral %0;
+tfunction %1 = (%0) -> ();
+tinterface %2 = {
+  "print_literal": %1
+};

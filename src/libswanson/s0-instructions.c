@@ -20,10 +20,21 @@ static void
 s0_instruction_free(struct cork_gc *gc, void *vself)
 {
     struct s0_instruction  *self = vself;
+    size_t  i;
     switch (self->op) {
         case S0_TFUNCTION:
             cork_array_done(gc->alloc, &self->_.tfunction.params);
             cork_array_done(gc->alloc, &self->_.tfunction.results);
+            break;
+
+        case S0_TINTERFACE:
+            for (i = 0; i < cork_array_size
+                    (&self->_.tinterface.entries); i++) {
+                struct s0_tinterface_entry  entry =
+                    cork_array_at(&self->_.tinterface.entries, i);
+                cork_strfree(gc->alloc, entry.key);
+            }
+            cork_array_done(gc->alloc, &self->_.tinterface.entries);
             break;
 
         default:
@@ -86,6 +97,34 @@ s0_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     self->_.tlocation.referent = referent;
     return self;
+}
+
+struct s0_instruction *
+s0_tinterface_new(struct swan *s, s0_id dest, struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_instruction  *self = NULL;
+    rp_check_gc_new(s0_instruction, self, "TINTERFACE instruction");
+    self->op = S0_TINTERFACE;
+    self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
+    cork_array_init(swan_alloc(s), &self->_.tinterface.entries);
+    return self;
+}
+
+int
+s0_tinterface_add_entry(struct swan *s, struct s0_instruction *self,
+                        const char *key, s0_tagged_id entry,
+                        struct cork_error *err)
+{
+    struct s0_tinterface_entry  new_entry = { key, entry };
+    ei_check(cork_array_append
+             (swan_alloc(s), &self->_.tinterface.entries, new_entry, err));
+    return 0;
+
+error:
+    cork_strfree(swan_alloc(s), new_entry.key);
+    return -1;
 }
 
 

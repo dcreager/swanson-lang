@@ -87,6 +87,26 @@ START_TEST(test_parsing)
         "tfunction %2 = (%1, %1) -> (%0); "
     );
 
+    check_good_parse(
+        "tinterface %0 = {}; "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tinterface %1 = { \"hi\": %0 }; "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tinterface %1 = { \"hi\": %0, \"there\": %0 }; "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tinterface %1 = { \"h\\\"i\": %0 }; "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tinterface %1 = { \"h\\\\i\": %0 }; "
+    );
+
     check_bad_parse("foobar");
 
     check_bad_parse("trecursive");
@@ -112,6 +132,19 @@ START_TEST(test_parsing)
     check_bad_parse("tfunction %1 = %1;");
     check_bad_parse("tfunction $1 = () -> ();");
     check_bad_parse("tfunction foo;");
+
+    check_bad_parse("tinterface");
+    check_bad_parse("tinterface %1");
+    check_bad_parse("tinterface %1 =");
+    check_bad_parse("tinterface %1 = {");
+    check_bad_parse("tinterface %1 = { \"hi");
+    check_bad_parse("tinterface %1 = { \"hi\"");
+    check_bad_parse("tinterface %1 = { \"hi\": ");
+    check_bad_parse("tinterface %1 = { \"hi\": %0 ");
+    check_bad_parse("tinterface %1 = { \"hi\": %0 }");
+    check_bad_parse("tinterface %1 = %1;");
+    check_bad_parse("tinterface $1 = {};");
+    check_bad_parse("tinterface foo;");
 
     check_bad_parse(
         "tliteral %0; "

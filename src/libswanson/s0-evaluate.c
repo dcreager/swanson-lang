@@ -251,6 +251,34 @@ error:
 }
 
 static struct s0_value *
+s0_evaluate_TINTERFACE(struct swan *s, struct s0_scope *scope,
+                       struct s0_instruction *instr, struct cork_error *err)
+{
+    DEBUG("--- Evaluating TINTERFACE");
+    size_t  i;
+    struct s0_type  *type = NULL;
+    struct s0_value  *value;
+
+    rpp_check(type = s0_interface_type_new(s, err));
+    for (i = 0; i < cork_array_size(&instr->_.tinterface.entries); i++) {
+        struct s0_tinterface_entry  entry =
+            cork_array_at(&instr->_.tinterface.entries, i);
+        struct s0_type  *entry_type;
+        ep_check(entry_type = s0_evaluate_expect_type
+                 (s, scope, entry.entry, err));
+        ei_check(s0_interface_type_add(s, type, entry.key, entry_type, err));
+    }
+
+    ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
+    cork_gc_decref(swan_gc(s), type);
+    return value;
+
+error:
+    cork_gc_decref(swan_gc(s), type);
+    return NULL;
+}
+
+static struct s0_value *
 s0_evaluate_instruction(struct swan *s, struct s0_scope *scope,
                         struct s0_instruction *instr, struct cork_error *err)
 {
