@@ -155,11 +155,9 @@ s0_basic_block_recurse(struct cork_gc *gc, void *vself,
                        cork_gc_recurser recurse, void *ud)
 {
     struct s0_basic_block  *self = vself;
-    struct cork_dllist_item  *curr;
-    for (curr = cork_dllist_start(&self->body);
-         !cork_dllist_is_end(&self->body, curr); curr = curr->next) {
-        struct s0_instruction  *element =
-            cork_container_of(curr, struct s0_instruction, siblings);
+    size_t  i;
+    for (i = 0; i < cork_array_size(&self->body); i++) {
+        struct s0_instruction  *element = cork_array_at(&self->body, i);
         recurse(gc, element, ud);
     }
 }
@@ -175,7 +173,7 @@ s0_basic_block_new(struct swan *s, struct cork_error *err)
     struct cork_gc  *gc = swan_gc(s);
     struct s0_basic_block  *self = NULL;
     rp_check_gc_new(s0_basic_block, self, "basic block");
-    cork_dllist_init(&self->body);
+    cork_array_init(swan_alloc(s), &self->body);
     return self;
 }
 
@@ -183,6 +181,5 @@ int
 s0_basic_block_add(struct swan *s, struct s0_basic_block *self,
                    struct s0_instruction *instr, struct cork_error *err)
 {
-    cork_dllist_add(&self->body, &instr->siblings);
-    return 0;
+    return cork_array_append(swan_alloc(s), &self->body, instr, err);
 }

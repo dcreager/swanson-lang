@@ -234,8 +234,10 @@ s0_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
               struct cork_error *err);
 
 
+typedef cork_array(struct s0_instruction *)  s0_instruction_array;
+
 struct s0_basic_block {
-    struct cork_dllist  body;
+    s0_instruction_array  body;
 };
 
 struct s0_basic_block *

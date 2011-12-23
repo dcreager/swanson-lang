@@ -65,12 +65,9 @@ static int
 print_value(struct swan *s, struct s0_basic_block *block,
             struct s0_value *value, struct cork_error *err)
 {
-    struct cork_dllist_item  *last_item =
-        cork_dllist_tail(&block->body);
-    struct s0_instruction  *last_instruction = cork_container_of
-        (last_item, struct s0_instruction, siblings);
-    s0_tagged_id  last_id =
-        last_instruction->dest;
+    struct s0_instruction  *last_instruction =
+        cork_array_at(&block->body, cork_array_size(&block->body) - 1);
+    s0_tagged_id  last_id = last_instruction->dest;
 
     switch (value->kind) {
         case S0_VALUE_TYPE:

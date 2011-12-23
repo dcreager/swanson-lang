@@ -315,14 +315,12 @@ s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *block,
 {
     struct s0_scope  *scope;
     struct s0_value  *last_value = NULL;
-    struct cork_dllist_item  *curr;
+    size_t  i;
 
     rpp_check(scope = s0_scope_new(s, "<top-level>", err));
 
-    for (curr = cork_dllist_start(&block->body);
-         !cork_dllist_is_end(&block->body, curr); curr = curr->next) {
-        struct s0_instruction  *instr =
-            cork_container_of(curr, struct s0_instruction, siblings);
+    for (i = 0; i < cork_array_size(&block->body); i++) {
+        struct s0_instruction  *instr = cork_array_at(&block->body, i);
         ep_check(last_value = s0_evaluate_instruction(s, scope, instr, err));
     }
 
