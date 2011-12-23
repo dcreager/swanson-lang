@@ -294,7 +294,7 @@ static int
 s0_parse_operand_name(struct swan *s, struct s0_parser *sp,
                       enum s0_opcode *dest, struct cork_error *err)
 {
-    rii_check(s0_parse_skip_leading(s, sp, err));
+    /* Don't need to skip whitespace; that's handled below in s0_parse */
     DEBUG("[%4zu:%2zu] Trying to parse operand name",
           sp->pos.line, sp->pos.column);
     struct s0_position  start = sp->pos;
@@ -554,7 +554,12 @@ s0_parse(struct swan *s, struct cork_slice *src, struct cork_error *err)
         result
     };
 
-    ei_check(s0_parse_instruction(s, &sp, err));
+    ei_check(s0_parse_skip_leading(s, &sp, err));
+    while (src->size > 0) {
+        ei_check(s0_parse_instruction(s, &sp, err));
+        ei_check(s0_parse_skip_leading(s, &sp, err));
+    }
+    return result;
 
 error:
     cork_gc_decref(swan_gc(s), result);

@@ -113,6 +113,11 @@ START_TEST(test_parsing)
     check_bad_parse("tfunction $1 = () -> ();");
     check_bad_parse("tfunction foo;");
 
+    check_bad_parse(
+        "tliteral %0; "
+        "tlocation %1 "
+    );
+
     CLEANUP_SWAN;
 }
 END_TEST
