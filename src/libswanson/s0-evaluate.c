@@ -93,7 +93,7 @@ s0_evaluate_expect_type(struct swan *s, struct s0_scope *scope,
     struct s0_value  *value;
     rpp_check(value = s0_scope_get(s, scope, id, err));
     if (value->kind == S0_VALUE_TYPE) {
-        return value->contents.type;
+        return value->_.type;
     } else {
         s0_wrong_kind_set(swan_alloc(s), err, id, "type");
         return NULL;
@@ -113,7 +113,6 @@ s0_evaluate_save_type(struct swan *s, struct s0_scope *scope,
 
     struct s0_value  *value;
     struct s0_type  *old_type;
-    struct s0_recursive_type  *recursive;
 
     /* It's not an error if id isn't already bound to something, so we
      * use a NULL err parameter. */
@@ -136,15 +135,13 @@ error:
         return NULL;
     }
 
-    old_type = value->contents.type;
+    old_type = value->_.type;
     if (old_type->kind != S0_TYPE_RECURSIVE) {
         /* id is already bound to a non-recursive type. */
         s0_scope_redefined_set(swan_alloc(s), err, id, scope->name);
         return NULL;
     }
 
-    recursive = cork_container_of
-        (old_type, struct s0_recursive_type, parent);
     rpi_check(s0_recursive_type_resolve(s, old_type, type, err));
     return value;
 }
@@ -199,18 +196,18 @@ s0_evaluate_TFUNCTION(struct swan *s, struct s0_scope *scope,
     struct s0_value  *value;
 
     /* Construct the param type list */
-    for (i = cork_array_size(&instr->args.tfunction.params); i-- > 0; ) {
+    for (i = cork_array_size(&instr->_.tfunction.params); i-- > 0; ) {
         s0_tagged_id  param =
-            cork_array_at(&instr->args.tfunction.params, i);
+            cork_array_at(&instr->_.tfunction.params, i);
         struct s0_type  *param_type;
         ep_check(param_type = s0_evaluate_expect_type(s, scope, param, err));
         ep_check(params = s0_type_list_new(s, param_type, params, err));
     }
 
     /* Construct the result type list */
-    for (i = cork_array_size(&instr->args.tfunction.results); i-- > 0; ) {
+    for (i = cork_array_size(&instr->_.tfunction.results); i-- > 0; ) {
         s0_tagged_id  result =
-            cork_array_at(&instr->args.tfunction.results, i);
+            cork_array_at(&instr->_.tfunction.results, i);
         struct s0_type  *result_type;
         ep_check(result_type = s0_evaluate_expect_type(s, scope, result, err));
         ep_check(results = s0_type_list_new(s, result_type, results, err));
@@ -242,7 +239,7 @@ s0_evaluate_TLOCATION(struct swan *s, struct s0_scope *scope,
     struct s0_value  *value;
 
     rpp_check(referent = s0_evaluate_expect_type
-              (s, scope, instr->args.tlocation.referent, err));
+              (s, scope, instr->_.tlocation.referent, err));
     rpp_check(type = s0_location_type_new(s, referent, err));
     ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
     cork_gc_decref(swan_gc(s), type);

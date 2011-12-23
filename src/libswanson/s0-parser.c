@@ -489,9 +489,9 @@ s0_parse_TFUNCTION(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_id(s, sp, '%', &dest, err));
     rii_check(s0_parse_require_symbol(s, sp, "=", 1, err));
     rip_check(instr = s0_tfunction_new(s, dest, err));
-    ei_check(s0_parse_id_list(s, sp, &instr->args.tfunction.params, err));
+    ei_check(s0_parse_id_list(s, sp, &instr->_.tfunction.params, err));
     ei_check(s0_parse_require_symbol(s, sp, "->", 2, err));
-    ei_check(s0_parse_id_list(s, sp, &instr->args.tfunction.results, err));
+    ei_check(s0_parse_id_list(s, sp, &instr->_.tfunction.results, err));
     ei_check(s0_parse_require_symbol(s, sp, ";", 1, err));
     ei_check(s0_basic_block_add(s, sp->block, instr, err));
     return 0;

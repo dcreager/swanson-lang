@@ -84,7 +84,7 @@ s0_recursive_redefinition_set(struct cork_alloc *alloc,
 
 
 /*-----------------------------------------------------------------------
- * Types
+ * Type lists
  */
 
 static void
@@ -124,37 +124,101 @@ error:
 }
 
 
-static struct cork_gc_obj_iface  s0_literal_type_gc = { NULL, NULL };
+/*-----------------------------------------------------------------------
+ * Types
+ */
+
+static enum cork_hash_table_map_result
+s0_type_free_keys(struct cork_alloc *alloc,
+                  struct cork_hash_table_entry *entry, void *ud)
+{
+    if (entry->key != NULL) {
+        cork_strfree(alloc, entry->key);
+    }
+    return CORK_HASH_TABLE_MAP_DELETE;
+}
+
+static void
+s0_type_free(struct cork_gc *gc, void *vself)
+{
+    struct s0_type  *self = vself;
+
+    switch (self->kind) {
+        case S0_TYPE_INTERFACE:
+            /* The types in the hash table will be decref'ed
+             * automatically by the recurse method.  We need to free the
+             * keys, though, before freeing the hash table itself. */
+            cork_hash_table_map
+                (gc->alloc, &self->_.interface.entries,
+                 s0_type_free_keys, NULL);
+            cork_hash_table_done(gc->alloc, &self->_.interface.entries);
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void
+s0_type_recurse(struct cork_gc *gc, void *vself,
+                cork_gc_recurser recurse, void *ud)
+{
+    struct s0_type  *self = vself;
+    switch (self->kind) {
+        case S0_TYPE_FUNCTION:
+            recurse(gc, self->_.function.params, ud);
+            recurse(gc, self->_.function.results, ud);
+            break;
+
+        case S0_TYPE_LOCATION:
+            recurse(gc, self->_.location.referent, ud);
+            break;
+
+        case S0_TYPE_INTERFACE:
+        {
+            struct cork_hash_table_iterator  iter;
+            struct cork_hash_table_entry  *entry;
+
+            cork_hash_table_iterator_init(&self->_.interface.entries, &iter);
+            while ((entry = cork_hash_table_iterator_next
+                        (&self->_.interface.entries, &iter)) != NULL) {
+                recurse(gc, entry->value, ud);
+            }
+            break;
+        }
+
+        case S0_TYPE_BLOCK:
+            recurse(gc, self->_.block.result, ud);
+            break;
+
+        case S0_TYPE_RECURSIVE:
+            recurse(gc, self->_.recursive.resolved, ud);
+            break;
+
+        default:
+            break;
+    }
+}
+
+static struct cork_gc_obj_iface  s0_type_gc = {
+    s0_type_free, s0_type_recurse
+};
+
 
 struct s0_type *
 s0_literal_type_new(struct swan *s, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
-
-    struct s0_literal_type  *self = NULL;
-    e_check_gc_new(s0_literal_type, self, "literal type");
-    self->parent.kind = S0_TYPE_LITERAL;
-    return &self->parent;
+    struct s0_type  *self = NULL;
+    e_check_gc_new(s0_type, self, "literal type");
+    self->kind = S0_TYPE_LITERAL;
+    return self;
 
 error:
     cork_gc_decref(swan_gc(s), self);
     return NULL;
 }
-
-
-static void
-s0_function_type_recurse(struct cork_gc *gc, void *vself,
-                         cork_gc_recurser recurse, void *ud)
-{
-    struct s0_function_type  *self = vself;
-    recurse(gc, self->params, ud);
-    recurse(gc, self->results, ud);
-}
-
-static struct cork_gc_obj_iface  s0_function_type_gc = {
-    NULL, s0_function_type_recurse
-};
 
 struct s0_type *
 s0_function_type_new(struct swan *s,
@@ -163,13 +227,12 @@ s0_function_type_new(struct swan *s,
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
-
-    struct s0_function_type  *self = NULL;
-    e_check_gc_new(s0_function_type, self, "function type");
-    self->parent.kind = S0_TYPE_FUNCTION;
-    self->params = params;
-    self->results = results;
-    return &self->parent;
+    struct s0_type  *self = NULL;
+    e_check_gc_new(s0_type, self, "function type");
+    self->kind = S0_TYPE_FUNCTION;
+    self->_.function.params = params;
+    self->_.function.results = results;
+    return self;
 
 error:
     if (self == NULL) {
@@ -182,79 +245,22 @@ error:
     return NULL;
 }
 
-
-static void
-s0_location_type_recurse(struct cork_gc *gc, void *vself,
-                         cork_gc_recurser recurse, void *ud)
-{
-    struct s0_location_type  *self = vself;
-    recurse(gc, self->referent, ud);
-}
-
-static struct cork_gc_obj_iface  s0_location_type_gc = {
-    NULL, s0_location_type_recurse
-};
-
 struct s0_type *
 s0_location_type_new(struct swan *s, struct s0_type *referent,
                      struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
-
-    struct s0_location_type  *self = NULL;
-    e_check_gc_new(s0_location_type, self, "location type");
-    self->parent.kind = S0_TYPE_LOCATION;
-    self->referent = cork_gc_incref(swan_gc(s), referent);
-    return &self->parent;
+    struct s0_type  *self = NULL;
+    e_check_gc_new(s0_type, self, "location type");
+    self->kind = S0_TYPE_LOCATION;
+    self->_.location.referent = cork_gc_incref(swan_gc(s), referent);
+    return self;
 
 error:
     cork_gc_decref(swan_gc(s), self);
     return NULL;
 }
-
-
-static enum cork_hash_table_map_result
-s0_interface_type_free_keys(struct cork_alloc *alloc,
-                            struct cork_hash_table_entry *entry, void *ud)
-{
-    if (entry->key != NULL) {
-        cork_strfree(alloc, entry->key);
-    }
-    return CORK_HASH_TABLE_MAP_DELETE;
-}
-
-static void
-s0_interface_type_free(struct cork_gc *gc, void *vself)
-{
-    struct s0_interface_type  *self = vself;
-
-    /* The types in the hash table will be decref'ed automatically by
-     * the recurse method.  We need to free the keys, though, before
-     * freeing the hash table itself. */
-    cork_hash_table_map
-        (gc->alloc, &self->entries, s0_interface_type_free_keys, NULL);
-    cork_hash_table_done(gc->alloc, &self->entries);
-}
-
-static void
-s0_interface_type_recurse(struct cork_gc *gc, void *vself,
-                          cork_gc_recurser recurse, void *ud)
-{
-    struct s0_interface_type  *self = vself;
-    struct cork_hash_table_iterator  iter;
-    struct cork_hash_table_entry  *entry;
-
-    cork_hash_table_iterator_init(&self->entries, &iter);
-    while ((entry = cork_hash_table_iterator_next(&self->entries, &iter))
-           != NULL) {
-        recurse(gc, entry->value, ud);
-    }
-}
-
-static struct cork_gc_obj_iface  s0_interface_type_gc = {
-    s0_interface_type_free, s0_interface_type_recurse
-};
 
 static bool
 string_comparator(const void *vk1, const void *vk2)
@@ -277,14 +283,13 @@ s0_interface_type_new(struct swan *s, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
-
-    struct s0_interface_type  *self = NULL;
-    e_check_gc_new(s0_interface_type, self, "interface type");
-    self->parent.kind = S0_TYPE_INTERFACE;
+    struct s0_type  *self = NULL;
+    e_check_gc_new(s0_type, self, "interface type");
+    self->kind = S0_TYPE_INTERFACE;
     ei_check(cork_hash_table_init
-             (swan_alloc(s), &self->entries, 0,
+             (swan_alloc(s), &self->_.interface.entries, 0,
               string_hasher, string_comparator, err));
-    return &self->parent;
+    return self;
 
 error:
     cork_gc_decref(swan_gc(s), self);
@@ -297,7 +302,6 @@ s0_interface_type_add(struct swan *s, struct s0_type *self,
                       struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
-    struct s0_interface_type  *iself;
     bool  is_new;
     struct cork_hash_table_entry  *entry = NULL;
 
@@ -307,9 +311,9 @@ s0_interface_type_add(struct swan *s, struct s0_type *self,
         return -1;
     }
 
-    iself = cork_container_of(self, struct s0_interface_type, parent);
     rip_check(entry = cork_hash_table_get_or_create
-              (swan_alloc(s), &iself->entries, (char *) name, &is_new, err));
+              (swan_alloc(s), &self->_.interface.entries,
+               (char *) name, &is_new, err));
 
     if (!is_new) {
         s0_interface_redefinition_set(swan_alloc(s), err, name);
@@ -322,65 +326,33 @@ s0_interface_type_add(struct swan *s, struct s0_type *self,
     return 0;
 }
 
-
-/*** block ***/
-
-static void
-s0_block_type_recurse(struct cork_gc *gc, void *vself,
-                      cork_gc_recurser recurse, void *ud)
-{
-    struct s0_block_type  *self = vself;
-    recurse(gc, self->result, ud);
-}
-
-static struct cork_gc_obj_iface  s0_block_type_gc = {
-    NULL, s0_block_type_recurse
-};
-
 struct s0_type *
 s0_block_type_new(struct swan *s, struct s0_type *result,
                   struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
-
-    struct s0_block_type  *self = NULL;
-    e_check_gc_new(s0_block_type, self, "block type");
-    self->parent.kind = S0_TYPE_BLOCK;
-    self->result = cork_gc_incref(swan_gc(s), result);
-    return &self->parent;
+    struct s0_type  *self = NULL;
+    e_check_gc_new(s0_type, self, "block type");
+    self->kind = S0_TYPE_BLOCK;
+    self->_.block.result = cork_gc_incref(swan_gc(s), result);
+    return self;
 
 error:
     cork_gc_decref(swan_gc(s), self);
     return NULL;
 }
 
-
-/*** recursive ***/
-
-static void
-s0_recursive_type_recurse(struct cork_gc *gc, void *vself,
-                          cork_gc_recurser recurse, void *ud)
-{
-    struct s0_recursive_type  *self = vself;
-    recurse(gc, self->resolved, ud);
-}
-
-static struct cork_gc_obj_iface  s0_recursive_type_gc = {
-    NULL, s0_recursive_type_recurse
-};
-
 struct s0_type *
 s0_recursive_type_new(struct swan *s, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
-
-    struct s0_recursive_type  *self = NULL;
-    e_check_gc_new(s0_recursive_type, self, "recursive type");
-    self->parent.kind = S0_TYPE_RECURSIVE;
-    self->resolved = NULL;
-    return &self->parent;
+    struct s0_type  *self = NULL;
+    e_check_gc_new(s0_type, self, "recursive type");
+    self->kind = S0_TYPE_RECURSIVE;
+    self->_.recursive.resolved = NULL;
+    return self;
 
 error:
     cork_gc_decref(swan_gc(s), self);
@@ -391,20 +363,17 @@ int
 s0_recursive_type_resolve(struct swan *s, struct s0_type *self,
                           struct s0_type *resolved, struct cork_error *err)
 {
-    struct s0_recursive_type  *rself;
-
     if (self->kind != S0_TYPE_RECURSIVE) {
         swan_general_bad_type_set
             (swan_alloc(s), err, "Cannot resolve non-recursive type");
         return -1;
     }
 
-    rself = cork_container_of(self, struct s0_recursive_type, parent);
-    if (rself->resolved != NULL) {
+    if (self->_.recursive.resolved != NULL) {
         s0_recursive_redefinition_set(swan_alloc(s), err);
         return -1;
     }
 
-    rself->resolved = cork_gc_incref(swan_gc(s), resolved);
+    self->_.recursive.resolved = cork_gc_incref(swan_gc(s), resolved);
     return 0;
 }

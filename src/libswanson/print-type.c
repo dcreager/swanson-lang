@@ -55,21 +55,21 @@ print_one(struct swan *s, struct s0_printer *state,
 
 static int
 assign_id(struct swan *s, struct s0_printer *state,
-          struct s0_interface_type *itype, size_t *index,
+          struct s0_type *type, size_t *index,
           struct cork_error *err)
 {
     bool  is_new;
     struct cork_hash_table_entry  *entry = NULL;
     rip_check(entry = cork_hash_table_get_or_create
               (swan_alloc(s), &state->interface_indices,
-               itype, &is_new, err));
+               type, &is_new, err));
 
     if (is_new) {
         *index = state->next_index++;
         entry->value = (void *) (intptr_t) *index;
         rii_check(cork_hash_table_put
                   (swan_alloc(s), &state->interfaces,
-                   entry->value, itype, NULL, NULL, NULL, err));
+                   entry->value, type, NULL, NULL, NULL, err));
     } else {
         *index = (size_t) (intptr_t) entry->value;
     }
@@ -125,17 +125,16 @@ print_one(struct swan *s, struct s0_printer *state,
 
         case S0_TYPE_FUNCTION:
         {
-            struct s0_function_type  *ftype =
-                cork_container_of(type, struct s0_function_type, parent);
-
             if (parenthize) {
                 rii_check(cork_buffer_append_string
                           (swan_alloc(s), dest, "(", err));
             }
-            rii_check(print_type_list(s, state, ftype->params, dest, err));
+            rii_check(print_type_list
+                      (s, state, type->_.function.params, dest, err));
             rii_check(cork_buffer_append_string
                       (swan_alloc(s), dest, " -> ", err));
-            rii_check(print_type_list(s, state, ftype->results, dest, err));
+            rii_check(print_type_list
+                      (s, state, type->_.function.results, dest, err));
             if (parenthize) {
                 rii_check(cork_buffer_append_string
                           (swan_alloc(s), dest, ")", err));
@@ -145,38 +144,33 @@ print_one(struct swan *s, struct s0_printer *state,
 
         case S0_TYPE_LOCATION:
         {
-            struct s0_location_type  *ltype =
-                cork_container_of(type, struct s0_location_type, parent);
             rii_check(cork_buffer_append_string
                       (swan_alloc(s), dest, "*", err));
-            return print_one(s, state, ltype->referent, dest, true, err);
+            return print_one
+                (s, state, type->_.location.referent, dest, true, err);
         }
 
         case S0_TYPE_INTERFACE:
         {
-            struct s0_interface_type  *itype =
-                cork_container_of(type, struct s0_interface_type, parent);
             size_t  index;
-            rii_check(assign_id(s, state, itype, &index, err));
+            rii_check(assign_id(s, state, type, &index, err));
             return print_interface_name(s, index, dest, err);
         }
 
         case S0_TYPE_BLOCK:
         {
-            struct s0_block_type  *btype =
-                cork_container_of(type, struct s0_block_type, parent);
             rii_check(cork_buffer_append_string
                       (swan_alloc(s), dest, "{", err));
-            rii_check(print_one(s, state, btype->result, dest, false, err));
+            rii_check(print_one
+                      (s, state, type->_.block.result, dest, false, err));
             return cork_buffer_append_string
                 (swan_alloc(s), dest, "}", err);
         }
 
         case S0_TYPE_RECURSIVE:
         {
-            struct s0_recursive_type  *rtype =
-                cork_container_of(type, struct s0_recursive_type, parent);
-            return print_one(s, state, rtype->resolved, dest, parenthize, err);
+            return print_one
+                (s, state, type->_.recursive.resolved, dest, parenthize, err);
         }
 
         default:
@@ -189,10 +183,10 @@ print_interface(struct swan *s, struct s0_printer *state,
                 size_t index, struct cork_buffer *dest,
                 struct cork_error *err)
 {
-    struct s0_interface_type  *itype = NULL;
+    struct s0_type  *type;
     struct cork_hash_table_iterator  iter;
     struct cork_hash_table_entry  *entry;
-    rip_check(itype = cork_hash_table_get
+    rip_check(type = cork_hash_table_get
               (swan_alloc(s), &state->interfaces,
                (void *) (intptr_t) index));
 
@@ -205,9 +199,9 @@ print_interface(struct swan *s, struct s0_printer *state,
     rii_check(print_interface_name(s, index, dest, err));
     rii_check(cork_buffer_append_string
               (swan_alloc(s), dest, " {\n", err));
-    cork_hash_table_iterator_init(&itype->entries, &iter);
-    while ((entry = cork_hash_table_iterator_next(&itype->entries, &iter))
-           != NULL) {
+    cork_hash_table_iterator_init(&type->_.interface.entries, &iter);
+    while ((entry = cork_hash_table_iterator_next
+                (&type->_.interface.entries, &iter)) != NULL) {
         const char  *name = entry->key;
         rii_check(cork_buffer_append_printf
                   (swan_alloc(s), dest, err, "  %s ", name));

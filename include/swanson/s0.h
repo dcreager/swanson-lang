@@ -32,9 +32,7 @@ enum s0_type_kind {
     S0_TYPE_BLOCK = 6
 };
 
-struct s0_type {
-    enum s0_type_kind  kind;
-};
+struct s0_type;
 
 
 struct s0_type_list {
@@ -48,19 +46,27 @@ s0_type_list_new(struct swan *s, struct s0_type *head,
                  struct s0_type_list *tail, struct cork_error *err);
 
 
-struct s0_literal_type {
-    struct s0_type  parent;
+struct s0_type {
+    enum s0_type_kind  kind;
+    union {
+        struct {
+            struct s0_type_list  *params;
+            struct s0_type_list  *results;
+        } function;
+        struct { struct s0_type  *referent; } location;
+        struct { struct cork_hash_table  entries; } interface;
+        struct { struct s0_type  *result; } block;
+
+        /* This is a placeholder for a recursive reference within the
+         * definition of a type.  The resolved field starts off NULL.
+         * Once the recursive type is fully defined, you use
+         * s0_recursive_type_resolve to fill in the recursive target. */
+        struct { struct s0_type  *resolved; } recursive;
+    } _;
 };
 
 struct s0_type *
 s0_literal_type_new(struct swan *s, struct cork_error *err);
-
-
-struct s0_function_type {
-    struct s0_type  parent;
-    struct s0_type_list  *params;
-    struct s0_type_list  *results;
-};
 
 /* Steals references to params and results */
 struct s0_type *
@@ -68,22 +74,10 @@ s0_function_type_new(struct swan *s,
                      struct s0_type_list *params, struct s0_type_list *results,
                      struct cork_error *err);
 
-
-struct s0_location_type {
-    struct s0_type  parent;
-    struct s0_type  *referent;
-};
-
 /* Creates new reference to referent */
 struct s0_type *
 s0_location_type_new(struct swan *s, struct s0_type *referent,
                      struct cork_error *err);
-
-
-struct s0_interface_type {
-    struct s0_type  parent;
-    struct cork_hash_table  entries;
-};
 
 struct s0_type *
 s0_interface_type_new(struct swan *s, struct cork_error *err);
@@ -94,28 +88,10 @@ s0_interface_type_add(struct swan *s, struct s0_type *self,
                       const char *name, struct s0_type *type,
                       struct cork_error *err);
 
-
-struct s0_block_type {
-    struct s0_type  parent;
-    struct s0_type  *result;
-};
-
-
 /* Creates new reference to referent */
 struct s0_type *
 s0_block_type_new(struct swan *s, struct s0_type *result,
                   struct cork_error *err);
-
-
-/* This is a placeholder for a recursive reference within the definition
- * of a type.  The resolved field starts off NULL.  Once the recursive
- * type is fully defined, you use s0_recursive_type_resolve to fill in
- * the recursive target. */
-
-struct s0_recursive_type {
-    struct s0_type  parent;
-    struct s0_type  *resolved;
-};
 
 struct s0_type *
 s0_recursive_type_new(struct swan *s, struct cork_error *err);
@@ -215,7 +191,7 @@ struct s0_instruction {
         struct {
             s0_tagged_id  referent;
         } tlocation;
-    } args;
+    } _;
     struct cork_dllist_item  siblings;
 };
 
@@ -279,7 +255,7 @@ struct s0_value {
     enum s0_value_kind  kind;
     union {
         struct s0_type  *type;
-    } contents;
+    } _;
 };
 
 

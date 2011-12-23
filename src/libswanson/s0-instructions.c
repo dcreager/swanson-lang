@@ -22,8 +22,8 @@ s0_instruction_free(struct cork_gc *gc, void *vself)
     struct s0_instruction  *self = vself;
     switch (self->op) {
         case S0_TFUNCTION:
-            cork_array_done(gc->alloc, &self->args.tfunction.params);
-            cork_array_done(gc->alloc, &self->args.tfunction.results);
+            cork_array_done(gc->alloc, &self->_.tfunction.params);
+            cork_array_done(gc->alloc, &self->_.tfunction.results);
             break;
 
         default:
@@ -69,8 +69,8 @@ s0_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err)
     rp_check_gc_new(s0_instruction, self, "TFUNCTION instruction");
     self->op = S0_TFUNCTION;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
-    cork_array_init(swan_alloc(s), &self->args.tfunction.params);
-    cork_array_init(swan_alloc(s), &self->args.tfunction.results);
+    cork_array_init(swan_alloc(s), &self->_.tfunction.params);
+    cork_array_init(swan_alloc(s), &self->_.tfunction.results);
     return self;
 }
 
@@ -84,7 +84,7 @@ s0_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
     rp_check_gc_new(s0_instruction, self, "TLOCATION instruction");
     self->op = S0_TLOCATION;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
-    self->args.tlocation.referent = referent;
+    self->_.tlocation.referent = referent;
     return self;
 }
 

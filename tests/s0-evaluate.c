@@ -78,7 +78,7 @@ print_value(struct swan *s, struct s0_basic_block *block,
             struct cork_buffer  type = CORK_BUFFER_INIT(swan_alloc(s));
             struct cork_buffer  givens = CORK_BUFFER_INIT(swan_alloc(s));
             ei_check(s0_type_print
-                     (s, value->contents.type, &type, &givens, err));
+                     (s, value->_.type, &type, &givens, err));
             printf("%c%"PRIuPTR" = %s\n",
                    s0_id_tag_name(s0_tagged_id_tag(last_id)),
                    s0_tagged_id_id(last_id), (char *) type.buf);

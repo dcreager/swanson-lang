@@ -22,7 +22,7 @@ s0_value_recurse(struct cork_gc *gc, void *vself,
     struct s0_value  *self = vself;
     switch (self->kind) {
         case S0_VALUE_TYPE:
-            recurse(gc, self->contents.type, ud);
+            recurse(gc, self->_.type, ud);
             break;
 
         default:
@@ -43,6 +43,6 @@ s0_type_value_new(struct swan *s, struct s0_type *type,
     struct s0_value  *self = NULL;
     rp_check_gc_new(s0_value, self, "type value");
     self->kind = S0_VALUE_TYPE;
-    self->contents.type = cork_gc_incref(swan_gc(s), type);
+    self->_.type = cork_gc_incref(swan_gc(s), type);
     return self;
 }
