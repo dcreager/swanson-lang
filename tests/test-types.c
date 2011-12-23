@@ -91,12 +91,10 @@ START_TEST(test_function_01)
 
     struct s0_type  *t0;
     struct s0_type  *t1;
-    struct s0_type_list  *params;
-    struct s0_type_list  *results;
+    fail_if_error(t0 = s0_function_type_new(&s, &err));
     fail_if_error(t1 = s0_literal_type_new(&s, &err));
-    fail_if_error(params = s0_type_list_new(&s, t1, NULL, &err));
-    fail_if_error(results = s0_type_list_new(&s, t1, NULL, &err));
-    fail_if_error(t0 = s0_function_type_new(&s, params, results, &err));
+    fail_if_error(s0_function_type_add_param(&s, t0, t1, &err));
+    fail_if_error(s0_function_type_add_result(&s, t0, t1, &err));
     check_type(t0, "LITERAL -> LITERAL", "");
 
     cork_gc_decref(swan_gc(&s), t0);
@@ -112,13 +110,11 @@ START_TEST(test_function_02)
 
     struct s0_type  *t0;
     struct s0_type  *t1;
-    struct s0_type_list  *params;
-    struct s0_type_list  *results;
+    fail_if_error(t0 = s0_function_type_new(&s, &err));
     fail_if_error(t1 = s0_literal_type_new(&s, &err));
-    fail_if_error(params = s0_type_list_new(&s, t1, NULL, &err));
-    fail_if_error(params = s0_type_list_new(&s, t1, params, &err));
-    fail_if_error(results = s0_type_list_new(&s, t1, NULL, &err));
-    fail_if_error(t0 = s0_function_type_new(&s, params, results, &err));
+    fail_if_error(s0_function_type_add_param(&s, t0, t1, &err));
+    fail_if_error(s0_function_type_add_param(&s, t0, t1, &err));
+    fail_if_error(s0_function_type_add_result(&s, t0, t1, &err));
     check_type(t0, "LITERAL,LITERAL -> LITERAL", "");
 
     cork_gc_decref(swan_gc(&s), t0);
@@ -162,16 +158,14 @@ START_TEST(test_interface_02)
     struct s0_type  *tr;
     struct s0_type  *t0;
     struct s0_type  *t1;
-    struct s0_type_list  *params;
-    struct s0_type_list  *results;
 
     fail_if_error(tr = s0_recursive_type_new(&s, &err));
     fail_if_error(t0 = s0_interface_type_new(&s, &err));
 
-    fail_if_error(params = s0_type_list_new(&s, tr, NULL, &err));
-    fail_if_error(params = s0_type_list_new(&s, tr, params, &err));
-    fail_if_error(results = s0_type_list_new(&s, tr, NULL, &err));
-    fail_if_error(t1 = s0_function_type_new(&s, params, results, &err));
+    fail_if_error(t1 = s0_function_type_new(&s, &err));
+    fail_if_error(s0_function_type_add_param(&s, t1, tr, &err));
+    fail_if_error(s0_function_type_add_param(&s, t1, tr, &err));
+    fail_if_error(s0_function_type_add_result(&s, t1, tr, &err));
     fail_if_error(s0_interface_type_add(&s, t0, "+", t1, &err));
     cork_gc_decref(swan_gc(&s), t1);
 
@@ -198,22 +192,20 @@ START_TEST(test_interface_03)
     struct s0_type  *tl;
     struct s0_type  *t0;
     struct s0_type  *t1;
-    struct s0_type_list  *params;
-    struct s0_type_list  *results;
 
     fail_if_error(tr = s0_recursive_type_new(&s, &err));
     fail_if_error(tl = s0_location_type_new(&s, tr, &err));
     fail_if_error(t0 = s0_interface_type_new(&s, &err));
 
-    fail_if_error(params = s0_type_list_new(&s, tr, NULL, &err));
-    fail_if_error(params = s0_type_list_new(&s, tl, params, &err));
-    fail_if_error(t1 = s0_function_type_new(&s, params, NULL, &err));
+    fail_if_error(t1 = s0_function_type_new(&s, &err));
+    fail_if_error(s0_function_type_add_param(&s, t1, tl, &err));
+    fail_if_error(s0_function_type_add_param(&s, t1, tr, &err));
     fail_if_error(s0_interface_type_add(&s, t0, "=", t1, &err));
     cork_gc_decref(swan_gc(&s), t1);
 
-    fail_if_error(params = s0_type_list_new(&s, tl, NULL, &err));
-    fail_if_error(results = s0_type_list_new(&s, tr, NULL, &err));
-    fail_if_error(t1 = s0_function_type_new(&s, params, results, &err));
+    fail_if_error(t1 = s0_function_type_new(&s, &err));
+    fail_if_error(s0_function_type_add_param(&s, t1, tl, &err));
+    fail_if_error(s0_function_type_add_result(&s, t1, tr, &err));
     fail_if_error(s0_interface_type_add(&s, t0, "unary *", t1, &err));
     cork_gc_decref(swan_gc(&s), t1);
 

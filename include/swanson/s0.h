@@ -33,25 +33,14 @@ enum s0_type_kind {
 };
 
 struct s0_type;
-
-
-struct s0_type_list {
-    struct s0_type  *head;
-    struct s0_type_list  *tail;
-};
-
-/* Creates new reference to head; steals reference to tail */
-struct s0_type_list *
-s0_type_list_new(struct swan *s, struct s0_type *head,
-                 struct s0_type_list *tail, struct cork_error *err);
-
+typedef cork_array(struct s0_type *)  s0_type_array;
 
 struct s0_type {
     enum s0_type_kind  kind;
     union {
         struct {
-            struct s0_type_list  *params;
-            struct s0_type_list  *results;
+            s0_type_array  params;
+            s0_type_array  results;
         } function;
         struct { struct s0_type  *referent; } location;
         struct { struct cork_hash_table  entries; } interface;
@@ -68,11 +57,18 @@ struct s0_type {
 struct s0_type *
 s0_literal_type_new(struct swan *s, struct cork_error *err);
 
-/* Steals references to params and results */
 struct s0_type *
-s0_function_type_new(struct swan *s,
-                     struct s0_type_list *params, struct s0_type_list *results,
-                     struct cork_error *err);
+s0_function_type_new(struct swan *s, struct cork_error *err);
+
+/* Creates new reference to type */
+int
+s0_function_type_add_param(struct swan *s, struct s0_type *self,
+                           struct s0_type *type, struct cork_error *err);
+
+/* Creates new reference to type */
+int
+s0_function_type_add_result(struct swan *s, struct s0_type *self,
+                            struct s0_type *type, struct cork_error *err);
 
 /* Creates new reference to referent */
 struct s0_type *

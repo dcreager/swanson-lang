@@ -91,23 +91,21 @@ print_interface_name(struct swan *s, size_t index, struct cork_buffer *dest,
 
 static int
 print_type_list(struct swan *s, struct s0_printer *state,
-                struct s0_type_list *list, struct cork_buffer *dest,
+                s0_type_array *array, struct cork_buffer *dest,
                 struct cork_error *err)
 {
 
-    if (list == NULL) {
+    if (cork_array_is_empty(array)) {
         return cork_buffer_append_string(swan_alloc(s), dest, "void", err);
     } else {
-        bool  first = true;
-        struct s0_type_list  *curr;
-        for (curr = list; curr != NULL; curr = curr->tail) {
-            if (first) {
-                first = false;
-            } else {
+        size_t  i;
+        for (i = 0; i < cork_array_size(array); i++) {
+            if (i > 0) {
                 rii_check(cork_buffer_append_string
                           (swan_alloc(s), dest, ",", err));
             }
-            rii_check(print_one(s, state, curr->head, dest, true, err));
+            rii_check(print_one
+                      (s, state, cork_array_at(array, i), dest, true, err));
         }
     }
     return 0;
@@ -130,11 +128,11 @@ print_one(struct swan *s, struct s0_printer *state,
                           (swan_alloc(s), dest, "(", err));
             }
             rii_check(print_type_list
-                      (s, state, type->_.function.params, dest, err));
+                      (s, state, &type->_.function.params, dest, err));
             rii_check(cork_buffer_append_string
                       (swan_alloc(s), dest, " -> ", err));
             rii_check(print_type_list
-                      (s, state, type->_.function.results, dest, err));
+                      (s, state, &type->_.function.results, dest, err));
             if (parenthize) {
                 rii_check(cork_buffer_append_string
                           (swan_alloc(s), dest, ")", err));

@@ -190,41 +190,34 @@ s0_evaluate_TFUNCTION(struct swan *s, struct s0_scope *scope,
 {
     DEBUG("--- Evaluating TFUNCTION");
     size_t  i;
-    struct s0_type_list  *params = NULL;
-    struct s0_type_list  *results = NULL;
     struct s0_type  *type = NULL;
     struct s0_value  *value;
 
+    rpp_check(type = s0_function_type_new(s, err));
+
     /* Construct the param type list */
-    for (i = cork_array_size(&instr->_.tfunction.params); i-- > 0; ) {
+    for (i = 0; i < cork_array_size(&instr->_.tfunction.params); i++) {
         s0_tagged_id  param =
             cork_array_at(&instr->_.tfunction.params, i);
         struct s0_type  *param_type;
         ep_check(param_type = s0_evaluate_expect_type(s, scope, param, err));
-        ep_check(params = s0_type_list_new(s, param_type, params, err));
+        ei_check(s0_function_type_add_param(s, type, param_type, err));
     }
 
     /* Construct the result type list */
-    for (i = cork_array_size(&instr->_.tfunction.results); i-- > 0; ) {
+    for (i = 0; i < cork_array_size(&instr->_.tfunction.results); i++) {
         s0_tagged_id  result =
             cork_array_at(&instr->_.tfunction.results, i);
         struct s0_type  *result_type;
         ep_check(result_type = s0_evaluate_expect_type(s, scope, result, err));
-        ep_check(results = s0_type_list_new(s, result_type, results, err));
+        ei_check(s0_function_type_add_result(s, type, result_type, err));
     }
-
-    ep_check(type = s0_function_type_new(s, params, results, err));
-    /* type just stole our references to params an results */
-    params = NULL;
-    results = NULL;
 
     ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
     cork_gc_decref(swan_gc(s), type);
     return value;
 
 error:
-    cork_gc_decref(swan_gc(s), params);
-    cork_gc_decref(swan_gc(s), results);
     cork_gc_decref(swan_gc(s), type);
     return NULL;
 }
