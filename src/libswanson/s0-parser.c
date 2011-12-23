@@ -664,6 +664,22 @@ error:
     return -1;
 }
 
+static int
+s0_parse_TBLOCK(struct swan *s, struct s0_parser *sp,
+                struct cork_error *err)
+{
+    s0_id  dest;
+    s0_tagged_id  result;
+    struct s0_instruction  *instr;
+    rii_check(s0_parse_id(s, sp, '%', &dest, err));
+    rii_check(s0_parse_require_symbol(s, sp, "=", 1, err));
+    rii_check(s0_parse_any_id(s, sp, &result, err));
+    rii_check(s0_parse_require_symbol(s, sp, ";", 1, err));
+    rip_check(instr = s0_tblock_new(s, dest, result, err));
+    rii_check(s0_basic_block_add(s, sp->block, instr, err));
+    return 0;
+}
+
 
 /* Parse a single instruction */
 static int

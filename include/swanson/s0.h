@@ -155,17 +155,18 @@ typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
     _(TFUNCTION, 2) \
     _(TLOCATION, 3) \
     _(TINTERFACE, 4) \
+    _(TBLOCK, 5) \
 
 #if 0
-    _(LITERAL, 5) \
-    _(PRELUDE, 6) \
-    _(GET, 7) \
-    _(CALL, 8) \
-    _(RETURN, 9) \
-    _(LABEL, 10) \
-    _(JTRUE, 11) \
-    _(JFALSE, 12) \
-    _(JUMP, 13) \
+    _(LITERAL, x) \
+    _(PRELUDE, x) \
+    _(GET, x) \
+    _(CALL, x) \
+    _(RETURN, x) \
+    _(LABEL, x) \
+    _(JTRUE, x) \
+    _(JFALSE, x) \
+    _(JUMP, x) \
 
 #endif
 
@@ -191,12 +192,9 @@ struct s0_instruction {
             s0_tagged_id_array  params;
             s0_tagged_id_array  results;
         } tfunction;
-        struct {
-            s0_tagged_id  referent;
-        } tlocation;
-        struct {
-            s0_tinterface_entries  entries;
-        } tinterface;
+        struct { s0_tagged_id  referent; }  tlocation;
+        struct { s0_tinterface_entries  entries; }  tinterface;
+        struct { s0_tagged_id  result; }  tblock;
     } _;
     struct cork_dllist_item  siblings;
 };
@@ -230,6 +228,10 @@ int
 s0_tinterface_add_entry(struct swan *s, struct s0_instruction *self,
                         const char *key, s0_tagged_id entry,
                         struct cork_error *err);
+
+struct s0_instruction *
+s0_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
+              struct cork_error *err);
 
 
 struct s0_basic_block {

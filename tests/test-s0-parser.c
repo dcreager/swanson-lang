@@ -107,6 +107,21 @@ START_TEST(test_parsing)
         "tinterface %1 = { \"h\\\\i\": %0 }; "
     );
 
+    check_good_parse(
+        "tliteral %0; "
+        "tblock %1 = %0; "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tblock %1 = %0; "
+        "tfunction %2 = () -> (%0); "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tblock %1 = %0; "
+        "tfunction %2 = (%1, %1) -> (%0); "
+    );
+
     check_bad_parse("foobar");
 
     check_bad_parse("trecursive");
@@ -145,6 +160,13 @@ START_TEST(test_parsing)
     check_bad_parse("tinterface %1 = %1;");
     check_bad_parse("tinterface $1 = {};");
     check_bad_parse("tinterface foo;");
+
+    check_bad_parse("tblock");
+    check_bad_parse("tblock %1");
+    check_bad_parse("tblock %1 =");
+    check_bad_parse("tblock %1 = %1");
+    check_bad_parse("tblock $1 = %0;");
+    check_bad_parse("tblock foo;");
 
     check_bad_parse(
         "tliteral %0; "

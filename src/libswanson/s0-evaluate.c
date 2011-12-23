@@ -272,6 +272,27 @@ error:
 }
 
 static struct s0_value *
+s0_evaluate_TBLOCK(struct swan *s, struct s0_scope *scope,
+                   struct s0_instruction *instr, struct cork_error *err)
+{
+    DEBUG("--- Evaluating TBLOCK");
+    struct s0_type  *result;
+    struct s0_type  *type;
+    struct s0_value  *value;
+
+    rpp_check(result = s0_evaluate_expect_type
+              (s, scope, instr->_.tblock.result, err));
+    rpp_check(type = s0_block_type_new(s, result, err));
+    ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
+    cork_gc_decref(swan_gc(s), type);
+    return value;
+
+error:
+    cork_gc_decref(swan_gc(s), type);
+    return NULL;
+}
+
+static struct s0_value *
 s0_evaluate_instruction(struct swan *s, struct s0_scope *scope,
                         struct s0_instruction *instr, struct cork_error *err)
 {
