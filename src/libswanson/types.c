@@ -58,7 +58,7 @@ s0_interface_redefinition_set(struct cork_alloc *alloc,
 {
     return cork_error_set_extra(alloc, err,
                                 S0_ERROR,
-                                S0_REDEFINITION,
+                                S0_REDEFINED,
                                 s0_interface_redefinition,
                                 id);
 }
@@ -78,7 +78,7 @@ s0_recursive_redefinition_set(struct cork_alloc *alloc,
 {
     return cork_error_set(alloc, err,
                           S0_ERROR,
-                          S0_REDEFINITION,
+                          S0_REDEFINED,
                           s0_recursive_redefinition);
 }
 

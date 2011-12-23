@@ -1,0 +1,3 @@
+# Expected type: LITERAL
+trecursive %0;
+tliteral %0;

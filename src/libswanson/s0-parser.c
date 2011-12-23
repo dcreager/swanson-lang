@@ -530,9 +530,7 @@ s0_parse_instruction(struct swan *s, struct s0_parser *sp,
 #define PARSE_OPCODE(name, val) \
         case S0_##name: \
             return s0_parse_##name(s, sp, err);
-
         S0_OPCODES(PARSE_OPCODE)
-
 #undef PARSE_OPCODE
 
         default:

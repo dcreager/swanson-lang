@@ -19,28 +19,6 @@
 
 
 /*-----------------------------------------------------------------------
- * Error handling
- */
-
-/* Hash of "swanson.s0" */
-#define S0_ERROR  0x4972f292
-
-enum s0_error {
-    S0_REDEFINITION,
-    S0_SYNTAX_ERROR
-};
-
-int
-s0_interface_redefinition_set(struct cork_alloc *alloc,
-                              struct cork_error *err,
-                              const char *id);
-
-int
-s0_recursive_redefinition_set(struct cork_alloc *alloc,
-                              struct cork_error *err);
-
-
-/*-----------------------------------------------------------------------
  * Types and type constructors
  */
 
@@ -183,6 +161,14 @@ enum s0_id_tag {
     S0_ID_TAG_LABEL = 4
 };
 
+#define s0_id_tag_name(tag) \
+    (((tag) == S0_ID_TAG_TYPE)?    '%': \
+     ((tag) == S0_ID_TAG_LOCAL)?   '$': \
+     ((tag) == S0_ID_TAG_UPVALUE)? '^': \
+     ((tag) == S0_ID_TAG_PARAM)?   '!': \
+     ((tag) == S0_ID_TAG_LABEL)?   '_': \
+      '?')
+
 /* 3 bits are used for the tag, which gives us 8 possible tags */
 #define s0_tagged_id(tag, id) (((tag) & 0x7) | ((id) << 3))
 #define s0_tagged_id_tag(tid) ((tid) & 0x7)
@@ -220,16 +206,13 @@ enum s0_opcode {
 
 struct s0_instruction {
     enum s0_opcode  op;
+    s0_tagged_id  dest;
     union {
-        struct { s0_tagged_id dest; }  trecursive;
-        struct { s0_tagged_id dest; }  tliteral;
         struct {
-            s0_tagged_id  dest;
             s0_tagged_id_array  params;
             s0_tagged_id_array  results;
         } tfunction;
         struct {
-            s0_tagged_id  dest;
             s0_tagged_id  referent;
         } tlocation;
     } args;
@@ -282,6 +265,88 @@ struct s0_position {
 
 struct s0_basic_block *
 s0_parse(struct swan *s, struct cork_slice *src, struct cork_error *err);
+
+
+/*-----------------------------------------------------------------------
+ * Values
+ */
+
+enum s0_value_kind {
+    S0_VALUE_TYPE = 0
+};
+
+struct s0_value {
+    enum s0_value_kind  kind;
+    union {
+        struct s0_type  *type;
+    } contents;
+};
+
+
+/* Creates new reference to type */
+struct s0_value *
+s0_type_value_new(struct swan *s, struct s0_type *type,
+                  struct cork_error *err);
+
+/* Evaluates a basic block to produce a value */
+struct s0_value *
+s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *block,
+                        struct cork_error *err);
+
+
+/*-----------------------------------------------------------------------
+ * Scopes
+ */
+
+struct s0_scope {
+    const char  *name;
+    struct cork_hash_table  entries;
+};
+
+struct s0_scope *
+s0_scope_new(struct swan *s, const char *name, struct cork_error *err);
+
+/* steals reference to value */
+int
+s0_scope_add(struct swan *s, struct s0_scope *scope,
+             s0_tagged_id id, struct s0_value *value,
+             struct cork_error *err);
+
+struct s0_value *
+s0_scope_get(struct swan *s, struct s0_scope *scope,
+             s0_tagged_id id, struct cork_error *err);
+
+
+/*-----------------------------------------------------------------------
+ * Error handling
+ */
+
+/* Hash of "swanson.s0" */
+#define S0_ERROR  0x4972f292
+
+enum s0_error {
+    S0_REDEFINED,
+    S0_UNDEFINED,
+    S0_EVALUATION_ERROR,
+    S0_SYNTAX_ERROR
+};
+
+int
+s0_interface_redefinition_set(struct cork_alloc *alloc,
+                              struct cork_error *err,
+                              const char *id);
+
+int
+s0_recursive_redefinition_set(struct cork_alloc *alloc,
+                              struct cork_error *err);
+
+int
+s0_scope_redefined_set(struct cork_alloc *alloc, struct cork_error *err,
+                       s0_tagged_id id, const char *scope_name);
+
+int
+s0_scope_undefined_set(struct cork_alloc *alloc, struct cork_error *err,
+                       s0_tagged_id id, const char *scope_name);
 
 
 #endif  /* SWANSON_S0_H */

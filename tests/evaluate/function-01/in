@@ -1,0 +1,4 @@
+# Expected type: LITERAL -> *LITERAL
+tliteral %0;
+tlocation %1 = %0;
+tfunction %2 = (%0) -> (%1);

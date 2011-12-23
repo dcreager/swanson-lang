@@ -1,3 +1,13 @@
+/* -*- coding: utf-8 -*-
+ * ----------------------------------------------------------------------
+ * Copyright © 2011, RedJack, LLC.
+ * All rights reserved.
+ *
+ * Please see the LICENSE.txt file in this distribution for license
+ * details.
+ * ----------------------------------------------------------------------
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -6,8 +16,8 @@
 #include "lagavulin/engine.h"
 #include "lagavulin/stack.h"
 
-
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
     struct cork_alloc  *alloc = cork_allocator_new_debug();
     struct cork_error  err = CORK_ERROR_INIT(alloc);

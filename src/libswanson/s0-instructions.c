@@ -44,7 +44,7 @@ s0_trecursive_new(struct swan *s, s0_id dest, struct cork_error *err)
     struct s0_instruction  *self = NULL;
     rp_check_gc_new(s0_instruction, self, "TRECURSIVE instruction");
     self->op = S0_TRECURSIVE;
-    self->args.trecursive.dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
+    self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     return self;
 }
 
@@ -56,7 +56,7 @@ s0_tliteral_new(struct swan *s, s0_id dest, struct cork_error *err)
     struct s0_instruction  *self = NULL;
     rp_check_gc_new(s0_instruction, self, "TLITERAL instruction");
     self->op = S0_TLITERAL;
-    self->args.tliteral.dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
+    self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     return self;
 }
 
@@ -68,7 +68,7 @@ s0_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err)
     struct s0_instruction  *self = NULL;
     rp_check_gc_new(s0_instruction, self, "TFUNCTION instruction");
     self->op = S0_TFUNCTION;
-    self->args.tfunction.dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
+    self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     cork_array_init(swan_alloc(s), &self->args.tfunction.params);
     cork_array_init(swan_alloc(s), &self->args.tfunction.results);
     return self;
@@ -83,7 +83,7 @@ s0_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
     struct s0_instruction  *self = NULL;
     rp_check_gc_new(s0_instruction, self, "TLOCATION instruction");
     self->op = S0_TLOCATION;
-    self->args.tlocation.dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
+    self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     self->args.tlocation.referent = referent;
     return self;
 }

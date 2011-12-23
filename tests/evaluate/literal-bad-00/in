@@ -1,0 +1,3 @@
+# Shouldn't be able to tliteral twice
+tliteral %0;
+tliteral %0;
