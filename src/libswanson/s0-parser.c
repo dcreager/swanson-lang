@@ -83,9 +83,15 @@ s0_bad_tag(struct cork_alloc *alloc, struct cork_error *err,
            struct cork_buffer *dest)
 {
     struct s0_bad_tag_extra  *extra = cork_error_extra(err);
-    return cork_buffer_printf
-        (alloc, dest, NULL, "Expected a %c identifier at %zu.%zu",
-         extra->expected_tag, extra->pos.line, extra->pos.column);
+    if (extra->expected_tag == '\0') {
+        return cork_buffer_printf
+            (alloc, dest, NULL, "Expected identifier at %zu.%zu",
+             extra->pos.line, extra->pos.column);
+    } else {
+        return cork_buffer_printf
+            (alloc, dest, NULL, "Expected %c identifier at %zu.%zu",
+             extra->expected_tag, extra->pos.line, extra->pos.column);
+    }
 }
 
 static int
@@ -97,6 +103,34 @@ s0_bad_tag_set(struct cork_alloc *alloc, struct cork_error *err,
                                 S0_ERROR,
                                 S0_SYNTAX_ERROR,
                                 s0_bad_tag,
+                                extra);
+}
+
+
+struct s0_bad_symbol_extra {
+    struct s0_position  pos;
+    const char  *symbol;
+};
+
+static int
+s0_bad_symbol(struct cork_alloc *alloc, struct cork_error *err,
+              struct cork_buffer *dest)
+{
+    struct s0_bad_symbol_extra  *extra = cork_error_extra(err);
+    return cork_buffer_printf
+        (alloc, dest, NULL, "Expected %s at %zu.%zu",
+         extra->symbol, extra->pos.line, extra->pos.column);
+}
+
+static int
+s0_bad_symbol_set(struct cork_alloc *alloc, struct cork_error *err,
+                  struct s0_position pos, const char *symbol)
+{
+    struct s0_bad_symbol_extra  extra = { pos, symbol };
+    return cork_error_set_extra(alloc, err,
+                                S0_ERROR,
+                                S0_SYNTAX_ERROR,
+                                s0_bad_symbol,
                                 extra);
 }
 
@@ -217,6 +251,44 @@ s0_parse_skip_leading(struct swan *s, struct s0_parser *sp,
 }
 
 
+/* Tries to parse a particular symbol.  If that symbol doesn't appear
+ * next in the input, don't consider it an error, and consume anything. */
+static int
+s0_parse_try_symbol(struct swan *s, struct s0_parser *sp,
+                    const char *symbol, size_t symbol_length,
+                    struct cork_error *err)
+{
+    rii_check(s0_parse_skip_leading(s, sp, err));
+    DEBUG("[%4zu:%2zu] Trying to parse symbol %s",
+          sp->pos.line, sp->pos.column, symbol);
+
+    if ((sp->slice->size < symbol_length) ||
+        (memcmp(sp->slice->buf, symbol, symbol_length) != 0)) {
+        /* Nope, that symbol isn't next. */
+        return -2;
+    }
+
+    return cork_slice_slice_offset
+        (swan_alloc(s), sp->slice, symbol_length, err);
+}
+
+/* Tries to parse a particular symbol, raising a syntax error if it's
+ * not present. */
+static int
+s0_parse_require_symbol(struct swan *s, struct s0_parser *sp,
+                        const char *symbol, size_t symbol_length,
+                        struct cork_error *err)
+{
+    int  rc = s0_parse_try_symbol(s, sp, symbol, symbol_length, err);
+    if (rc == -2) {
+        s0_bad_symbol_set(swan_alloc(s), err, sp->pos, symbol);
+        return -1;
+    } else {
+        return rc;
+    }
+}
+
+
 /* Tries to parse an operand name */
 static int
 s0_parse_operand_name(struct swan *s, struct s0_parser *sp,
@@ -309,19 +381,138 @@ s0_parse_id(struct swan *s, struct s0_parser *sp, char tag,
     return s0_parse_id_int(s, sp, tag, dest, err);
 }
 
+/* Parse any identifier. */
+static int
+s0_parse_any_id(struct swan *s, struct s0_parser *sp,
+                s0_tagged_id *dest, struct cork_error *err)
+{
+    rii_check(s0_parse_skip_leading(s, sp, err));
+    DEBUG("[%4zu:%2zu] Trying to parse %c identifier",
+          sp->pos.line, sp->pos.column, (int) tag);
+
+    if (sp->slice->size == 0) {
+        s0_bad_tag_set(swan_alloc(s), err, sp->pos, '\0');
+        return -1;
+    }
+
+    int  tag;
+    switch (*((char *) sp->slice->buf)) {
+        case '%':
+            tag = S0_ID_TAG_TYPE;
+            break;
+
+        default:
+            s0_bad_tag_set(swan_alloc(s), err, sp->pos, '\0');
+            return -1;
+    }
+
+    s0_id  id;
+    rii_check(s0_parse_id_int(s, sp, '\0', &id, err));
+    *dest = s0_tagged_id(tag, id);
+    return 0;
+}
+
+/* Parse a list of identifiers. */
+static int
+s0_parse_id_list(struct swan *s, struct s0_parser *sp,
+                 s0_tagged_id_array *dest, struct cork_error *err)
+{
+    rii_check(s0_parse_require_symbol(s, sp, "(", 1, err));
+    bool  first = true;
+
+    do {
+        int  rc;
+
+        /* At this point, we can try to read a close-paren to end the
+         * list. */
+        rc = s0_parse_try_symbol(s, sp, ")", 1, err);
+        if (rc != -2) {
+            return rc;
+        }
+
+        /* If this isn't the first element of the list, there needs to
+         * be a comma next. */
+        if (first) {
+            first = false;
+        } else {
+            rii_check(s0_parse_require_symbol(s, sp, ",", 1, err));
+        }
+
+        /* And then we have to parse an identifier. */
+        s0_tagged_id  id;
+        rii_check(s0_parse_any_id(s, sp, &id, err));
+        rii_check(cork_array_append(swan_alloc(s), dest, id, err));
+    } while (true);
+
+    /* Should be unreachable */
+    cork_unknown_error_set(swan_alloc(s), err);
+    return -1;
+}
+
 
 /* A bunch of parsers for each opcode.  Each of these assume that the
  * operand name has already been parsed, since we'll need to switch on
  * that before these functions are ever called. */
 
 static int
-s0_parse_tliteral(struct swan *s, struct s0_parser *sp,
+s0_parse_TRECURSIVE(struct swan *s, struct s0_parser *sp,
+                    struct cork_error *err)
+{
+    s0_id  dest;
+    struct s0_instruction  *instr;
+    rii_check(s0_parse_id(s, sp, '%', &dest, err));
+    rii_check(s0_parse_require_symbol(s, sp, ";", 1, err));
+    rip_check(instr = s0_trecursive_new(s, dest, err));
+    rii_check(s0_basic_block_add(s, sp->block, instr, err));
+    return 0;
+}
+
+static int
+s0_parse_TLITERAL(struct swan *s, struct s0_parser *sp,
                   struct cork_error *err)
 {
     s0_id  dest;
     struct s0_instruction  *instr;
     rii_check(s0_parse_id(s, sp, '%', &dest, err));
+    rii_check(s0_parse_require_symbol(s, sp, ";", 1, err));
     rip_check(instr = s0_tliteral_new(s, dest, err));
+    rii_check(s0_basic_block_add(s, sp->block, instr, err));
+    return 0;
+}
+
+static int
+s0_parse_TFUNCTION(struct swan *s, struct s0_parser *sp,
+                   struct cork_error *err)
+{
+    s0_id  dest;
+    struct s0_instruction  *instr;
+    rii_check(s0_parse_id(s, sp, '%', &dest, err));
+    rii_check(s0_parse_require_symbol(s, sp, "=", 1, err));
+    rip_check(instr = s0_tfunction_new(s, dest, err));
+    ei_check(s0_parse_id_list(s, sp, &instr->args.tfunction.params, err));
+    ei_check(s0_parse_require_symbol(s, sp, "->", 2, err));
+    ei_check(s0_parse_id_list(s, sp, &instr->args.tfunction.results, err));
+    ei_check(s0_parse_require_symbol(s, sp, ";", 1, err));
+    ei_check(s0_basic_block_add(s, sp->block, instr, err));
+    return 0;
+
+error:
+    cork_gc_decref(swan_gc(s), instr);
+    return -1;
+}
+
+static int
+s0_parse_TLOCATION(struct swan *s, struct s0_parser *sp,
+                   struct cork_error *err)
+{
+    s0_id  dest;
+    s0_tagged_id  referent;
+    struct s0_instruction  *instr;
+    rii_check(s0_parse_id(s, sp, '%', &dest, err));
+    rii_check(s0_parse_require_symbol(s, sp, "=", 1, err));
+    rii_check(s0_parse_any_id(s, sp, &referent, err));
+    rii_check(s0_parse_require_symbol(s, sp, ";", 1, err));
+    rip_check(instr = s0_tlocation_new(s, dest, referent, err));
     rii_check(s0_basic_block_add(s, sp->block, instr, err));
     return 0;
 }
@@ -336,8 +527,13 @@ s0_parse_instruction(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_operand_name(s, sp, &op, err));
 
     switch (op) {
-        case S0_TLITERAL:
-            return s0_parse_tliteral(s, sp, err);
+#define PARSE_OPCODE(name, val) \
+        case S0_##name: \
+            return s0_parse_##name(s, sp, err);
+
+        S0_OPCODES(PARSE_OPCODE)
+
+#undef PARSE_OPCODE
 
         default:
             cork_unknown_error_set(swan_alloc(s), err);

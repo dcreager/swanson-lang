@@ -188,12 +188,16 @@ enum s0_id_tag {
 #define s0_tagged_id_tag(tid) ((tid) & 0x7)
 #define s0_tagged_id_id(tid)  ((tid) >> 3)
 
+typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
+
 
 #define S0_OPCODES(_) \
     _(TRECURSIVE, 0) \
     _(TLITERAL, 1) \
     _(TFUNCTION, 2) \
     _(TLOCATION, 3) \
+
+#if 0
     _(TINTERFACE, 4) \
     _(LITERAL, 5) \
     _(PRELUDE, 6) \
@@ -205,6 +209,8 @@ enum s0_id_tag {
     _(JFALSE, 12) \
     _(JUMP, 13) \
 
+#endif
+
 enum s0_opcode {
 #define OPCODE_ENUM(name, val)  S0_##name = val,
     S0_OPCODES(OPCODE_ENUM)
@@ -215,15 +221,41 @@ enum s0_opcode {
 struct s0_instruction {
     enum s0_opcode  op;
     union {
+        struct { s0_tagged_id dest; }  trecursive;
+        struct { s0_tagged_id dest; }  tliteral;
         struct {
             s0_tagged_id  dest;
-        } tliteral;
+            s0_tagged_id_array  params;
+            s0_tagged_id_array  results;
+        } tfunction;
+        struct {
+            s0_tagged_id  dest;
+            s0_tagged_id  referent;
+        } tlocation;
     } args;
     struct cork_dllist_item  siblings;
 };
 
 struct s0_instruction *
+s0_trecursive_new(struct swan *s, s0_id dest, struct cork_error *err);
+
+struct s0_instruction *
 s0_tliteral_new(struct swan *s, s0_id dest, struct cork_error *err);
+
+struct s0_instruction *
+s0_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err);
+
+#define s0_tfunction_add_param(s, self, param, err) \
+    (cork_array_append(swan_alloc((s)), &((self)->args.tfunction.params), \
+                       (param), (err)))
+
+#define s0_tfunction_add_result(s, self, result, err) \
+    (cork_array_append(swan_alloc((s)), &((self)->args.tfunction.results), \
+                       (result), (err)))
+
+struct s0_instruction *
+s0_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
+                 struct cork_error *err);
 
 
 struct s0_basic_block {

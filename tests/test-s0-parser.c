@@ -63,12 +63,55 @@ START_TEST(test_parsing)
     DESCRIBE_TEST;
     DECLARE_SWAN;
 
-    check_good_parse("tliteral %0");
+    check_good_parse("  trecursive %0;");
+    check_good_parse("trecursive %0;  ");
+    check_good_parse("  trecursive %0;  ");
+    check_good_parse("# comment\ntrecursive %0;");
+    check_good_parse("trecursive %0;# comment\n");
+    check_good_parse("# comment\ntrecursive %0;# comment\n");
+
+    check_good_parse("trecursive %0;");
+    check_good_parse("tliteral %0;");
+    check_good_parse(
+        "tliteral %0; "
+        "tlocation %1 = %0; "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tlocation %1 = %0; "
+        "tfunction %2 = () -> (%0); "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tlocation %1 = %0; "
+        "tfunction %2 = (%1, %1) -> (%0); "
+    );
 
     check_bad_parse("foobar");
+
+    check_bad_parse("trecursive");
+    check_bad_parse("trecursive %0");
+    check_bad_parse("trecursive $0;");
+    check_bad_parse("trecursive foo;");
+
     check_bad_parse("tliteral");
-    check_bad_parse("tliteral $0");
-    check_bad_parse("tliteral foo");
+    check_bad_parse("tliteral %0");
+    check_bad_parse("tliteral $0;");
+    check_bad_parse("tliteral foo;");
+
+    check_bad_parse("tlocation");
+    check_bad_parse("tlocation %1");
+    check_bad_parse("tlocation %1 =");
+    check_bad_parse("tlocation %1 = %1");
+    check_bad_parse("tlocation $1 = %0;");
+    check_bad_parse("tlocation foo;");
+
+    check_bad_parse("tfunction");
+    check_bad_parse("tfunction %1");
+    check_bad_parse("tfunction %1 =");
+    check_bad_parse("tfunction %1 = %1;");
+    check_bad_parse("tfunction $1 = () -> ();");
+    check_bad_parse("tfunction foo;");
 
     CLEANUP_SWAN;
 }
