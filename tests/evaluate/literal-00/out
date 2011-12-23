@@ -1,1 +1,2 @@
-%0 = LITERAL
+$0 = LITERAL:
+hello world

@@ -92,6 +92,14 @@ error:
             return -1;
         }
 
+        case S0_VALUE_LITERAL:
+        {
+            printf("%c%"PRIuPTR" = LITERAL:\n%s\n",
+                   s0_id_tag_name(s0_tagged_id_tag(last_id)),
+                   s0_tagged_id_id(last_id), value->_.literal);
+            return 0;
+        }
+
         default:
             cork_unknown_error_set(swan_alloc(s), err);
             return -1;

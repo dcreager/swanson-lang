@@ -157,6 +157,26 @@ s0_ttype_new(struct swan *s, s0_id dest, struct cork_error *err)
     return self;
 }
 
+struct s0_instruction *
+s0_literal_new(struct swan *s, s0_id dest, const char *contents,
+               struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_instruction  *self = NULL;
+    rp_check_gc_new(s0_instruction, self, "LITERAL instruction");
+    self->op = S0_LITERAL;
+    self->dest = s0_tagged_id(S0_ID_TAG_LOCAL, dest);
+    e_check_alloc(self->_.literal.contents =
+                      cork_strdup(swan_alloc(s), contents),
+                  "LITERAL contents");
+    return self;
+
+error:
+    cork_gc_decref(swan_gc(s), self);
+    return NULL;
+}
+
 
 /*-----------------------------------------------------------------------
  * Basic blocks

@@ -1,2 +1,2 @@
-# Expected type: LITERAL
-tliteral %0;
+# Expected result: LITERAL "hello world"
+literal $0 = "hello world";

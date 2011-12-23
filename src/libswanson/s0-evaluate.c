@@ -310,6 +310,14 @@ error:
 }
 
 static struct s0_value *
+s0_evaluate_LITERAL(struct swan *s, struct s0_scope *scope,
+                    struct s0_instruction *instr, struct cork_error *err)
+{
+    DEBUG("--- Evaluating LITERAL");
+    return s0_literal_value_new(s, instr->_.literal.contents, err);
+}
+
+static struct s0_value *
 s0_evaluate_instruction(struct swan *s, struct s0_scope *scope,
                         struct s0_instruction *instr, struct cork_error *err)
 {

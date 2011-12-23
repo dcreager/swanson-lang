@@ -160,9 +160,9 @@ typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
     _(TINTERFACE, 4) \
     _(TBLOCK, 5) \
     _(TTYPE, 6) \
+    _(LITERAL, 7) \
 
 #if 0
-    _(LITERAL, x) \
     _(PRELUDE, x) \
     _(GET, x) \
     _(CALL, x) \
@@ -199,6 +199,7 @@ struct s0_instruction {
         struct { s0_tagged_id  referent; }  tlocation;
         struct { s0_tinterface_entries  entries; }  tinterface;
         struct { s0_tagged_id  result; }  tblock;
+        struct { const char  *contents; }  literal;
     } _;
     struct cork_dllist_item  siblings;
 };
@@ -240,6 +241,10 @@ s0_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
 struct s0_instruction *
 s0_ttype_new(struct swan *s, s0_id dest, struct cork_error *err);
 
+struct s0_instruction *
+s0_literal_new(struct swan *s, s0_id dest, const char *contents,
+               struct cork_error *err);
+
 
 typedef cork_array(struct s0_instruction *)  s0_instruction_array;
 
@@ -274,13 +279,15 @@ s0_parse(struct swan *s, struct cork_slice *src, struct cork_error *err);
  */
 
 enum s0_value_kind {
-    S0_VALUE_TYPE = 0
+    S0_VALUE_TYPE = 0,
+    S0_VALUE_LITERAL = 1
 };
 
 struct s0_value {
     enum s0_value_kind  kind;
     union {
         struct s0_type  *type;
+        const char  *literal;
     } _;
 };
 
@@ -289,6 +296,10 @@ struct s0_value {
 struct s0_value *
 s0_type_value_new(struct swan *s, struct s0_type *type,
                   struct cork_error *err);
+
+struct s0_value *
+s0_literal_value_new(struct swan *s, const char *contents,
+                     struct cork_error *err);
 
 /* Evaluates a basic block to produce a value */
 struct s0_value *
