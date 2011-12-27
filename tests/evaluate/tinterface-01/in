@@ -4,3 +4,4 @@ tfunction %1 = (%0) -> ();
 tinterface %2 = {
   "print_literal": %1
 };
+return (%2);

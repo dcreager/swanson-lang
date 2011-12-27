@@ -1,2 +1,3 @@
 # Expected type: TYPE
 ttype %0;
+return (%0);

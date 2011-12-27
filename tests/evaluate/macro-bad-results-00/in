@@ -1,0 +1,7 @@
+tliteral %0;
+macro $0 = "test" results (%0) {
+  literal $0 = "hello world";
+  return ($0);
+};
+call () = $0();  # invalid number of results
+return (%0);

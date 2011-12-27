@@ -173,12 +173,11 @@ typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
     _(TTYPE) \
     _(LITERAL) \
     _(MACRO) \
-
-#if 0
-    _(PRELUDE) \
-    _(GET) \
     _(CALL) \
     _(RETURN) \
+
+#if 0
+    _(GET) \
     _(LABEL) \
     _(JTRUE) \
     _(JFALSE) \
@@ -219,6 +218,12 @@ struct s0_instruction {
             s0_tagged_id_array  results;
             s0_instruction_array  body;
         } macro;
+        struct {
+            s0_tagged_id  callee;
+            s0_tagged_id_array  params;
+            s0_tagged_id_array  results;
+        } call;
+        struct { s0_tagged_id_array  results; }  ret;
     } _;
     struct cork_dllist_item  siblings;
 };
@@ -259,6 +264,12 @@ s0i_literal_new(struct swan *s, s0_id dest, const char *contents,
 struct s0_instruction *
 s0i_macro_new(struct swan *s, s0_id dest, const char *name,
               struct cork_error *err);
+
+struct s0_instruction *
+s0i_call_new(struct swan *s, struct cork_error *err);
+
+struct s0_instruction *
+s0i_return_new(struct swan *s, struct cork_error *err);
 
 
 struct s0_position {

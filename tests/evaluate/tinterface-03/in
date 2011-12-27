@@ -7,3 +7,4 @@ tinterface %0 = {
   "get": %2,
   "set": %3
 };
+return (%0);

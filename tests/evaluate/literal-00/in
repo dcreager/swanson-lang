@@ -1,2 +1,3 @@
 # Expected result: LITERAL "hello world"
 literal $0 = "hello world";
+return ($0);

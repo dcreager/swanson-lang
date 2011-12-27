@@ -1,4 +1,7 @@
-# Expected result: MACRO void -> void
+# Expected result: LITERAL "hello world"
 macro $0 = "test" {
   literal $0 = "hello world";
+  return ($0);
 };
+call ($1) = $0();
+return ($1);

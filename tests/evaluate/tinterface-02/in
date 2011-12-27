@@ -5,3 +5,4 @@ tfunction %2 = (%1) -> (%0);
 tinterface %0 = {
   "intlit": %2
 };
+return (%0);

@@ -1,2 +1,2 @@
-$0 = MACRO
-$0 :: void -> void
+$1 = LITERAL:
+hello world

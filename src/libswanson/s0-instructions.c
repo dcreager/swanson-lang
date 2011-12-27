@@ -49,6 +49,15 @@ s0_instruction_free(struct cork_gc *gc, void *vself)
             cork_array_done(gc->alloc, &self->_.macro.body);
             break;
 
+        case S0_CALL:
+            cork_array_done(gc->alloc, &self->_.call.params);
+            cork_array_done(gc->alloc, &self->_.call.results);
+            break;
+
+        case S0_RETURN:
+            cork_array_done(gc->alloc, &self->_.ret.results);
+            break;
+
         default:
             break;
     }
@@ -206,4 +215,29 @@ s0i_macro_new(struct swan *s, s0_id dest, const char *name,
 error:
     cork_gc_decref(swan_gc(s), self);
     return NULL;
+}
+
+struct s0_instruction *
+s0i_call_new(struct swan *s, struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_instruction  *self = NULL;
+    rp_check_gc_new(s0_instruction, self, "CALL instruction");
+    self->op = S0_CALL;
+    cork_array_init(swan_alloc(s), &self->_.call.params);
+    cork_array_init(swan_alloc(s), &self->_.call.results);
+    return self;
+}
+
+struct s0_instruction *
+s0i_return_new(struct swan *s, struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_instruction  *self = NULL;
+    rp_check_gc_new(s0_instruction, self, "RETURN instruction");
+    self->op = S0_RETURN;
+    cork_array_init(swan_alloc(s), &self->_.ret.results);
+    return self;
 }

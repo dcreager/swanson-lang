@@ -1,3 +1,4 @@
 # Expected type: *LITERAL
 tliteral %0;
 tlocation %1 = %0;
+return (%1);

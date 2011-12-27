@@ -10,3 +10,4 @@ tinterface %1 = {
 tinterface %0 = {
   "foo": %4
 };
+return (%0);

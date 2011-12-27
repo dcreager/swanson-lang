@@ -85,10 +85,15 @@ static int
 print_value(struct swan *s, struct s0_basic_block *block,
             s0_value_array *results, struct cork_error *err)
 {
+    if (cork_array_size(results) != 1) {
+        fprintf(stderr, "Expected one return value.\n");
+        exit(EXIT_FAILURE);
+    }
+
     struct s0_instruction  *last_instruction =
         cork_array_at(&block->body, cork_array_size(&block->body) - 1);
     s0_tagged_id  last_id =
-        last_instruction->dest;
+        cork_array_at(&last_instruction->_.ret.results, 0);
     struct s0_value  *value = cork_array_at(results, 0);
 
     switch (value->kind) {
