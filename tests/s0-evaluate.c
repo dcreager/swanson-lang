@@ -62,34 +62,42 @@ io_error:
 }
 
 static int
+print_type(struct swan *s, struct s0_type *type, struct cork_error *err)
+{
+    struct cork_buffer  type_buf = CORK_BUFFER_INIT(swan_alloc(s));
+    struct cork_buffer  givens_buf = CORK_BUFFER_INIT(swan_alloc(s));
+    ei_check(s0_type_print(s, type, &type_buf, &givens_buf, err));
+    printf("%s\n", (char *) type_buf.buf);
+    if (givens_buf.buf != NULL) {
+        printf("\n%s\n", (char *) givens_buf.buf);
+    }
+    cork_buffer_done(swan_alloc(s), &type_buf);
+    cork_buffer_done(swan_alloc(s), &givens_buf);
+    return 0;
+
+error:
+    cork_buffer_done(swan_alloc(s), &type_buf);
+    cork_buffer_done(swan_alloc(s), &givens_buf);
+    return -1;
+}
+
+static int
 print_value(struct swan *s, struct s0_basic_block *block,
-            struct s0_value *value, struct cork_error *err)
+            s0_value_array *results, struct cork_error *err)
 {
     struct s0_instruction  *last_instruction =
         cork_array_at(&block->body, cork_array_size(&block->body) - 1);
-    s0_tagged_id  last_id = last_instruction->dest;
+    s0_tagged_id  last_id =
+        last_instruction->dest;
+    struct s0_value  *value = cork_array_at(results, 0);
 
     switch (value->kind) {
         case S0_VALUE_TYPE:
         {
-            struct cork_buffer  type = CORK_BUFFER_INIT(swan_alloc(s));
-            struct cork_buffer  givens = CORK_BUFFER_INIT(swan_alloc(s));
-            ei_check(s0_type_print
-                     (s, value->_.type, &type, &givens, err));
-            printf("%c%"PRIuPTR" = %s\n",
+            printf("%c%"PRIuPTR" = ",
                    s0_id_tag_name(s0_tagged_id_tag(last_id)),
-                   s0_tagged_id_id(last_id), (char *) type.buf);
-            if (givens.buf != NULL) {
-                printf("\n%s\n", (char *) givens.buf);
-            }
-            cork_buffer_done(swan_alloc(s), &type);
-            cork_buffer_done(swan_alloc(s), &givens);
-            return 0;
-
-error:
-            cork_buffer_done(swan_alloc(s), &type);
-            cork_buffer_done(swan_alloc(s), &givens);
-            return -1;
+                   s0_tagged_id_id(last_id));
+            return print_type(s, value->_.type, err);
         }
 
         case S0_VALUE_LITERAL:
@@ -98,6 +106,19 @@ error:
                    s0_id_tag_name(s0_tagged_id_tag(last_id)),
                    s0_tagged_id_id(last_id), value->_.literal);
             return 0;
+        }
+
+        case S0_VALUE_MACRO:
+        {
+            struct s0_type  *type;
+            rip_check(type = s0_value_get_type(s, value, err));
+            printf("%c%"PRIuPTR" = MACRO\n"
+                   "%c%"PRIuPTR" :: ",
+                   s0_id_tag_name(s0_tagged_id_tag(last_id)),
+                   s0_tagged_id_id(last_id),
+                   s0_id_tag_name(s0_tagged_id_tag(last_id)),
+                   s0_tagged_id_id(last_id));
+            return print_type(s, type, err);
         }
 
         default:
@@ -116,7 +137,8 @@ main(int argc, char **argv)
     struct cork_buffer  *buf;
     struct cork_slice  slice;
     struct s0_basic_block  *block;
-    struct s0_value  *value;
+    s0_value_array  params;
+    s0_value_array  results;
 
     if (argc != 2) {
         fprintf(stderr, "Usage: s0-evaluate [s0 file]\n");
@@ -132,9 +154,16 @@ main(int argc, char **argv)
     ei_check(cork_buffer_to_slice(alloc, buf, &slice, &err));
     ep_check(block = s0_parse(&s, &slice, &err));
 
+    if (cork_array_is_empty(&block->body)) {
+        printf("File is empty\n");
+        exit(EXIT_FAILURE);
+    }
+
     /* Finally, evaluate it and print it */
-    ep_check(value = s0_basic_block_evaluate(&s, block, &err));
-    ei_check(print_value(&s, block, value, &err));
+    cork_array_init(alloc, &params);
+    cork_array_init(alloc, &results);
+    ei_check(s0_basic_block_evaluate(&s, block, &params, &results, &err));
+    ei_check(print_value(&s, block, &results, &err));
 
     swan_done(&s);
     cork_error_done(alloc, &err);

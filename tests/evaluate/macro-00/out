@@ -1,0 +1,2 @@
+$0 = MACRO
+$0 :: void -> void

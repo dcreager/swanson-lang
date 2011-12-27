@@ -18,6 +18,20 @@
 #include <swanson/state.h>
 
 
+/* forward declarations */
+
+struct s0_type;
+typedef cork_array(struct s0_type *)  s0_type_array;
+
+struct s0_value;
+typedef cork_array(struct s0_value *)  s0_value_array;
+
+struct s0_scope;
+
+struct s0_instruction;
+typedef cork_array(struct s0_instruction *)  s0_instruction_array;
+
+
 /*-----------------------------------------------------------------------
  * Types and type constructors
  */
@@ -31,9 +45,6 @@ enum s0_type_kind {
     S0_TYPE_INTERFACE,
     S0_TYPE_BLOCK
 };
-
-struct s0_type;
-typedef cork_array(struct s0_type *)  s0_type_array;
 
 struct s0_type {
     enum s0_type_kind  kind;
@@ -161,6 +172,7 @@ typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
     _(TBLOCK) \
     _(TTYPE) \
     _(LITERAL) \
+    _(MACRO) \
 
 #if 0
     _(PRELUDE) \
@@ -200,78 +212,108 @@ struct s0_instruction {
         struct { s0_tinterface_entries  entries; }  tinterface;
         struct { s0_tagged_id  result; }  tblock;
         struct { const char  *contents; }  literal;
+        struct {
+            const char  *name;
+            s0_tagged_id_array  upvalues;
+            s0_tagged_id_array  params;
+            s0_tagged_id_array  results;
+            s0_instruction_array  body;
+        } macro;
     } _;
     struct cork_dllist_item  siblings;
 };
 
 struct s0_instruction *
-s0_trecursive_new(struct swan *s, s0_id dest, struct cork_error *err);
+s0i_trecursive_new(struct swan *s, s0_id dest, struct cork_error *err);
 
 struct s0_instruction *
-s0_tliteral_new(struct swan *s, s0_id dest, struct cork_error *err);
+s0i_tliteral_new(struct swan *s, s0_id dest, struct cork_error *err);
 
 struct s0_instruction *
-s0_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err);
-
-#define s0_tfunction_add_param(s, self, param, err) \
-    (cork_array_append(swan_alloc((s)), &((self)->args.tfunction.params), \
-                       (param), (err)))
-
-#define s0_tfunction_add_result(s, self, result, err) \
-    (cork_array_append(swan_alloc((s)), &((self)->args.tfunction.results), \
-                       (result), (err)))
+s0i_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err);
 
 struct s0_instruction *
-s0_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
-                 struct cork_error *err);
+s0i_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
+                  struct cork_error *err);
 
 struct s0_instruction *
-s0_tinterface_new(struct swan *s, s0_id dest, struct cork_error *err);
+s0i_tinterface_new(struct swan *s, s0_id dest, struct cork_error *err);
 
 /* key must have been allocated using cork_strdup */
 int
-s0_tinterface_add_entry(struct swan *s, struct s0_instruction *self,
-                        const char *key, s0_tagged_id entry,
-                        struct cork_error *err);
+s0i_tinterface_add_entry(struct swan *s, struct s0_instruction *self,
+                         const char *key, s0_tagged_id entry,
+                         struct cork_error *err);
 
 struct s0_instruction *
-s0_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
-              struct cork_error *err);
-
-struct s0_instruction *
-s0_ttype_new(struct swan *s, s0_id dest, struct cork_error *err);
-
-struct s0_instruction *
-s0_literal_new(struct swan *s, s0_id dest, const char *contents,
+s0i_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
                struct cork_error *err);
 
+struct s0_instruction *
+s0i_ttype_new(struct swan *s, s0_id dest, struct cork_error *err);
 
-typedef cork_array(struct s0_instruction *)  s0_instruction_array;
+struct s0_instruction *
+s0i_literal_new(struct swan *s, s0_id dest, const char *contents,
+                struct cork_error *err);
 
-struct s0_basic_block {
-    s0_instruction_array  body;
-};
+struct s0_instruction *
+s0i_macro_new(struct swan *s, s0_id dest, const char *name,
+              struct cork_error *err);
 
-struct s0_basic_block *
-s0_basic_block_new(struct swan *s, struct cork_error *err);
-
-/* steals reference to instr */
-int
-s0_basic_block_add(struct swan *s, struct s0_basic_block *block,
-                   struct s0_instruction *instr, struct cork_error *err);
-
-
-/*-----------------------------------------------------------------------
- * Parsing an S0 file
- */
 
 struct s0_position {
     size_t  line;
     size_t  column;
 };
 
+
 struct s0_basic_block *
 s0_parse(struct swan *s, struct cork_slice *src, struct cork_error *err);
+
+
+/*-----------------------------------------------------------------------
+ * Basic blocks
+ */
+
+struct s0_basic_block {
+    const char  *name;
+    s0_value_array  upvalues;
+    s0_type_array  params;
+    s0_type_array  results;
+    s0_instruction_array  body;
+};
+
+struct s0_basic_block *
+s0_basic_block_new(struct swan *s, const char *name, struct cork_error *err);
+
+/* Creates new reference to value */
+#define s0_basic_block_add_upvalue(s, self, value, err) \
+    (cork_array_append(swan_alloc((s)), &(self)->upvalues, \
+                       cork_gc_incref(swan_gc((s)), (value)), (err)))
+
+/* Creates new reference to type */
+#define s0_basic_block_add_param(s, self, type, err) \
+    (cork_array_append(swan_alloc((s)), &(self)->params, \
+                       cork_gc_incref(swan_gc((s)), (type)), (err)))
+
+/* Creates new reference to type */
+#define s0_basic_block_add_result(s, self, type, err) \
+    (cork_array_append(swan_alloc((s)), &(self)->results, \
+                       cork_gc_incref(swan_gc((s)), (type)), (err)))
+
+/* Steals reference to body */
+#define s0_basic_block_set_body(s, self, _body, err) \
+    ((self)->body = (_body), 0)
+
+/* Steals reference to instr */
+#define s0_basic_block_add_instruction(s, self, instr, err) \
+    (cork_array_append(swan_alloc((s)), &(self)->body, \
+                       (instr), (err)))
+
+int
+s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *basic_block,
+                        s0_value_array *params, s0_value_array *results,
+                        struct cork_error *err);
 
 
 /*-----------------------------------------------------------------------
@@ -280,7 +322,8 @@ s0_parse(struct swan *s, struct cork_slice *src, struct cork_error *err);
 
 enum s0_value_kind {
     S0_VALUE_TYPE,
-    S0_VALUE_LITERAL
+    S0_VALUE_LITERAL,
+    S0_VALUE_MACRO
 };
 
 struct s0_value {
@@ -288,7 +331,10 @@ struct s0_value {
     union {
         struct s0_type  *type;
         const char  *literal;
+        struct s0_basic_block  *macro;
     } _;
+    /* The type of the value */
+    struct s0_type  *type;
 };
 
 
@@ -301,10 +347,14 @@ struct s0_value *
 s0_literal_value_new(struct swan *s, const char *contents,
                      struct cork_error *err);
 
-/* Evaluates a basic block to produce a value */
+/* Creates new reference to macro */
 struct s0_value *
-s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *block,
-                        struct cork_error *err);
+s0_macro_value_new(struct swan *s, struct s0_basic_block *block,
+                   struct cork_error *err);
+
+struct s0_type *
+s0_value_get_type(struct swan *s, struct s0_value *value,
+                  struct cork_error *err);
 
 
 /*-----------------------------------------------------------------------
@@ -318,6 +368,9 @@ struct s0_scope {
 
 struct s0_scope *
 s0_scope_new(struct swan *s, const char *name, struct cork_error *err);
+
+struct s0_scope *
+s0_scope_new_top_level(struct swan *s, struct cork_error *err);
 
 /* steals reference to value */
 int

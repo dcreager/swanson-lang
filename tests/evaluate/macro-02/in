@@ -1,0 +1,6 @@
+# Expected result: MACRO TYPE -> void
+tliteral %0;
+ttype %1;
+macro $0 = "test" params (%1) {
+  tlocation %0 = !0;
+};

@@ -1,0 +1,4 @@
+# Expected result: MACRO void -> void
+macro $0 = "test" {
+  literal $0 = "hello world";
+};

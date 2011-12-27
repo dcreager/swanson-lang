@@ -140,6 +140,36 @@ START_TEST(test_parsing)
 
     check_good_parse("literal $0 = \"hello world\";");
 
+    check_good_parse(
+        "macro $0 = \"test\" {}; "
+    );
+    check_good_parse(
+        "macro $1 = \"test\" upvalues ($0) {}; "
+    );
+    check_good_parse(
+        "macro $0 = \"test\" params (%0) {}; "
+    );
+    check_good_parse(
+        "macro $0 = \"test\" results (%0) {}; "
+    );
+    check_good_parse(
+        "macro $1 = \"test\" upvalues ($0) params (%0) {}; "
+    );
+    check_good_parse(
+        "macro $0 = \"test\" upvalues ($0) results (%0) {}; "
+    );
+    check_good_parse(
+        "macro $0 = \"test\" params (%0) results (%0) {}; "
+    );
+    check_good_parse(
+        "macro $0 = \"test\" upvalues ($0) params (%0) results (%0) {}; "
+    );
+    check_good_parse(
+        "macro $0 = \"test\" { "
+        "  literal $0 = \"hello\"; "
+        "}; "
+    );
+
     check_bad_parse("foobar");
 
     check_bad_parse("trecursive");
@@ -198,6 +228,19 @@ START_TEST(test_parsing)
     check_bad_parse("literal $0 = \"hello world\"");
     check_bad_parse("literal %0;");
     check_bad_parse("literal foo;");
+
+    check_bad_parse("macro");
+    check_bad_parse("macro $0");
+    check_bad_parse("macro $0 =");
+    check_bad_parse("macro $0 = \"test\"");
+    check_bad_parse("macro $0 = \"test\" {");
+    check_bad_parse("macro $0 = \"test\" {}");
+    check_bad_parse("macro $0 = \"test\" upvalues");
+    check_bad_parse("macro $0 = \"test\" params");
+    check_bad_parse("macro $0 = \"test\" results");
+    check_bad_parse("macro $0 = \"test\" results (%0) params (%0) {}; ");
+    check_bad_parse("macro $0 = \"test\" params (%0) upvalues ($0) {}; ");
+    check_bad_parse("macro $0 = \"test\" results (%0) upvalues ($0) {}; ");
 
     check_bad_parse(
         "tliteral %0; "

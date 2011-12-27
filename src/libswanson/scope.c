@@ -173,3 +173,10 @@ s0_scope_get(struct swan *s, struct s0_scope *self,
         return result;
     }
 }
+
+struct s0_scope *
+s0_scope_new_top_level(struct swan *s, struct cork_error *err)
+{
+    /* Eventually we'll add the prelude and kernel to the scope here */
+    return s0_scope_new(s, "<top-level>", err);
+}

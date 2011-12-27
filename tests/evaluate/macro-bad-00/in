@@ -1,0 +1,4 @@
+# Upvalue %0 never defined
+macro $0 = "test" upvalues (%0) {
+  tlocation %0 = ^0;
+};

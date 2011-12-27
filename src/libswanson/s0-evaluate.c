@@ -35,24 +35,6 @@
  * Error reporting
  */
 
-static int
-s0_empty_file(struct cork_alloc *alloc, struct cork_error *err,
-              struct cork_buffer *dest)
-{
-    return cork_buffer_set_string
-        (alloc, dest, "Empty S0 file", NULL);
-}
-
-static int
-s0_empty_file_set(struct cork_alloc *alloc, struct cork_error *err)
-{
-    return cork_error_set(alloc, err,
-                          S0_ERROR,
-                          S0_EVALUATION_ERROR,
-                          s0_empty_file);
-}
-
-
 struct s0_wrong_kind_extra {
     s0_tagged_id  id;
     const char  *expected;
@@ -314,7 +296,58 @@ s0_evaluate_LITERAL(struct swan *s, struct s0_scope *scope,
                     struct s0_instruction *instr, struct cork_error *err)
 {
     DEBUG("--- Evaluating LITERAL");
-    return s0_literal_value_new(s, instr->_.literal.contents, err);
+    struct s0_value  *value;
+    rpp_check(value = s0_literal_value_new(s, instr->_.literal.contents, err));
+    rpi_check(s0_scope_add(s, scope, instr->dest, value, err));
+    return value;
+}
+
+static struct s0_value *
+s0_evaluate_MACRO(struct swan *s, struct s0_scope *scope,
+                  struct s0_instruction *instr, struct cork_error *err)
+{
+    DEBUG("--- Evaluating MACRO");
+    size_t  i;
+    struct s0_basic_block  *block;
+    struct s0_value  *value;
+
+    rpp_check(block = s0_basic_block_new(s, instr->_.macro.name, err));
+
+    /* Construct the upvalue list */
+    for (i = 0; i < cork_array_size(&instr->_.macro.upvalues); i++) {
+        s0_tagged_id  upvalue_id =
+            cork_array_at(&instr->_.macro.upvalues, i);
+        struct s0_value  *upvalue;
+        ep_check(upvalue = s0_scope_get(s, scope, upvalue_id, err));
+        ei_check(s0_basic_block_add_upvalue(s, block, upvalue, err));
+    }
+
+    /* Construct the param type list */
+    for (i = 0; i < cork_array_size(&instr->_.macro.params); i++) {
+        s0_tagged_id  param =
+            cork_array_at(&instr->_.macro.params, i);
+        struct s0_type  *param_type;
+        ep_check(param_type = s0_evaluate_expect_type(s, scope, param, err));
+        ei_check(s0_basic_block_add_param(s, block, param_type, err));
+    }
+
+    /* Construct the result type list */
+    for (i = 0; i < cork_array_size(&instr->_.macro.results); i++) {
+        s0_tagged_id  result =
+            cork_array_at(&instr->_.macro.results, i);
+        struct s0_type  *result_type;
+        ep_check(result_type = s0_evaluate_expect_type(s, scope, result, err));
+        ei_check(s0_basic_block_add_result(s, block, result_type, err));
+    }
+
+    rpp_check(value = s0_macro_value_new(s, block, err));
+    rpi_check(s0_scope_add(s, scope, instr->dest, value, err));
+    cork_gc_decref(swan_gc(s), block);
+    return value;
+
+error:
+    cork_gc_decref(swan_gc(s), block);
+    return NULL;
 }
 
 static struct s0_value *
@@ -334,24 +367,33 @@ s0_evaluate_instruction(struct swan *s, struct s0_scope *scope,
     }
 }
 
-struct s0_value *
-s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *block,
+int
+s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *self,
+                        s0_value_array *params, s0_value_array *results,
                         struct cork_error *err)
 {
-    struct s0_scope  *scope;
-    struct s0_value  *last_value = NULL;
     size_t  i;
+    struct s0_scope  *scope = NULL;
+    struct s0_value  *last_value = NULL;
+    rip_check(scope = s0_scope_new(s, self->name, err));
 
-    rpp_check(scope = s0_scope_new(s, "<top-level>", err));
-
-    for (i = 0; i < cork_array_size(&block->body); i++) {
-        struct s0_instruction  *instr = cork_array_at(&block->body, i);
-        ep_check(last_value = s0_evaluate_instruction(s, scope, instr, err));
+    /* Add the upvalues and parameters to the scope */
+    for (i = 0; i < cork_array_size(&self->upvalues); i++) {
+        ei_check(s0_scope_add
+                 (s, scope, s0_tagged_id(S0_ID_TAG_UPVALUE, i),
+                  cork_array_at(&self->upvalues, i), err));
     }
 
-    if (last_value == NULL) {
-        s0_empty_file_set(swan_alloc(s), err);
-        goto error;
+    for (i = 0; i < cork_array_size(params); i++) {
+        ei_check(s0_scope_add
+                 (s, scope, s0_tagged_id(S0_ID_TAG_PARAM, i),
+                  cork_array_at(params, i), err));
+    }
+
+    /* Then evaluate each instruction */
+    for (i = 0; i < cork_array_size(&self->body); i++) {
+        struct s0_instruction  *instr = cork_array_at(&self->body, i);
+        ep_check(last_value = s0_evaluate_instruction(s, scope, instr, err));
     }
 
     /* We'll have created a bunch of values, whose references are all
@@ -360,11 +402,14 @@ s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *block,
      * created (and anything reachable from it), since that will be the
      * final result of the evaluation.  So we incref it before
      * destroying the scope. */
-    cork_gc_incref(swan_gc(s), last_value);
+    if (last_value != NULL) {
+        ei_check(cork_array_append(swan_alloc(s), results, last_value, err));
+        cork_gc_incref(swan_gc(s), last_value);
+    }
     cork_gc_decref(swan_gc(s), scope);
-    return last_value;
+    return 0;
 
 error:
     cork_gc_decref(swan_gc(s), scope);
-    return NULL;
+    return -1;
 }

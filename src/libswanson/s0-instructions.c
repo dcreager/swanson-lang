@@ -41,6 +41,14 @@ s0_instruction_free(struct cork_gc *gc, void *vself)
             cork_array_done(gc->alloc, &self->_.tinterface.entries);
             break;
 
+        case S0_MACRO:
+            cork_strfree(gc->alloc, self->_.macro.name);
+            cork_array_done(gc->alloc, &self->_.macro.upvalues);
+            cork_array_done(gc->alloc, &self->_.macro.params);
+            cork_array_done(gc->alloc, &self->_.macro.results);
+            cork_array_done(gc->alloc, &self->_.macro.body);
+            break;
+
         default:
             break;
     }
@@ -52,7 +60,7 @@ static struct cork_gc_obj_iface  s0_instruction_gc = {
 
 
 struct s0_instruction *
-s0_trecursive_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_trecursive_new(struct swan *s, s0_id dest, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
@@ -64,7 +72,7 @@ s0_trecursive_new(struct swan *s, s0_id dest, struct cork_error *err)
 }
 
 struct s0_instruction *
-s0_tliteral_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_tliteral_new(struct swan *s, s0_id dest, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
@@ -76,7 +84,7 @@ s0_tliteral_new(struct swan *s, s0_id dest, struct cork_error *err)
 }
 
 struct s0_instruction *
-s0_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
@@ -90,8 +98,8 @@ s0_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err)
 }
 
 struct s0_instruction *
-s0_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
-                 struct cork_error *err)
+s0i_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
+                  struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
@@ -104,7 +112,7 @@ s0_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
 }
 
 struct s0_instruction *
-s0_tinterface_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_tinterface_new(struct swan *s, s0_id dest, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
@@ -117,9 +125,9 @@ s0_tinterface_new(struct swan *s, s0_id dest, struct cork_error *err)
 }
 
 int
-s0_tinterface_add_entry(struct swan *s, struct s0_instruction *self,
-                        const char *key, s0_tagged_id entry,
-                        struct cork_error *err)
+s0i_tinterface_add_entry(struct swan *s, struct s0_instruction *self,
+                         const char *key, s0_tagged_id entry,
+                         struct cork_error *err)
 {
     struct s0_tinterface_entry  new_entry = { key, entry };
     ei_check(cork_array_append
@@ -132,8 +140,8 @@ error:
 }
 
 struct s0_instruction *
-s0_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
-              struct cork_error *err)
+s0i_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
+               struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
@@ -146,7 +154,7 @@ s0_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
 }
 
 struct s0_instruction *
-s0_ttype_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_ttype_new(struct swan *s, s0_id dest, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
@@ -158,8 +166,8 @@ s0_ttype_new(struct swan *s, s0_id dest, struct cork_error *err)
 }
 
 struct s0_instruction *
-s0_literal_new(struct swan *s, s0_id dest, const char *contents,
-               struct cork_error *err)
+s0i_literal_new(struct swan *s, s0_id dest, const char *contents,
+                struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
@@ -177,41 +185,25 @@ error:
     return NULL;
 }
 
-
-/*-----------------------------------------------------------------------
- * Basic blocks
- */
-
-static void
-s0_basic_block_recurse(struct cork_gc *gc, void *vself,
-                       cork_gc_recurser recurse, void *ud)
-{
-    struct s0_basic_block  *self = vself;
-    size_t  i;
-    for (i = 0; i < cork_array_size(&self->body); i++) {
-        struct s0_instruction  *element = cork_array_at(&self->body, i);
-        recurse(gc, element, ud);
-    }
-}
-
-static struct cork_gc_obj_iface  s0_basic_block_gc = {
-    NULL, s0_basic_block_recurse
-};
-
-struct s0_basic_block *
-s0_basic_block_new(struct swan *s, struct cork_error *err)
+struct s0_instruction *
+s0i_macro_new(struct swan *s, s0_id dest, const char *name,
+              struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
-    struct s0_basic_block  *self = NULL;
-    rp_check_gc_new(s0_basic_block, self, "basic block");
-    cork_array_init(swan_alloc(s), &self->body);
+    struct s0_instruction  *self = NULL;
+    rp_check_gc_new(s0_instruction, self, "MACRO instruction");
+    self->op = S0_MACRO;
+    self->dest = s0_tagged_id(S0_ID_TAG_LOCAL, dest);
+    e_check_alloc(self->_.macro.name = cork_strdup(swan_alloc(s), name),
+                  "macro name");
+    cork_array_init(swan_alloc(s), &self->_.macro.upvalues);
+    cork_array_init(swan_alloc(s), &self->_.macro.params);
+    cork_array_init(swan_alloc(s), &self->_.macro.results);
+    cork_array_init(swan_alloc(s), &self->_.macro.body);
     return self;
-}
 
-int
-s0_basic_block_add(struct swan *s, struct s0_basic_block *self,
-                   struct s0_instruction *instr, struct cork_error *err)
-{
-    return cork_array_append(swan_alloc(s), &self->body, instr, err);
+error:
+    cork_gc_decref(swan_gc(s), self);
+    return NULL;
 }
