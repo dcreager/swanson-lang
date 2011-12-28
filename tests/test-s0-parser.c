@@ -91,12 +91,21 @@ START_TEST(test_parsing)
     check_good_parse(
         "tliteral %0; "
         "tlocation %1 = %0; "
-        "tfunction %2 = () -> (%0); "
+        "tproduct %2 = (%0); "
     );
     check_good_parse(
         "tliteral %0; "
         "tlocation %1 = %0; "
-        "tfunction %2 = (%1, %1) -> (%0); "
+        "tproduct %2 = (); "
+        "tproduct %3 = (%0); "
+        "tfunction %4 = %2 -> %3; "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tlocation %1 = %0; "
+        "tproduct %2 = (%1, %1); "
+        "tproduct %3 = (%0); "
+        "tfunction %4 = %2 -> %3; "
     );
 
     check_good_parse(
@@ -146,74 +155,36 @@ START_TEST(test_parsing)
     check_good_parse(
         "tliteral %0; "
         "tblock %1 = %0; "
-        "tfunction %2 = () -> (%0); "
+        "tproduct %2 = (); "
+        "tproduct %3 = (%0); "
+        "tfunction %4 = %2 -> %3; "
     );
     check_good_parse(
         "tliteral %0; "
         "tblock %1 = %0; "
-        "tfunction %2 = (%1, %1) -> (%0); "
+        "tproduct %2 = (%1, %1); "
+        "tproduct %3 = (%0); "
+        "tfunction %4 = %2 -> %3; "
     );
 
     check_good_parse(
         "ttype %0; "
         "tlocation %1 = %0; "
-    );
-    check_good_parse(
-        "ttype %0; "
-        "tlocation %1 = %0; "
-        "tfunction %2 = () -> (%0); "
-    );
-    check_good_parse(
-        "ttype %0; "
-        "tlocation %1 = %0; "
-        "tfunction %2 = (%1, %1) -> (%0); "
     );
 
     check_good_parse("literal $0 = \"hello world\";");
 
     check_good_parse(
-        "macro $0 = \"test\" {}; "
+        "macro $0 = \"test\" upvalues ($0) %1 -> %0 {}; "
     );
     check_good_parse(
-        "macro $1 = \"test\" upvalues ($0) {}; "
-    );
-    check_good_parse(
-        "macro $0 = \"test\" params (%0) {}; "
-    );
-    check_good_parse(
-        "macro $0 = \"test\" results (%0) {}; "
-    );
-    check_good_parse(
-        "macro $1 = \"test\" upvalues ($0) params (%0) {}; "
-    );
-    check_good_parse(
-        "macro $0 = \"test\" upvalues ($0) results (%0) {}; "
-    );
-    check_good_parse(
-        "macro $0 = \"test\" params (%0) results (%0) {}; "
-    );
-    check_good_parse(
-        "macro $0 = \"test\" upvalues ($0) params (%0) results (%0) {}; "
-    );
-    check_good_parse(
-        "macro $0 = \"test\" { "
+        "macro $0 = \"test\" upvalues ($0) %1 -> %0 { "
         "  literal $0 = \"hello\"; "
         "}; "
     );
 
-    check_good_parse("call () = $0();");
-    check_good_parse("call () = $0($1);");
-    check_good_parse("call () = $0($1,$2);");
-    check_good_parse("call ($0) = $1();");
-    check_good_parse("call ($0) = $1($2);");
-    check_good_parse("call ($0) = $1($2,$3);");
-    check_good_parse("call ($0,$1) = $2();");
-    check_good_parse("call ($0,$1) = $2($3);");
-    check_good_parse("call ($0,$1) = $2($3,$4);");
-
-    check_good_parse("return ();");
-    check_good_parse("return ($0);");
-    check_good_parse("return ($0,$1);");
+    check_good_parse("call $0 = $1($2);");
+    check_good_parse("return $0;");
 
     check_bad_parse("foobar");
 
@@ -243,6 +214,16 @@ START_TEST(test_parsing)
     check_bad_parse("tlocation %1 = %1");
     check_bad_parse("tlocation $1 = %0;");
     check_bad_parse("tlocation foo;");
+
+    check_bad_parse("tproduct");
+    check_bad_parse("tproduct %1");
+    check_bad_parse("tproduct %1 =");
+    check_bad_parse("tproduct %1 = (");
+    check_bad_parse("tproduct %1 = ()");
+    check_bad_parse("tproduct %1 = (%2)");
+    check_bad_parse("tproduct %1 = %2;");
+    check_bad_parse("tproduct $1 = ();");
+    check_bad_parse("tproduct foo;");
 
     check_bad_parse("tfunction");
     check_bad_parse("tfunction %1");
@@ -301,25 +282,31 @@ START_TEST(test_parsing)
     check_bad_parse("macro $0 = \"test\" {");
     check_bad_parse("macro $0 = \"test\" {}");
     check_bad_parse("macro $0 = \"test\" upvalues");
-    check_bad_parse("macro $0 = \"test\" params");
-    check_bad_parse("macro $0 = \"test\" results");
+    check_bad_parse("macro $0 = \"test\" upvalues ($0) $1");
+    check_bad_parse("macro $0 = \"test\" upvalues ($0) $1 ->");
+    check_bad_parse("macro $0 = \"test\" upvalues ($0) $1 -> $2");
+    check_bad_parse("macro $0 = \"test\" upvalues ($0) $1 -> $2 {");
+    check_bad_parse("macro $0 = \"test\" upvalues ($0) $1 -> $2 {}");
     check_bad_parse("macro $0 = \"test\" results (%0) params (%0) {}; ");
     check_bad_parse("macro $0 = \"test\" params (%0) upvalues ($0) {}; ");
     check_bad_parse("macro $0 = \"test\" results (%0) upvalues ($0) {}; ");
 
     check_bad_parse("call");
-    check_bad_parse("call (");
-    check_bad_parse("call ($0");
-    check_bad_parse("call ($0,");
-    check_bad_parse("call ($0,$1");
-    check_bad_parse("call ($0,$1)");
-    check_bad_parse("call ($0,$1) =");
-    check_bad_parse("call ($0,$1) = $2");
-    check_bad_parse("call ($0,$1) = $2(");
-    check_bad_parse("call ($0,$1) = $2($3");
-    check_bad_parse("call ($0,$1) = $2($3,");
-    check_bad_parse("call ($0,$1) = $2($3,$4");
-    check_bad_parse("call ($0,$1) = $2($3,$4)");
+    check_bad_parse("call $0");
+    check_bad_parse("call $0 =");
+    check_bad_parse("call $0 = $2");
+    check_bad_parse("call $0 = $2(");
+    check_bad_parse("call $0 = $2($3");
+    check_bad_parse("call $0 = $2($3)");
+
+    check_bad_parse("call $0 = $2(); ");
+    check_bad_parse("call $0 = $2($3,$4); ");
+    check_bad_parse("call ($0) = $2(); ");
+    check_bad_parse("call ($0) = $2($3); ");
+    check_bad_parse("call ($0) = $2($3,$4); ");
+    check_bad_parse("call ($0,$1) = $2(); ");
+    check_bad_parse("call ($0,$1) = $2($3); ");
+    check_bad_parse("call ($0,$1) = $2($3,$4); ");
 
     check_bad_parse("return");
     check_bad_parse("return (");

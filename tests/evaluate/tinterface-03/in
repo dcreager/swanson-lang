@@ -1,10 +1,11 @@
 # Expected type: interface α
 trecursive %0;
 tlocation %1 = %0;
-tfunction %2 = (%1) -> (%0);
-tfunction %3 = (%1, %0) -> (%0);
+tfunction %2 = %1 -> %0;
+tproduct %4 = (%1, %0);
+tfunction %3 = %4 -> %0;
 tinterface %0 = {
   "get": %2,
   "set": %3
 };
-return (%0);
+return %0;

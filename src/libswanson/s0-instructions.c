@@ -26,9 +26,8 @@ s0_instruction_free(struct cork_gc *gc, void *vself)
     struct s0_instruction  *self = vself;
     size_t  i;
     switch (self->op) {
-        case S0_TFUNCTION:
-            cork_array_done(gc->alloc, &self->_.tfunction.params);
-            cork_array_done(gc->alloc, &self->_.tfunction.results);
+        case S0_TPRODUCT:
+            cork_array_done(gc->alloc, &self->_.tproduct.elements);
             break;
 
         case S0_TINTERFACE:
@@ -55,18 +54,7 @@ s0_instruction_free(struct cork_gc *gc, void *vself)
         case S0_MACRO:
             cork_strfree(gc->alloc, self->_.macro.name);
             cork_array_done(gc->alloc, &self->_.macro.upvalues);
-            cork_array_done(gc->alloc, &self->_.macro.params);
-            cork_array_done(gc->alloc, &self->_.macro.results);
             cork_array_done(gc->alloc, &self->_.macro.body);
-            break;
-
-        case S0_CALL:
-            cork_array_done(gc->alloc, &self->_.call.params);
-            cork_array_done(gc->alloc, &self->_.call.results);
-            break;
-
-        case S0_RETURN:
-            cork_array_done(gc->alloc, &self->_.ret.results);
             break;
 
         default:
@@ -128,7 +116,21 @@ s0i_tany_new(struct swan *s, s0_id dest, struct cork_error *err)
 }
 
 struct s0_instruction *
-s0i_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_tproduct_new(struct swan *s, s0_id dest, struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_instruction  *self = NULL;
+    rp_check_gc_new(s0_instruction, self, "TPRODUCT instruction");
+    self->op = S0_TPRODUCT;
+    self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
+    cork_array_init(swan_alloc(s), &self->_.tproduct.elements);
+    return self;
+}
+
+struct s0_instruction *
+s0i_tfunction_new(struct swan *s, s0_id dest, s0_tagged_id input,
+                  s0_tagged_id output, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
@@ -136,8 +138,8 @@ s0i_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err)
     rp_check_gc_new(s0_instruction, self, "TFUNCTION instruction");
     self->op = S0_TFUNCTION;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
-    cork_array_init(swan_alloc(s), &self->_.tfunction.params);
-    cork_array_init(swan_alloc(s), &self->_.tfunction.results);
+    self->_.tfunction.input = input;
+    self->_.tfunction.output = output;
     return self;
 }
 
@@ -265,8 +267,8 @@ s0i_macro_new(struct swan *s, s0_id dest, const char *name,
     e_check_alloc(self->_.macro.name = cork_strdup(swan_alloc(s), name),
                   "macro name");
     cork_array_init(swan_alloc(s), &self->_.macro.upvalues);
-    cork_array_init(swan_alloc(s), &self->_.macro.params);
-    cork_array_init(swan_alloc(s), &self->_.macro.results);
+    self->_.macro.input = 0;
+    self->_.macro.output = 0;
     cork_array_init(swan_alloc(s), &self->_.macro.body);
     return self;
 
@@ -276,26 +278,28 @@ error:
 }
 
 struct s0_instruction *
-s0i_call_new(struct swan *s, struct cork_error *err)
+s0i_call_new(struct swan *s, s0_id dest, s0_tagged_id callee,
+             s0_tagged_id input, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct s0_instruction  *self = NULL;
     rp_check_gc_new(s0_instruction, self, "CALL instruction");
     self->op = S0_CALL;
-    cork_array_init(swan_alloc(s), &self->_.call.params);
-    cork_array_init(swan_alloc(s), &self->_.call.results);
+    self->dest = s0_tagged_id(S0_ID_TAG_LOCAL, dest);
+    self->_.call.callee = callee;
+    self->_.call.input = input;
     return self;
 }
 
 struct s0_instruction *
-s0i_return_new(struct swan *s, struct cork_error *err)
+s0i_return_new(struct swan *s, s0_tagged_id result, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct s0_instruction  *self = NULL;
     rp_check_gc_new(s0_instruction, self, "RETURN instruction");
     self->op = S0_RETURN;
-    cork_array_init(swan_alloc(s), &self->_.ret.results);
+    self->_.ret.result = result;
     return self;
 }

@@ -1,9 +1,9 @@
 # Expected result: *LITERAL
 tliteral %0;
 ttype %1;
-macro $0 = "test" params (%1) results (%1) {
+macro $0 = "test" upvalues () %1 -> %1 {
   tlocation %0 = !0;
-  return (%0);
+  return %0;
 };
-call ($1) = $0(%0);
-return ($1);
+call $1 = $0(%0);
+return $1;

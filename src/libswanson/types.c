@@ -111,9 +111,8 @@ s0_type_free(struct cork_gc *gc, void *vself)
     struct s0_type  *self = vself;
 
     switch (self->kind) {
-        case S0_TYPE_FUNCTION:
-            cork_array_done(gc->alloc, &self->_.function.params);
-            cork_array_done(gc->alloc, &self->_.function.results);
+        case S0_TYPE_PRODUCT:
+            cork_array_done(gc->alloc, &self->_.product);
             break;
 
         case S0_TYPE_INTERFACE:
@@ -148,26 +147,20 @@ s0_type_recurse(struct cork_gc *gc, void *vself,
 {
     struct s0_type  *self = vself;
     switch (self->kind) {
-        case S0_TYPE_FUNCTION:
+        case S0_TYPE_PRODUCT:
         {
             size_t  i;
-
-            for (i = 0; i < cork_array_size
-                    (&self->_.function.params); i++) {
-                struct s0_type  *param =
-                    cork_array_at(&self->_.function.params, i);
-                recurse(gc, param, ud);
+            for (i = 0; i < cork_array_size(&self->_.product); i++) {
+                struct s0_type  *element = cork_array_at(&self->_.product, i);
+                recurse(gc, element, ud);
             }
-
-            for (i = 0; i < cork_array_size
-                    (&self->_.function.results); i++) {
-                struct s0_type  *result =
-                    cork_array_at(&self->_.function.results, i);
-                recurse(gc, result, ud);
-            }
-
             break;
         }
+
+        case S0_TYPE_FUNCTION:
+            recurse(gc, self->_.function.input, ud);
+            recurse(gc, self->_.function.output, ud);
+            break;
 
         case S0_TYPE_LOCATION:
             recurse(gc, self->_.location.referent, ud);
@@ -251,46 +244,44 @@ s0_any_type_new(struct swan *s, struct cork_error *err)
 }
 
 struct s0_type *
-s0_function_type_new(struct swan *s, struct cork_error *err)
+s0_product_type_new(struct swan *s, struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_type  *self;
+    rp_check_gc_new(s0_type, self, "product type");
+    self->kind = S0_TYPE_PRODUCT;
+    cork_array_init(swan_alloc(s), &self->_.product);
+    return self;
+}
+
+int
+s0_product_type_add(struct swan *s, struct s0_type *self,
+                    struct s0_type *type, struct cork_error *err)
+{
+    if (self->kind != S0_TYPE_PRODUCT) {
+        swan_general_bad_type_set
+            (swan_alloc(s), err, "Can only add elements to product types");
+        return -1;
+    }
+
+    return cork_array_append
+        (swan_alloc(s), &self->_.product,
+         cork_gc_incref(swan_gc(s), type), err);
+}
+
+struct s0_type *
+s0_function_type_new(struct swan *s, struct s0_type *input,
+                     struct s0_type *output, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct s0_type  *self;
     rp_check_gc_new(s0_type, self, "function type");
     self->kind = S0_TYPE_FUNCTION;
-    cork_array_init(swan_alloc(s), &self->_.function.params);
-    cork_array_init(swan_alloc(s), &self->_.function.results);
+    self->_.function.input = cork_gc_incref(swan_gc(s), input);
+    self->_.function.output = cork_gc_incref(swan_gc(s), output);
     return self;
-}
-
-int
-s0_function_type_add_param(struct swan *s, struct s0_type *self,
-                           struct s0_type *type, struct cork_error *err)
-{
-    if (self->kind != S0_TYPE_FUNCTION) {
-        swan_general_bad_type_set
-            (swan_alloc(s), err, "Can only add parameters to function types");
-        return -1;
-    }
-
-    return cork_array_append
-        (swan_alloc(s), &self->_.function.params,
-         cork_gc_incref(swan_gc(s), type), err);
-}
-
-int
-s0_function_type_add_result(struct swan *s, struct s0_type *self,
-                            struct s0_type *type, struct cork_error *err)
-{
-    if (self->kind != S0_TYPE_FUNCTION) {
-        swan_general_bad_type_set
-            (swan_alloc(s), err, "Can only add results to function types");
-        return -1;
-    }
-
-    return cork_array_append
-        (swan_alloc(s), &self->_.function.results,
-         cork_gc_incref(swan_gc(s), type), err);
 }
 
 struct s0_type *

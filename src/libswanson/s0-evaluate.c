@@ -64,31 +64,24 @@ s0_wrong_kind_set(struct cork_alloc *alloc, struct cork_error *err,
 }
 
 
-struct s0_wrong_count_extra {
-    const char  *macro_name;
-    const char  *kind;
-};
-
 static int
-s0_wrong_count(struct cork_alloc *alloc, struct cork_error *err,
-                      struct cork_buffer *dest)
+s0_no_result(struct cork_alloc *alloc, struct cork_error *err,
+             struct cork_buffer *dest)
 {
-    struct s0_wrong_count_extra  *extra = cork_error_extra(err);
+    const char  **macro_name = cork_error_extra(err);
     return cork_buffer_printf
-        (alloc, dest, NULL, "Wrong number of %s when calling %s",
-         extra->kind, extra->macro_name);
+        (alloc, dest, NULL, "No result when calling %s", *macro_name);
 }
 
 static int
-s0_wrong_count_set(struct cork_alloc *alloc, struct cork_error *err,
-                   const char *macro_name, const char *kind)
+s0_no_result_set(struct cork_alloc *alloc, struct cork_error *err,
+                 const char *macro_name)
 {
-    struct s0_wrong_count_extra  extra = { macro_name, kind };
     return cork_error_set_extra(alloc, err,
                                 S0_ERROR,
                                 S0_EVALUATION_ERROR,
-                                s0_wrong_count,
-                                extra);
+                                s0_no_result,
+                                macro_name);
 }
 
 
@@ -159,7 +152,7 @@ error:
 static int
 s0_evaluate_TRECURSIVE(struct swan *s, struct s0_scope *scope,
                        struct s0_instruction *instr,
-                       s0_value_array *dest, struct cork_error *err)
+                       struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating TRECURSIVE", scope->name);
     struct s0_type  *type;
@@ -181,7 +174,7 @@ error:
 static int
 s0_evaluate_TTYPE(struct swan *s, struct s0_scope *scope,
                   struct s0_instruction *instr,
-                  s0_value_array *dest, struct cork_error *err)
+                  struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating TTYPE", scope->name);
     struct s0_type  *type;
@@ -199,7 +192,7 @@ error:
 static int
 s0_evaluate_TLITERAL(struct swan *s, struct s0_scope *scope,
                      struct s0_instruction *instr,
-                     s0_value_array *dest, struct cork_error *err)
+                     struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating TLITERAL", scope->name);
     struct s0_type  *type;
@@ -217,7 +210,7 @@ error:
 static int
 s0_evaluate_TANY(struct swan *s, struct s0_scope *scope,
                  struct s0_instruction *instr,
-                 s0_value_array *dest, struct cork_error *err)
+                 struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating TANY", scope->name);
     struct s0_type  *type;
@@ -233,33 +226,25 @@ error:
 }
 
 static int
-s0_evaluate_TFUNCTION(struct swan *s, struct s0_scope *scope,
+s0_evaluate_TPRODUCT(struct swan *s, struct s0_scope *scope,
                       struct s0_instruction *instr,
-                      s0_value_array *dest, struct cork_error *err)
+                      struct s0_value **dest, struct cork_error *err)
 {
-    DEBUG("--- %s: Evaluating TFUNCTION", scope->name);
+    DEBUG("--- %s: Evaluating TPRODUCT", scope->name);
     size_t  i;
     struct s0_type  *type = NULL;
     struct s0_value  *value;
 
-    rip_check(type = s0_function_type_new(s, err));
+    rip_check(type = s0_product_type_new(s, err));
 
-    /* Construct the param type list */
-    for (i = 0; i < cork_array_size(&instr->_.tfunction.params); i++) {
-        s0_tagged_id  param =
-            cork_array_at(&instr->_.tfunction.params, i);
-        struct s0_type  *param_type;
-        ep_check(param_type = s0_evaluate_expect_type(s, scope, param, err));
-        ei_check(s0_function_type_add_param(s, type, param_type, err));
-    }
-
-    /* Construct the result type list */
-    for (i = 0; i < cork_array_size(&instr->_.tfunction.results); i++) {
-        s0_tagged_id  result =
-            cork_array_at(&instr->_.tfunction.results, i);
-        struct s0_type  *result_type;
-        ep_check(result_type = s0_evaluate_expect_type(s, scope, result, err));
-        ei_check(s0_function_type_add_result(s, type, result_type, err));
+    /* Construct the element type list */
+    for (i = 0; i < cork_array_size(&instr->_.tproduct.elements); i++) {
+        s0_tagged_id  element =
+            cork_array_at(&instr->_.tproduct.elements, i);
+        struct s0_type  *element_type;
+        ep_check(element_type = s0_evaluate_expect_type
+                 (s, scope, element, err));
+        ei_check(s0_product_type_add(s, type, element_type, err));
     }
 
     ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
@@ -272,9 +257,34 @@ error:
 }
 
 static int
+s0_evaluate_TFUNCTION(struct swan *s, struct s0_scope *scope,
+                      struct s0_instruction *instr,
+                      struct s0_value **dest, struct cork_error *err)
+{
+    DEBUG("--- %s: Evaluating TFUNCTION", scope->name);
+    struct s0_type  *input;
+    struct s0_type  *output;
+    struct s0_type  *type;
+    struct s0_value  *value;
+
+    rip_check(input = s0_evaluate_expect_type
+              (s, scope, instr->_.tfunction.input, err));
+    rip_check(output = s0_evaluate_expect_type
+              (s, scope, instr->_.tfunction.output, err));
+    rip_check(type = s0_function_type_new(s, input, output, err));
+    ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
+    cork_gc_decref(swan_gc(s), type);
+    return 0;
+
+error:
+    cork_gc_decref(swan_gc(s), type);
+    return -1;
+}
+
+static int
 s0_evaluate_TLOCATION(struct swan *s, struct s0_scope *scope,
                       struct s0_instruction *instr,
-                      s0_value_array *dest, struct cork_error *err)
+                      struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating TLOCATION", scope->name);
     struct s0_type  *referent;
@@ -296,7 +306,7 @@ error:
 static int
 s0_evaluate_TINTERFACE(struct swan *s, struct s0_scope *scope,
                        struct s0_instruction *instr,
-                       s0_value_array *dest, struct cork_error *err)
+                       struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating TINTERFACE", scope->name);
     size_t  i;
@@ -325,7 +335,7 @@ error:
 static int
 s0_evaluate_TCLASS(struct swan *s, struct s0_scope *scope,
                    struct s0_instruction *instr,
-                   s0_value_array *dest, struct cork_error *err)
+                   struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating TCLASS", scope->name);
     size_t  i;
@@ -353,7 +363,7 @@ error:
 static int
 s0_evaluate_TBLOCK(struct swan *s, struct s0_scope *scope,
                    struct s0_instruction *instr,
-                   s0_value_array *dest, struct cork_error *err)
+                   struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating TBLOCK", scope->name);
     struct s0_type  *result;
@@ -375,7 +385,7 @@ error:
 static int
 s0_evaluate_LITERAL(struct swan *s, struct s0_scope *scope,
                     struct s0_instruction *instr,
-                    s0_value_array *dest, struct cork_error *err)
+                    struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating LITERAL", scope->name);
     struct s0_value  *value;
@@ -387,14 +397,22 @@ s0_evaluate_LITERAL(struct swan *s, struct s0_scope *scope,
 static int
 s0_evaluate_MACRO(struct swan *s, struct s0_scope *scope,
                   struct s0_instruction *instr,
-                  s0_value_array *dest, struct cork_error *err)
+                  struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating MACRO", scope->name);
     size_t  i;
     struct s0_basic_block  *block;
+    struct s0_type  *input;
+    struct s0_type  *output;
     struct s0_value  *value;
 
-    rip_check(block = s0_basic_block_new(s, instr->_.macro.name, err));
+    rip_check(input = s0_evaluate_expect_type
+              (s, scope, instr->_.macro.input, err));
+    rip_check(output = s0_evaluate_expect_type
+              (s, scope, instr->_.macro.output, err));
+
+    rip_check(block = s0_basic_block_new
+              (s, instr->_.macro.name, input, output, err));
 
     /* Construct the upvalue list */
     for (i = 0; i < cork_array_size(&instr->_.macro.upvalues); i++) {
@@ -402,22 +420,6 @@ s0_evaluate_MACRO(struct swan *s, struct s0_scope *scope,
         struct s0_value  *upvalue;
         ep_check(upvalue = s0_scope_get(s, scope, upvalue_id, err));
         ei_check(s0_basic_block_add_upvalue(s, block, upvalue, err));
-    }
-
-    /* Construct the param type list */
-    for (i = 0; i < cork_array_size(&instr->_.macro.params); i++) {
-        s0_tagged_id  param = cork_array_at(&instr->_.macro.params, i);
-        struct s0_type  *param_type;
-        ep_check(param_type = s0_evaluate_expect_type(s, scope, param, err));
-        ei_check(s0_basic_block_add_param(s, block, param_type, err));
-    }
-
-    /* Construct the result type list */
-    for (i = 0; i < cork_array_size(&instr->_.macro.results); i++) {
-        s0_tagged_id  result = cork_array_at(&instr->_.macro.results, i);
-        struct s0_type  *result_type;
-        ep_check(result_type = s0_evaluate_expect_type(s, scope, result, err));
-        ei_check(s0_basic_block_add_result(s, block, result_type, err));
     }
 
     /* Construct the body */
@@ -441,65 +443,28 @@ error:
 static int
 s0_evaluate_call_macro(struct swan *s, struct s0_scope *scope,
                        struct s0_value *macro, struct s0_instruction *instr,
-                       s0_value_array *dest, struct cork_error *err)
+                       struct s0_value **dest, struct cork_error *err)
 {
-    size_t  i;
-    s0_value_array  params;
-    s0_value_array  results;
+    struct s0_value  *input;
+    struct s0_value  *output;
 
-    cork_array_init(swan_alloc(s), &params);
-    cork_array_init(swan_alloc(s), &results);
-
-    /* Construct the param list */
-    if (cork_array_size(&macro->_.macro->params) !=
-        cork_array_size(&instr->_.call.params)) {
-        s0_wrong_count_set
-            (swan_alloc(s), err, macro->_.macro->name, "parameters");
-        goto error;
-    }
-
-    for (i = 0; i < cork_array_size(&instr->_.call.params); i++) {
-        s0_tagged_id  param_id = cork_array_at(&instr->_.call.params, i);
-        struct s0_value  *param;
-        ep_check(param = s0_scope_get(s, scope, param_id, err));
-        /* We don't need to incref or decref the parameters; the scope
-         * has references to each parameter, and the scope stays alive
-         * across the call to s0_basic_block evaluate. */
-        ei_check(cork_array_append(swan_alloc(s), &params, param, err));
-    }
+    /* We don't need to incref or decref the parameter; the scope has a
+     * reference to it, and the scope stays alive across the call to
+     * s0_basic_block evaluate. */
+    rip_check(input = s0_scope_get(s, scope, instr->_.call.input, err));
 
     /* Call the macro */
-    ei_check(s0_basic_block_evaluate
-             (s, macro->_.macro, &params, &results, err));
+    rip_check(output = s0_basic_block_evaluate(s, macro->_.macro, input, err));
 
     /* Save the results into the current scope */
-    if (cork_array_size(&results) != cork_array_size(&instr->_.call.results)) {
-        s0_wrong_count_set
-            (swan_alloc(s), err, macro->_.macro->name, "results");
-        goto error;
-    }
-
-    for (i = 0; i < cork_array_size(&results); i++) {
-        s0_tagged_id  result_id = cork_array_at(&instr->_.call.results, i);
-        struct s0_value  *result = cork_array_at(&results, i);
-        DEBUG("    Saving result %p %lu %p", scope, (unsigned long) result_id, result);
-        ei_check(s0_scope_add(s, scope, result_id, result, err));
-    }
-
-    cork_array_done(swan_alloc(s), &params);
-    cork_array_done(swan_alloc(s), &results);
+    rii_check(s0_scope_add(s, scope, instr->dest, output, err));
     return 0;
-
-error:
-    cork_array_done(swan_alloc(s), &params);
-    cork_array_done(swan_alloc(s), &results);
-    return -1;
 }
 
 static int
 s0_evaluate_CALL(struct swan *s, struct s0_scope *scope,
                  struct s0_instruction *instr,
-                 s0_value_array *dest, struct cork_error *err)
+                 struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating CALL", scope->name);
     struct s0_value  *callee;
@@ -519,30 +484,19 @@ s0_evaluate_CALL(struct swan *s, struct s0_scope *scope,
 static int
 s0_evaluate_RETURN(struct swan *s, struct s0_scope *scope,
                    struct s0_instruction *instr,
-                   s0_value_array *dest, struct cork_error *err)
+                   struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating RETURN", scope->name);
-    size_t  i;
-
-    /* Construct the result list */
-    for (i = 0; i < cork_array_size(&instr->_.ret.results); i++) {
-        s0_tagged_id  result_id =
-            cork_array_at(&instr->_.ret.results, i);
-        DEBUG("    Returning %p %lu", scope, (unsigned long) result_id);
-        struct s0_value  *result;
-        rip_check(result = s0_scope_get(s, scope, result_id, err));
-        rii_check(cork_array_append
-                  (swan_alloc(s), dest,
-                   cork_gc_incref(swan_gc(s), result), err));
-    }
-
+    struct s0_value  *result;
+    rip_check(result = s0_scope_get(s, scope, instr->_.ret.result, err));
+    *dest = cork_gc_incref(swan_gc(s), result);
     return 0;
 }
 
 static int
 s0_evaluate_instruction(struct swan *s, struct s0_scope *scope,
                         struct s0_instruction *instr,
-                        s0_value_array *dest, struct cork_error *err)
+                        struct s0_value **dest, struct cork_error *err)
 {
     switch (instr->op) {
 #define EVALUATE_OPCODE(name) \
@@ -557,16 +511,16 @@ s0_evaluate_instruction(struct swan *s, struct s0_scope *scope,
     }
 }
 
-int
+struct s0_value *
 s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *self,
-                        s0_value_array *params, s0_value_array *results,
-                        struct cork_error *err)
+                        struct s0_value *input, struct cork_error *err)
 {
     size_t  i;
     struct s0_scope  *scope = NULL;
-    rip_check(scope = s0_scope_new(s, self->name, err));
+    struct s0_value  *output = NULL;
+    rpp_check(scope = s0_scope_new(s, self->name, err));
 
-    /* Add the upvalues and parameters to the scope */
+    /* Add the upvalue and parameter to the scope */
     for (i = 0; i < cork_array_size(&self->upvalues); i++) {
         struct s0_value  *upvalue = cork_array_at(&self->upvalues, i);
         ei_check(s0_scope_add
@@ -574,23 +528,27 @@ s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *self,
                   cork_gc_incref(swan_gc(s), upvalue), err));
     }
 
-    for (i = 0; i < cork_array_size(params); i++) {
-        struct s0_value  *param = cork_array_at(params, i);
+    if (input != NULL) {
         ei_check(s0_scope_add
-                 (s, scope, s0_tagged_id(S0_ID_TAG_PARAM, i),
-                  cork_gc_incref(swan_gc(s), param), err));
+                 (s, scope, s0_tagged_id(S0_ID_TAG_PARAM, 0),
+                  cork_gc_incref(swan_gc(s), input), err));
     }
 
     /* Then evaluate each instruction */
     for (i = 0; i < cork_array_size(&self->body); i++) {
         struct s0_instruction  *instr = cork_array_at(&self->body, i);
-        ei_check(s0_evaluate_instruction(s, scope, instr, results, err));
+        ei_check(s0_evaluate_instruction(s, scope, instr, &output, err));
+    }
+
+    if (output == NULL) {
+        s0_no_result_set(swan_alloc(s), err, self->name);
+        return NULL;
     }
 
     cork_gc_decref(swan_gc(s), scope);
-    return 0;
+    return output;
 
 error:
     cork_gc_decref(swan_gc(s), scope);
-    return -1;
+    return NULL;
 }

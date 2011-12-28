@@ -41,6 +41,7 @@ enum s0_type_kind {
     S0_TYPE_TYPE,
     S0_TYPE_LITERAL,
     S0_TYPE_ANY,
+    S0_TYPE_PRODUCT,
     S0_TYPE_FUNCTION,
     S0_TYPE_LOCATION,
     S0_TYPE_INTERFACE,
@@ -51,9 +52,10 @@ enum s0_type_kind {
 struct s0_type {
     enum s0_type_kind  kind;
     union {
+        s0_type_array  product;
         struct {
-            s0_type_array  params;
-            s0_type_array  results;
+            struct s0_type  *input;
+            struct s0_type  *output;
         } function;
         struct { struct s0_type  *referent; } location;
         struct { struct cork_hash_table  entries; } interface;
@@ -81,17 +83,17 @@ struct s0_type *
 s0_any_type_new(struct swan *s, struct cork_error *err);
 
 struct s0_type *
-s0_function_type_new(struct swan *s, struct cork_error *err);
+s0_product_type_new(struct swan *s, struct cork_error *err);
 
 /* Creates new reference to type */
 int
-s0_function_type_add_param(struct swan *s, struct s0_type *self,
-                           struct s0_type *type, struct cork_error *err);
+s0_product_type_add(struct swan *s, struct s0_type *self,
+                    struct s0_type *type, struct cork_error *err);
 
-/* Creates new reference to type */
-int
-s0_function_type_add_result(struct swan *s, struct s0_type *self,
-                            struct s0_type *type, struct cork_error *err);
+/* Creates new references to input and output */
+struct s0_type *
+s0_function_type_new(struct swan *s, struct s0_type *input,
+                     struct s0_type *output, struct cork_error *err);
 
 /* Creates new reference to referent */
 struct s0_type *
@@ -186,6 +188,7 @@ typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
     _(TTYPE) \
     _(TLITERAL) \
     _(TANY) \
+    _(TPRODUCT) \
     _(TFUNCTION) \
     _(TLOCATION) \
     _(TINTERFACE) \
@@ -223,9 +226,10 @@ struct s0_instruction {
     enum s0_opcode  op;
     s0_tagged_id  dest;
     union {
+        struct { s0_tagged_id_array  elements; }  tproduct;
         struct {
-            s0_tagged_id_array  params;
-            s0_tagged_id_array  results;
+            s0_tagged_id  input;
+            s0_tagged_id  output;
         } tfunction;
         struct { s0_tagged_id  referent; }  tlocation;
         struct { s0_tinterface_entries  entries; }  tinterface;
@@ -238,16 +242,15 @@ struct s0_instruction {
         struct {
             const char  *name;
             s0_tagged_id_array  upvalues;
-            s0_tagged_id_array  params;
-            s0_tagged_id_array  results;
+            s0_tagged_id  input;
+            s0_tagged_id  output;
             s0_instruction_array  body;
         } macro;
         struct {
             s0_tagged_id  callee;
-            s0_tagged_id_array  params;
-            s0_tagged_id_array  results;
+            s0_tagged_id  input;
         } call;
-        struct { s0_tagged_id_array  results; }  ret;
+        struct { s0_tagged_id  result; }  ret;
     } _;
     struct cork_dllist_item  siblings;
 };
@@ -265,7 +268,11 @@ struct s0_instruction *
 s0i_tany_new(struct swan *s, s0_id dest, struct cork_error *err);
 
 struct s0_instruction *
-s0i_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err);
+s0i_tproduct_new(struct swan *s, s0_id dest, struct cork_error *err);
+
+struct s0_instruction *
+s0i_tfunction_new(struct swan *s, s0_id dest, s0_tagged_id input,
+                  s0_tagged_id output, struct cork_error *err);
 
 struct s0_instruction *
 s0i_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
@@ -303,10 +310,11 @@ s0i_macro_new(struct swan *s, s0_id dest, const char *name,
               struct cork_error *err);
 
 struct s0_instruction *
-s0i_call_new(struct swan *s, struct cork_error *err);
+s0i_call_new(struct swan *s, s0_id dest, s0_tagged_id callee,
+             s0_tagged_id input, struct cork_error *err);
 
 struct s0_instruction *
-s0i_return_new(struct swan *s, struct cork_error *err);
+s0i_return_new(struct swan *s, s0_tagged_id result, struct cork_error *err);
 
 
 struct s0_position {
@@ -326,42 +334,30 @@ s0_parse(struct swan *s, struct cork_slice *src, struct cork_error *err);
 struct s0_basic_block {
     const char  *name;
     s0_value_array  upvalues;
-    s0_type_array  params;
-    s0_type_array  results;
+    struct s0_type  *input;
+    struct s0_type  *output;
     s0_instruction_array  body;
 };
 
+/* Creates new references to input and output */
 struct s0_basic_block *
-s0_basic_block_new(struct swan *s, const char *name, struct cork_error *err);
+s0_basic_block_new(struct swan *s, const char *name,
+                   struct s0_type *input, struct s0_type *output,
+                   struct cork_error *err);
 
 /* Creates new reference to value */
 #define s0_basic_block_add_upvalue(s, self, value, err) \
     (cork_array_append(swan_alloc((s)), &(self)->upvalues, \
                        cork_gc_incref(swan_gc((s)), (value)), (err)))
 
-/* Creates new reference to type */
-#define s0_basic_block_add_param(s, self, type, err) \
-    (cork_array_append(swan_alloc((s)), &(self)->params, \
-                       cork_gc_incref(swan_gc((s)), (type)), (err)))
-
-/* Creates new reference to type */
-#define s0_basic_block_add_result(s, self, type, err) \
-    (cork_array_append(swan_alloc((s)), &(self)->results, \
-                       cork_gc_incref(swan_gc((s)), (type)), (err)))
-
-/* Steals reference to body */
-#define s0_basic_block_set_body(s, self, _body, err) \
-    ((self)->body = (_body), 0)
-
 /* Steals reference to instr */
 #define s0_basic_block_add_instruction(s, self, instr, err) \
     (cork_array_append(swan_alloc((s)), &(self)->body, \
                        (instr), (err)))
 
-int
+struct s0_value *
 s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *basic_block,
-                        s0_value_array *params, s0_value_array *results,
-                        struct cork_error *err);
+                        struct s0_value *input, struct cork_error *err);
 
 
 /*-----------------------------------------------------------------------

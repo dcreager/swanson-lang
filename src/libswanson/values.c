@@ -108,22 +108,8 @@ static struct s0_type *
 s0_macro_value_create_type(struct swan *s, struct s0_value *value,
                            struct cork_error *err)
 {
-    size_t  i;
-    struct s0_type  *type;
-    rpp_check(type = s0_function_type_new(s, err));
-    for (i = 0; i < cork_array_size(&value->_.macro->params); i++) {
-        ei_check(s0_function_type_add_param
-                 (s, type, cork_array_at(&value->_.macro->params, i), err));
-    }
-    for (i = 0; i < cork_array_size(&value->_.macro->results); i++) {
-        ei_check(s0_function_type_add_result
-                 (s, type, cork_array_at(&value->_.macro->results, i), err));
-    }
-    return type;
-
-error:
-    cork_gc_decref(swan_gc(s), type);
-    return NULL;
+    return s0_function_type_new
+        (s, value->_.macro->input, value->_.macro->output, err);
 }
 
 

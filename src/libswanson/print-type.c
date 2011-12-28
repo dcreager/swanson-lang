@@ -92,13 +92,17 @@ print_interface_name(struct swan *s, size_t index, struct cork_buffer *dest,
 static int
 print_type_list(struct swan *s, struct s0_printer *state,
                 s0_type_array *array, struct cork_buffer *dest,
-                struct cork_error *err)
+                bool parenthize, struct cork_error *err)
 {
 
     if (cork_array_is_empty(array)) {
         return cork_buffer_append_string(swan_alloc(s), dest, "void", err);
     } else {
         size_t  i;
+        if (parenthize) {
+            rii_check(cork_buffer_append_string
+                      (swan_alloc(s), dest, "(", err));
+        }
         for (i = 0; i < cork_array_size(array); i++) {
             if (i > 0) {
                 rii_check(cork_buffer_append_string
@@ -106,6 +110,10 @@ print_type_list(struct swan *s, struct s0_printer *state,
             }
             rii_check(print_one
                       (s, state, cork_array_at(array, i), dest, true, err));
+        }
+        if (parenthize) {
+            rii_check(cork_buffer_append_string
+                      (swan_alloc(s), dest, ")", err));
         }
     }
     return 0;
@@ -129,18 +137,25 @@ print_one(struct swan *s, struct s0_printer *state,
             return cork_buffer_append_string
                 (swan_alloc(s), dest, "*", err);
 
+        case S0_TYPE_PRODUCT:
+        {
+            rii_check(print_type_list
+                      (s, state, &type->_.product, dest, parenthize, err));
+            return 0;
+        }
+
         case S0_TYPE_FUNCTION:
         {
             if (parenthize) {
                 rii_check(cork_buffer_append_string
                           (swan_alloc(s), dest, "(", err));
             }
-            rii_check(print_type_list
-                      (s, state, &type->_.function.params, dest, err));
+            rii_check(print_one
+                      (s, state, type->_.function.input, dest, false, err));
             rii_check(cork_buffer_append_string
                       (swan_alloc(s), dest, " -> ", err));
-            rii_check(print_type_list
-                      (s, state, &type->_.function.results, dest, err));
+            rii_check(print_one
+                      (s, state, type->_.function.output, dest, false, err));
             if (parenthize) {
                 rii_check(cork_buffer_append_string
                           (swan_alloc(s), dest, ")", err));

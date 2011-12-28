@@ -21,8 +21,6 @@ s0_basic_block_free(struct cork_gc *gc, void *vself)
     struct s0_basic_block  *self = vself;
     cork_strfree(gc->alloc, self->name);
     cork_array_done(gc->alloc, &self->upvalues);
-    cork_array_done(gc->alloc, &self->params);
-    cork_array_done(gc->alloc, &self->results);
 }
 
 static void
@@ -34,12 +32,8 @@ s0_basic_block_recurse(struct cork_gc *gc, void *vself,
     for (i = 0; i < cork_array_size(&self->upvalues); i++) {
         recurse(gc, cork_array_at(&self->upvalues, i), ud);
     }
-    for (i = 0; i < cork_array_size(&self->params); i++) {
-        recurse(gc, cork_array_at(&self->params, i), ud);
-    }
-    for (i = 0; i < cork_array_size(&self->results); i++) {
-        recurse(gc, cork_array_at(&self->results, i), ud);
-    }
+    recurse(gc, self->input, ud);
+    recurse(gc, self->output, ud);
     for (i = 0; i < cork_array_size(&self->body); i++) {
         recurse(gc, cork_array_at(&self->body, i), ud);
     }
@@ -51,17 +45,19 @@ static struct cork_gc_obj_iface  s0_basic_block_gc = {
 
 
 struct s0_basic_block *
-s0_basic_block_new(struct swan *s, const char *name, struct cork_error *err)
+s0_basic_block_new(struct swan *s, const char *name,
+                   struct s0_type *input, struct s0_type *output,
+                   struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct s0_basic_block  *self = NULL;
-    rp_check_gc_new(s0_basic_block, self, "basic_block");
+    rp_check_gc_new(s0_basic_block, self, "basic block");
     e_check_alloc(self->name = cork_strdup(swan_alloc(s), name),
-                  "basic_block name");
+                  "basic block name");
     cork_array_init(swan_alloc(s), &self->upvalues);
-    cork_array_init(swan_alloc(s), &self->params);
-    cork_array_init(swan_alloc(s), &self->results);
+    self->input = cork_gc_incref(swan_gc(s), input);
+    self->output = cork_gc_incref(swan_gc(s), output);
     cork_array_init(swan_alloc(s), &self->body);
     return self;
 

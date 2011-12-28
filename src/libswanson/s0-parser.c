@@ -507,44 +507,6 @@ s0_parse_any_id(struct swan *s, struct s0_parser *sp,
     return 0;
 }
 
-/* Parse a list of identifiers of a particular tag. */
-static int
-s0_parse_id_list(struct swan *s, struct s0_parser *sp, enum s0_id_tag tag,
-                 s0_tagged_id_array *dest, struct cork_error *err)
-{
-    rii_check(s0_parse_require_token(s, sp, "(", 1, err));
-    bool  first = true;
-
-    do {
-        int  rc;
-
-        /* At this point, we can try to read a close-paren to end the
-         * list. */
-        rc = s0_parse_try_token(s, sp, ")", 1, err);
-        if (rc != -2) {
-            return rc;
-        }
-
-        /* If this isn't the first element of the list, there needs to
-         * be a comma next. */
-        if (first) {
-            first = false;
-        } else {
-            rii_check(s0_parse_require_token(s, sp, ",", 1, err));
-        }
-
-        /* And then we have to parse an identifier. */
-        s0_id  id;
-        rii_check(s0_parse_id(s, sp, tag, &id, err));
-        rii_check(cork_array_append
-                  (swan_alloc(s), dest, s0_tagged_id(tag, id), err));
-    } while (true);
-
-    /* Should be unreachable */
-    cork_unknown_error_set(swan_alloc(s), err);
-    return -1;
-}
-
 /* Parse a list of identifiers. */
 static int
 s0_parse_any_id_list(struct swan *s, struct s0_parser *sp,
@@ -735,17 +697,15 @@ s0_parse_TANY(struct swan *s, struct s0_parser *sp,
 }
 
 static int
-s0_parse_TFUNCTION(struct swan *s, struct s0_parser *sp,
-                   struct cork_error *err)
+s0_parse_TPRODUCT(struct swan *s, struct s0_parser *sp,
+                  struct cork_error *err)
 {
     s0_id  dest;
     struct s0_instruction  *instr;
     rii_check(s0_parse_id(s, sp, S0_ID_TAG_TYPE, &dest, err));
     rii_check(s0_parse_require_token(s, sp, "=", 1, err));
-    rip_check(instr = s0i_tfunction_new(s, dest, err));
-    ei_check(s0_parse_any_id_list(s, sp, &instr->_.tfunction.params, err));
-    ei_check(s0_parse_require_token(s, sp, "->", 2, err));
-    ei_check(s0_parse_any_id_list(s, sp, &instr->_.tfunction.results, err));
+    rip_check(instr = s0i_tproduct_new(s, dest, err));
+    ei_check(s0_parse_any_id_list(s, sp, &instr->_.tproduct.elements, err));
     ei_check(s0_parse_require_token(s, sp, ";", 1, err));
     ei_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
     return 0;
@@ -753,6 +713,25 @@ s0_parse_TFUNCTION(struct swan *s, struct s0_parser *sp,
 error:
     cork_gc_decref(swan_gc(s), instr);
     return -1;
+}
+
+static int
+s0_parse_TFUNCTION(struct swan *s, struct s0_parser *sp,
+                   struct cork_error *err)
+{
+    s0_id  dest;
+    s0_tagged_id  input;
+    s0_tagged_id  output;
+    struct s0_instruction  *instr;
+    rii_check(s0_parse_id(s, sp, S0_ID_TAG_TYPE, &dest, err));
+    rii_check(s0_parse_require_token(s, sp, "=", 1, err));
+    rii_check(s0_parse_any_id(s, sp, &input, err));
+    rii_check(s0_parse_require_token(s, sp, "->", 2, err));
+    rii_check(s0_parse_any_id(s, sp, &output, err));
+    rii_check(s0_parse_require_token(s, sp, ";", 1, err));
+    rip_check(instr = s0i_tfunction_new(s, dest, input, output, err));
+    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    return 0;
 }
 
 static int
@@ -855,29 +834,11 @@ s0_parse_MACRO(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_string(s, sp, err));
     rip_check(instr = s0i_macro_new(s, dest, sp->scratch.buf, err));
 
-    /* First an optional list of upvalues */
-    rc = s0_parse_try_token(s, sp, "upvalues", 8, err);
-    if (rc == -1) {
-        goto error;
-    } else if (rc == 0) {
-        ei_check(s0_parse_any_id_list(s, sp, &instr->_.macro.upvalues, err));
-    }
-
-    /* Then an optional list of parameter types */
-    rc = s0_parse_try_token(s, sp, "params", 6, err);
-    if (rc == -1) {
-        goto error;
-    } else if (rc == 0) {
-        ei_check(s0_parse_any_id_list(s, sp, &instr->_.macro.params, err));
-    }
-
-    /* Then an optional list of result types */
-    rc = s0_parse_try_token(s, sp, "results", 7, err);
-    if (rc == -1) {
-        goto error;
-    } else if (rc == 0) {
-        ei_check(s0_parse_any_id_list(s, sp, &instr->_.macro.results, err));
-    }
+    ei_check(s0_parse_require_token(s, sp, "upvalues", 8, err));
+    ei_check(s0_parse_any_id_list(s, sp, &instr->_.macro.upvalues, err));
+    ei_check(s0_parse_any_id(s, sp, &instr->_.macro.input, err));
+    ei_check(s0_parse_require_token(s, sp, "->", 2, err));
+    ei_check(s0_parse_any_id(s, sp, &instr->_.macro.output, err));
 
     /* Then a required list of instructions */
     saved_body = sp->body;
@@ -912,36 +873,33 @@ static int
 s0_parse_CALL(struct swan *s, struct s0_parser *sp,
               struct cork_error *err)
 {
+    s0_id  dest;
+    s0_tagged_id  callee;
+    s0_tagged_id  input;
     struct s0_instruction  *instr;
-    rip_check(instr = s0i_call_new(s, err));
-    ei_check(s0_parse_id_list
-             (s, sp, S0_ID_TAG_LOCAL, &instr->_.call.results, err));
+    rii_check(s0_parse_id(s, sp, S0_ID_TAG_LOCAL, &dest, err));
     rii_check(s0_parse_require_token(s, sp, "=", 1, err));
-    ei_check(s0_parse_any_id(s, sp, &instr->_.call.callee, err));
-    ei_check(s0_parse_any_id_list(s, sp, &instr->_.call.params, err));
-    ei_check(s0_parse_require_token(s, sp, ";", 1, err));
+    rii_check(s0_parse_any_id(s, sp, &callee, err));
+    rii_check(s0_parse_require_token(s, sp, "(", 1, err));
+    rii_check(s0_parse_any_id(s, sp, &input, err));
+    rii_check(s0_parse_require_token(s, sp, ")", 1, err));
+    rii_check(s0_parse_require_token(s, sp, ";", 1, err));
+    rip_check(instr = s0i_call_new(s, dest, callee, input, err));
     rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
     return 0;
-
-error:
-    cork_gc_decref(swan_gc(s), instr);
-    return -1;
 }
 
 static int
 s0_parse_RETURN(struct swan *s, struct s0_parser *sp,
                 struct cork_error *err)
 {
+    s0_tagged_id  result;
     struct s0_instruction  *instr;
-    rip_check(instr = s0i_return_new(s, err));
-    ei_check(s0_parse_any_id_list(s, sp, &instr->_.ret.results, err));
-    ei_check(s0_parse_require_token(s, sp, ";", 1, err));
-    ei_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(s0_parse_any_id(s, sp, &result, err));
+    rii_check(s0_parse_require_token(s, sp, ";", 1, err));
+    rip_check(instr = s0i_return_new(s, result, err));
+    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
     return 0;
-
-error:
-    cork_gc_decref(swan_gc(s), instr);
-    return -1;
 }
 
 
@@ -971,7 +929,7 @@ struct s0_basic_block *
 s0_parse(struct swan *s, struct cork_slice *src, struct cork_error *err)
 {
     struct s0_basic_block  *result;
-    rpp_check(result = s0_basic_block_new(s, "<top-level>", err));
+    rpp_check(result = s0_basic_block_new(s, "<top-level>", NULL, NULL, err));
 
     struct s0_parser  sp = {
         src, {0,0},

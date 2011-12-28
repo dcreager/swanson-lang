@@ -83,18 +83,11 @@ error:
 
 static int
 print_value(struct swan *s, struct s0_basic_block *block,
-            s0_value_array *results, struct cork_error *err)
+            struct s0_value *value, struct cork_error *err)
 {
-    if (cork_array_size(results) != 1) {
-        fprintf(stderr, "Expected one return value.\n");
-        exit(EXIT_FAILURE);
-    }
-
     struct s0_instruction  *last_instruction =
         cork_array_at(&block->body, cork_array_size(&block->body) - 1);
-    s0_tagged_id  last_id =
-        cork_array_at(&last_instruction->_.ret.results, 0);
-    struct s0_value  *value = cork_array_at(results, 0);
+    s0_tagged_id  last_id = last_instruction->_.ret.result;
 
     switch (value->kind) {
         case S0_VALUE_TYPE:
@@ -142,8 +135,7 @@ main(int argc, char **argv)
     struct cork_buffer  *buf;
     struct cork_slice  slice;
     struct s0_basic_block  *block;
-    s0_value_array  params;
-    s0_value_array  results;
+    struct s0_value  *result;
 
     if (argc != 2) {
         fprintf(stderr, "Usage: s0-evaluate [s0 file]\n");
@@ -165,10 +157,8 @@ main(int argc, char **argv)
     }
 
     /* Finally, evaluate it and print it */
-    cork_array_init(alloc, &params);
-    cork_array_init(alloc, &results);
-    ei_check(s0_basic_block_evaluate(&s, block, &params, &results, &err));
-    ei_check(print_value(&s, block, &results, &err));
+    ep_check(result = s0_basic_block_evaluate(&s, block, NULL, &err));
+    ei_check(print_value(&s, block, result, &err));
 
     swan_done(&s);
     cork_error_done(alloc, &err);

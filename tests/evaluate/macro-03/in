@@ -1,10 +1,11 @@
 # Expected result: *LITERAL
 tliteral %0;
 ttype %1;
-macro $0 = "test" upvalues (%0) results (%1) {
+tproduct %2 = ();
+macro $0 = "test" upvalues (%0) %2 -> %1 {
   tlocation %0 = ^0;
-  return (%0);
+  return %0;
 };
-call ($1) = $0();
-call ($2) = $0();
-return ($2);
+call $1 = $0(%2);
+call $2 = $0(%2);
+return $2;

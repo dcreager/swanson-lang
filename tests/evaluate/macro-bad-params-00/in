@@ -1,6 +1,0 @@
-tliteral %0;
-macro $0 = "test" params (%0) {
-  return ();
-};
-call () = $0();  # invalid number of parameters
-return (%0);

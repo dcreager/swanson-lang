@@ -81,21 +81,20 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
- * Functions
+ * Product
  */
 
-START_TEST(test_function_01)
+START_TEST(test_product_01)
 {
     DESCRIBE_TEST;
     DECLARE_SWAN;
 
     struct s0_type  *t0;
     struct s0_type  *t1;
-    fail_if_error(t0 = s0_function_type_new(&s, &err));
+    fail_if_error(t0 = s0_product_type_new(&s, &err));
     fail_if_error(t1 = s0_literal_type_new(&s, &err));
-    fail_if_error(s0_function_type_add_param(&s, t0, t1, &err));
-    fail_if_error(s0_function_type_add_result(&s, t0, t1, &err));
-    check_type(t0, "LITERAL -> LITERAL", "");
+    fail_if_error(s0_product_type_add(&s, t0, t1, &err));
+    check_type(t0, "LITERAL", "");
 
     cork_gc_decref(swan_gc(&s), t0);
     cork_gc_decref(swan_gc(&s), t1);
@@ -103,19 +102,18 @@ START_TEST(test_function_01)
 }
 END_TEST
 
-START_TEST(test_function_02)
+START_TEST(test_product_02)
 {
     DESCRIBE_TEST;
     DECLARE_SWAN;
 
     struct s0_type  *t0;
     struct s0_type  *t1;
-    fail_if_error(t0 = s0_function_type_new(&s, &err));
+    fail_if_error(t0 = s0_product_type_new(&s, &err));
     fail_if_error(t1 = s0_literal_type_new(&s, &err));
-    fail_if_error(s0_function_type_add_param(&s, t0, t1, &err));
-    fail_if_error(s0_function_type_add_param(&s, t0, t1, &err));
-    fail_if_error(s0_function_type_add_result(&s, t0, t1, &err));
-    check_type(t0, "LITERAL,LITERAL -> LITERAL", "");
+    fail_if_error(s0_product_type_add(&s, t0, t1, &err));
+    fail_if_error(s0_product_type_add(&s, t0, t1, &err));
+    check_type(t0, "LITERAL,LITERAL", "");
 
     cork_gc_decref(swan_gc(&s), t0);
     cork_gc_decref(swan_gc(&s), t1);
@@ -162,10 +160,9 @@ START_TEST(test_interface_02)
     fail_if_error(tr = s0_recursive_type_new(&s, &err));
     fail_if_error(t0 = s0_interface_type_new(&s, &err));
 
-    fail_if_error(t1 = s0_function_type_new(&s, &err));
-    fail_if_error(s0_function_type_add_param(&s, t1, tr, &err));
-    fail_if_error(s0_function_type_add_param(&s, t1, tr, &err));
-    fail_if_error(s0_function_type_add_result(&s, t1, tr, &err));
+    fail_if_error(t1 = s0_product_type_new(&s, &err));
+    fail_if_error(s0_product_type_add(&s, t1, tr, &err));
+    fail_if_error(s0_product_type_add(&s, t1, tr, &err));
     fail_if_error(s0_interface_type_add(&s, t0, "+", t1, &err));
     cork_gc_decref(swan_gc(&s), t1);
 
@@ -173,7 +170,7 @@ START_TEST(test_interface_02)
 
     check_type(t0, "α",
         "interface α {\n"
-        "  + (α,α -> α)\n"
+        "  + (α,α)\n"
         "}\n"
     );
 
@@ -197,15 +194,14 @@ START_TEST(test_interface_03)
     fail_if_error(tl = s0_location_type_new(&s, tr, &err));
     fail_if_error(t0 = s0_interface_type_new(&s, &err));
 
-    fail_if_error(t1 = s0_function_type_new(&s, &err));
-    fail_if_error(s0_function_type_add_param(&s, t1, tl, &err));
-    fail_if_error(s0_function_type_add_param(&s, t1, tr, &err));
+    fail_if_error(t1 = s0_product_type_new(&s, &err));
+    fail_if_error(s0_product_type_add(&s, t1, tl, &err));
+    fail_if_error(s0_product_type_add(&s, t1, tr, &err));
     fail_if_error(s0_interface_type_add(&s, t0, "=", t1, &err));
     cork_gc_decref(swan_gc(&s), t1);
 
-    fail_if_error(t1 = s0_function_type_new(&s, &err));
-    fail_if_error(s0_function_type_add_param(&s, t1, tl, &err));
-    fail_if_error(s0_function_type_add_result(&s, t1, tr, &err));
+    fail_if_error(t1 = s0_product_type_new(&s, &err));
+    fail_if_error(s0_product_type_add(&s, t1, tl, &err));
     fail_if_error(s0_interface_type_add(&s, t0, "unary *", t1, &err));
     cork_gc_decref(swan_gc(&s), t1);
 
@@ -213,8 +209,8 @@ START_TEST(test_interface_03)
 
     check_type(t0, "α",
         "interface α {\n"
-        "  = (*α,α -> void)\n"
-        "  unary * (*α -> α)\n"
+        "  = (*α,α)\n"
+        "  unary * (*α)\n"
         "}\n"
     );
 
@@ -277,8 +273,8 @@ test_suite()
     TCase  *tc_types = tcase_create("types");
     tcase_add_test(tc_types, test_literal);
     tcase_add_test(tc_types, test_location_01);
-    tcase_add_test(tc_types, test_function_01);
-    tcase_add_test(tc_types, test_function_02);
+    tcase_add_test(tc_types, test_product_01);
+    tcase_add_test(tc_types, test_product_02);
     tcase_add_test(tc_types, test_interface_01);
     tcase_add_test(tc_types, test_interface_02);
     tcase_add_test(tc_types, test_interface_03);

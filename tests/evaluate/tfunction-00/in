@@ -1,5 +1,6 @@
 # Expected type: void -> *LITERAL
 tliteral %0;
 tlocation %1 = %0;
-tfunction %2 = () -> (%1);
-return (%2);
+tproduct %3 = ();
+tfunction %2 = %3 -> %1;
+return %2;

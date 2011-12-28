@@ -3,4 +3,4 @@ tliteral %0;
 tclass %1 = "int" {
   "name": %0
 };
-return (%1);
+return %1;
