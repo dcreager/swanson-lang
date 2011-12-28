@@ -160,12 +160,16 @@ typedef uintptr_t  s0_id;
 typedef uintptr_t  s0_tagged_id;
 
 enum s0_id_tag {
+    /* so that a sensible default ID of 0 means "no ID" */
+    S0_ID_TAG_NONE = 0,
     S0_ID_TAG_TYPE,
     S0_ID_TAG_LOCAL,
     S0_ID_TAG_UPVALUE,
     S0_ID_TAG_PARAM,
     S0_ID_TAG_LABEL
 };
+
+#define S0_ID_NULL  ((enum s0_id_tag) 0)
 
 #define s0_id_tag_name(tag) \
     (((tag) == S0_ID_TAG_TYPE)?    '%': \
@@ -240,7 +244,7 @@ struct s0_instruction {
         } gettuple;
         struct {
             const char  *name;
-            s0_tagged_id_array  upvalues;
+            s0_tagged_id  upvalue;
             s0_tagged_id  input;
             s0_tagged_id  output;
             s0_instruction_array  body;
@@ -339,7 +343,7 @@ s0_parse(struct swan *s, struct cork_slice *src, struct cork_error *err);
 
 struct s0_basic_block {
     const char  *name;
-    s0_value_array  upvalues;
+    struct s0_value  *upvalue;
     struct s0_type  *input;
     struct s0_type  *output;
     s0_instruction_array  body;
@@ -348,13 +352,8 @@ struct s0_basic_block {
 /* Creates new references to input and output */
 struct s0_basic_block *
 s0_basic_block_new(struct swan *s, const char *name,
-                   struct s0_type *input, struct s0_type *output,
-                   struct cork_error *err);
-
-/* Creates new reference to value */
-#define s0_basic_block_add_upvalue(s, self, value, err) \
-    (cork_array_append(swan_alloc((s)), &(self)->upvalues, \
-                       cork_gc_incref(swan_gc((s)), (value)), (err)))
+                   struct s0_value *upvalue, struct s0_type *input,
+                   struct s0_type *output, struct cork_error *err);
 
 /* Steals reference to instr */
 #define s0_basic_block_add_instruction(s, self, instr, err) \

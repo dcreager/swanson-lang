@@ -911,8 +911,17 @@ s0_parse_MACRO(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_string(s, sp, err));
     rip_check(instr = s0i_macro_new(s, dest, sp->scratch.buf, err));
 
-    ei_check(s0_parse_require_token(s, sp, "upvalues", 8, err));
-    ei_check(s0_parse_any_id_list(s, sp, &instr->_.macro.upvalues, err));
+    /* First an optional upvalue */
+    rc = s0_parse_try_token(s, sp, "upvalue", 7, err);
+    if (rc == -1) {
+        goto error;
+    } else if (rc == 0) {
+        ei_check(s0_parse_require_token(s, sp, "(", 1, err));
+        ei_check(s0_parse_any_id(s, sp, &instr->_.macro.upvalue, err));
+        ei_check(s0_parse_require_token(s, sp, ")", 1, err));
+    }
+
+    /* Then required input and output types */
     ei_check(s0_parse_any_id(s, sp, &instr->_.macro.input, err));
     ei_check(s0_parse_require_token(s, sp, "->", 2, err));
     ei_check(s0_parse_any_id(s, sp, &instr->_.macro.output, err));
@@ -1006,7 +1015,8 @@ struct s0_basic_block *
 s0_parse(struct swan *s, struct cork_slice *src, struct cork_error *err)
 {
     struct s0_basic_block  *result;
-    rpp_check(result = s0_basic_block_new(s, "<top-level>", NULL, NULL, err));
+    rpp_check(result = s0_basic_block_new
+              (s, "<top-level>", NULL, NULL, NULL, err));
 
     struct s0_parser  sp = {
         src, {0,0},

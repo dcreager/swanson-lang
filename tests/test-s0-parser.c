@@ -182,10 +182,19 @@ START_TEST(test_parsing)
     check_good_parse("gettuple $0 = $0.1;");
 
     check_good_parse(
-        "macro $0 = \"test\" upvalues ($0) %1 -> %0 {}; "
+        "macro $0 = \"test\" %1 -> %0 {}; "
     );
     check_good_parse(
-        "macro $0 = \"test\" upvalues ($0) %1 -> %0 { "
+        "macro $0 = \"test\" %1 -> %0 { "
+        "  literal $0 = \"hello\"; "
+        "}; "
+    );
+
+    check_good_parse(
+        "macro $0 = \"test\" upvalue ($0) %1 -> %0 {}; "
+    );
+    check_good_parse(
+        "macro $0 = \"test\" upvalue ($0) %1 -> %0 { "
         "  literal $0 = \"hello\"; "
         "}; "
     );
@@ -308,12 +317,12 @@ START_TEST(test_parsing)
     check_bad_parse("macro $0 = \"test\"");
     check_bad_parse("macro $0 = \"test\" {");
     check_bad_parse("macro $0 = \"test\" {}");
-    check_bad_parse("macro $0 = \"test\" upvalues");
-    check_bad_parse("macro $0 = \"test\" upvalues ($0) $1");
-    check_bad_parse("macro $0 = \"test\" upvalues ($0) $1 ->");
-    check_bad_parse("macro $0 = \"test\" upvalues ($0) $1 -> $2");
-    check_bad_parse("macro $0 = \"test\" upvalues ($0) $1 -> $2 {");
-    check_bad_parse("macro $0 = \"test\" upvalues ($0) $1 -> $2 {}");
+    check_bad_parse("macro $0 = \"test\" upvalue");
+    check_bad_parse("macro $0 = \"test\" upvalue ($0) $1");
+    check_bad_parse("macro $0 = \"test\" upvalue ($0) $1 ->");
+    check_bad_parse("macro $0 = \"test\" upvalue ($0) $1 -> $2");
+    check_bad_parse("macro $0 = \"test\" upvalue ($0) $1 -> $2 {");
+    check_bad_parse("macro $0 = \"test\" upvalue ($0) $1 -> $2 {}");
     check_bad_parse("macro $0 = \"test\" results (%0) params (%0) {}; ");
     check_bad_parse("macro $0 = \"test\" params (%0) upvalues ($0) {}; ");
     check_bad_parse("macro $0 = \"test\" results (%0) upvalues ($0) {}; ");

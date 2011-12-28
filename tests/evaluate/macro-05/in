@@ -2,7 +2,7 @@
 tliteral %0;
 ttype %1;
 tproduct %2 = (%1);
-macro $0 = "test" upvalues () %2 -> %2 {
+macro $0 = "test" %2 -> %2 {
   gettuple $0 = !0.0;
   tlocation %0 = $0;
   tuple $1 = (%0);

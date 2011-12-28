@@ -57,7 +57,6 @@ s0_instruction_free(struct cork_gc *gc, void *vself)
 
         case S0_MACRO:
             cork_strfree(gc->alloc, self->_.macro.name);
-            cork_array_done(gc->alloc, &self->_.macro.upvalues);
             cork_array_done(gc->alloc, &self->_.macro.body);
             break;
 
@@ -298,9 +297,9 @@ s0i_macro_new(struct swan *s, s0_id dest, const char *name,
     self->dest = s0_tagged_id(S0_ID_TAG_LOCAL, dest);
     e_check_alloc(self->_.macro.name = cork_strdup(swan_alloc(s), name),
                   "macro name");
-    cork_array_init(swan_alloc(s), &self->_.macro.upvalues);
-    self->_.macro.input = 0;
-    self->_.macro.output = 0;
+    self->_.macro.upvalue = S0_ID_NULL;
+    self->_.macro.input = S0_ID_NULL;
+    self->_.macro.output = S0_ID_NULL;
     cork_array_init(swan_alloc(s), &self->_.macro.body);
     return self;
 

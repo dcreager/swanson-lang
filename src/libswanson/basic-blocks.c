@@ -20,7 +20,6 @@ s0_basic_block_free(struct cork_gc *gc, void *vself)
 {
     struct s0_basic_block  *self = vself;
     cork_strfree(gc->alloc, self->name);
-    cork_array_done(gc->alloc, &self->upvalues);
 }
 
 static void
@@ -29,9 +28,7 @@ s0_basic_block_recurse(struct cork_gc *gc, void *vself,
 {
     size_t  i;
     struct s0_basic_block  *self = vself;
-    for (i = 0; i < cork_array_size(&self->upvalues); i++) {
-        recurse(gc, cork_array_at(&self->upvalues, i), ud);
-    }
+    recurse(gc, self->upvalue, ud);
     recurse(gc, self->input, ud);
     recurse(gc, self->output, ud);
     for (i = 0; i < cork_array_size(&self->body); i++) {
@@ -46,8 +43,8 @@ static struct cork_gc_obj_iface  s0_basic_block_gc = {
 
 struct s0_basic_block *
 s0_basic_block_new(struct swan *s, const char *name,
-                   struct s0_type *input, struct s0_type *output,
-                   struct cork_error *err)
+                   struct s0_value *upvalue, struct s0_type *input,
+                   struct s0_type *output, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
@@ -55,7 +52,7 @@ s0_basic_block_new(struct swan *s, const char *name,
     rp_check_gc_new(s0_basic_block, self, "basic block");
     e_check_alloc(self->name = cork_strdup(swan_alloc(s), name),
                   "basic block name");
-    cork_array_init(swan_alloc(s), &self->upvalues);
+    self->upvalue = cork_gc_incref(swan_gc(s), upvalue);
     self->input = cork_gc_incref(swan_gc(s), input);
     self->output = cork_gc_incref(swan_gc(s), output);
     cork_array_init(swan_alloc(s), &self->body);

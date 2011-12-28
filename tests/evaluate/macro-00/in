@@ -1,7 +1,7 @@
 # Expected result: LITERAL "hello world"
 tliteral %0;
 tproduct %1 = ();
-macro $0 = "test" upvalues () %1 -> %0 {
+macro $0 = "test" %1 -> %0 {
   literal $0 = "hello world";
   return $0;
 };

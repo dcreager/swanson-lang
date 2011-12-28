@@ -447,25 +447,22 @@ s0_evaluate_MACRO(struct swan *s, struct s0_scope *scope,
     DEBUG("--- %s: Evaluating MACRO", scope->name);
     size_t  i;
     struct s0_basic_block  *block;
+    struct s0_value  *upvalue = NULL;
     struct s0_type  *input;
     struct s0_type  *output;
     struct s0_value  *value;
 
+    if (instr->_.macro.upvalue != S0_ID_NULL) {
+        rip_check(upvalue = s0_scope_get
+                  (s, scope, instr->_.macro.upvalue, err));
+    }
     rip_check(input = s0_evaluate_expect_type
               (s, scope, instr->_.macro.input, err));
     rip_check(output = s0_evaluate_expect_type
               (s, scope, instr->_.macro.output, err));
 
     rip_check(block = s0_basic_block_new
-              (s, instr->_.macro.name, input, output, err));
-
-    /* Construct the upvalue list */
-    for (i = 0; i < cork_array_size(&instr->_.macro.upvalues); i++) {
-        s0_tagged_id  upvalue_id = cork_array_at(&instr->_.macro.upvalues, i);
-        struct s0_value  *upvalue;
-        ep_check(upvalue = s0_scope_get(s, scope, upvalue_id, err));
-        ei_check(s0_basic_block_add_upvalue(s, block, upvalue, err));
-    }
+              (s, instr->_.macro.name, upvalue, input, output, err));
 
     /* Construct the body */
     for (i = 0; i < cork_array_size(&instr->_.macro.body); i++) {
@@ -566,11 +563,10 @@ s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *self,
     rpp_check(scope = s0_scope_new(s, self->name, err));
 
     /* Add the upvalue and parameter to the scope */
-    for (i = 0; i < cork_array_size(&self->upvalues); i++) {
-        struct s0_value  *upvalue = cork_array_at(&self->upvalues, i);
+    if (self->upvalue != NULL) {
         ei_check(s0_scope_add
-                 (s, scope, s0_tagged_id(S0_ID_TAG_UPVALUE, i),
-                  cork_gc_incref(swan_gc(s), upvalue), err));
+                 (s, scope, s0_tagged_id(S0_ID_TAG_UPVALUE, 0),
+                  cork_gc_incref(swan_gc(s), self->upvalue), err));
     }
 
     if (input != NULL) {
