@@ -81,8 +81,9 @@ START_TEST(test_parsing)
     check_good_parse("# comment\ntrecursive %0;# comment\n");
 
     check_good_parse("trecursive %0;");
-    check_good_parse("tliteral %0;");
     check_good_parse("ttype %0;");
+    check_good_parse("tliteral %0;");
+    check_good_parse("tany %0;");
     check_good_parse(
         "tliteral %0; "
         "tlocation %1 = %0; "
@@ -221,10 +222,20 @@ START_TEST(test_parsing)
     check_bad_parse("trecursive $0;");
     check_bad_parse("trecursive foo;");
 
+    check_bad_parse("ttype");
+    check_bad_parse("ttype %0");
+    check_bad_parse("ttype $0;");
+    check_bad_parse("ttype foo;");
+
     check_bad_parse("tliteral");
     check_bad_parse("tliteral %0");
     check_bad_parse("tliteral $0;");
     check_bad_parse("tliteral foo;");
+
+    check_bad_parse("tany");
+    check_bad_parse("tany %0");
+    check_bad_parse("tany $0;");
+    check_bad_parse("tany foo;");
 
     check_bad_parse("tlocation");
     check_bad_parse("tlocation %1");
@@ -274,11 +285,6 @@ START_TEST(test_parsing)
     check_bad_parse("tblock %1 = %1");
     check_bad_parse("tblock $1 = %0;");
     check_bad_parse("tblock foo;");
-
-    check_bad_parse("ttype");
-    check_bad_parse("ttype %0");
-    check_bad_parse("ttype $0;");
-    check_bad_parse("ttype foo;");
 
     check_bad_parse("literal");
     check_bad_parse("literal $0");

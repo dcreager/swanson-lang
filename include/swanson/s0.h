@@ -40,6 +40,7 @@ enum s0_type_kind {
     S0_TYPE_RECURSIVE,
     S0_TYPE_TYPE,
     S0_TYPE_LITERAL,
+    S0_TYPE_ANY,
     S0_TYPE_FUNCTION,
     S0_TYPE_LOCATION,
     S0_TYPE_INTERFACE,
@@ -71,10 +72,13 @@ struct s0_type {
 };
 
 struct s0_type *
+s0_type_type_new(struct swan *s, struct cork_error *err);
+
+struct s0_type *
 s0_literal_type_new(struct swan *s, struct cork_error *err);
 
 struct s0_type *
-s0_type_type_new(struct swan *s, struct cork_error *err);
+s0_any_type_new(struct swan *s, struct cork_error *err);
 
 struct s0_type *
 s0_function_type_new(struct swan *s, struct cork_error *err);
@@ -179,13 +183,14 @@ typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
 
 #define S0_OPCODES(_) \
     _(TRECURSIVE) \
+    _(TTYPE) \
     _(TLITERAL) \
+    _(TANY) \
     _(TFUNCTION) \
     _(TLOCATION) \
     _(TINTERFACE) \
     _(TCLASS) \
     _(TBLOCK) \
-    _(TTYPE) \
     _(LITERAL) \
     _(MACRO) \
     _(CALL) \
@@ -251,7 +256,13 @@ struct s0_instruction *
 s0i_trecursive_new(struct swan *s, s0_id dest, struct cork_error *err);
 
 struct s0_instruction *
+s0i_ttype_new(struct swan *s, s0_id dest, struct cork_error *err);
+
+struct s0_instruction *
 s0i_tliteral_new(struct swan *s, s0_id dest, struct cork_error *err);
+
+struct s0_instruction *
+s0i_tany_new(struct swan *s, s0_id dest, struct cork_error *err);
 
 struct s0_instruction *
 s0i_tfunction_new(struct swan *s, s0_id dest, struct cork_error *err);
@@ -282,9 +293,6 @@ s0i_tclass_add_entry(struct swan *s, struct s0_instruction *self,
 struct s0_instruction *
 s0i_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
                struct cork_error *err);
-
-struct s0_instruction *
-s0i_ttype_new(struct swan *s, s0_id dest, struct cork_error *err);
 
 struct s0_instruction *
 s0i_literal_new(struct swan *s, s0_id dest, const char *contents,

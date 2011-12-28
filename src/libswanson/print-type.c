@@ -117,9 +117,17 @@ print_one(struct swan *s, struct s0_printer *state,
           bool parenthize, struct cork_error *err)
 {
     switch (type->kind) {
+        case S0_TYPE_TYPE:
+            return cork_buffer_append_string
+                (swan_alloc(s), dest, "TYPE", err);
+
         case S0_TYPE_LITERAL:
             return cork_buffer_append_string
                 (swan_alloc(s), dest, "LITERAL", err);
+
+        case S0_TYPE_ANY:
+            return cork_buffer_append_string
+                (swan_alloc(s), dest, "*", err);
 
         case S0_TYPE_FUNCTION:
         {
@@ -174,10 +182,6 @@ print_one(struct swan *s, struct s0_printer *state,
             return print_one
                 (s, state, type->_.recursive.resolved, dest, parenthize, err);
         }
-
-        case S0_TYPE_TYPE:
-            return cork_buffer_append_string
-                (swan_alloc(s), dest, "TYPE", err);
 
         default:
             return -1;

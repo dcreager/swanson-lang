@@ -696,6 +696,19 @@ s0_parse_TRECURSIVE(struct swan *s, struct s0_parser *sp,
 }
 
 static int
+s0_parse_TTYPE(struct swan *s, struct s0_parser *sp,
+               struct cork_error *err)
+{
+    s0_id  dest;
+    struct s0_instruction  *instr;
+    rii_check(s0_parse_id(s, sp, S0_ID_TAG_TYPE, &dest, err));
+    rii_check(s0_parse_require_token(s, sp, ";", 1, err));
+    rip_check(instr = s0i_ttype_new(s, dest, err));
+    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    return 0;
+}
+
+static int
 s0_parse_TLITERAL(struct swan *s, struct s0_parser *sp,
                   struct cork_error *err)
 {
@@ -704,6 +717,19 @@ s0_parse_TLITERAL(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_id(s, sp, S0_ID_TAG_TYPE, &dest, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_tliteral_new(s, dest, err));
+    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    return 0;
+}
+
+static int
+s0_parse_TANY(struct swan *s, struct s0_parser *sp,
+              struct cork_error *err)
+{
+    s0_id  dest;
+    struct s0_instruction  *instr;
+    rii_check(s0_parse_id(s, sp, S0_ID_TAG_TYPE, &dest, err));
+    rii_check(s0_parse_require_token(s, sp, ";", 1, err));
+    rip_check(instr = s0i_tany_new(s, dest, err));
     rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
     return 0;
 }
@@ -796,19 +822,6 @@ s0_parse_TBLOCK(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_any_id(s, sp, &result, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_tblock_new(s, dest, result, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
-    return 0;
-}
-
-static int
-s0_parse_TTYPE(struct swan *s, struct s0_parser *sp,
-               struct cork_error *err)
-{
-    s0_id  dest;
-    struct s0_instruction  *instr;
-    rii_check(s0_parse_id(s, sp, S0_ID_TAG_TYPE, &dest, err));
-    rii_check(s0_parse_require_token(s, sp, ";", 1, err));
-    rip_check(instr = s0i_ttype_new(s, dest, err));
     rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
     return 0;
 }

@@ -179,6 +179,24 @@ error:
 }
 
 static int
+s0_evaluate_TTYPE(struct swan *s, struct s0_scope *scope,
+                  struct s0_instruction *instr,
+                  s0_value_array *dest, struct cork_error *err)
+{
+    DEBUG("--- %s: Evaluating TTYPE", scope->name);
+    struct s0_type  *type;
+    struct s0_value  *value;
+    rip_check(type = s0_type_type_new(s, err));
+    ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
+    cork_gc_decref(swan_gc(s), type);
+    return 0;
+
+error:
+    cork_gc_decref(swan_gc(s), type);
+    return -1;
+}
+
+static int
 s0_evaluate_TLITERAL(struct swan *s, struct s0_scope *scope,
                      struct s0_instruction *instr,
                      s0_value_array *dest, struct cork_error *err)
@@ -187,6 +205,24 @@ s0_evaluate_TLITERAL(struct swan *s, struct s0_scope *scope,
     struct s0_type  *type;
     struct s0_value  *value;
     rip_check(type = s0_literal_type_new(s, err));
+    ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
+    cork_gc_decref(swan_gc(s), type);
+    return 0;
+
+error:
+    cork_gc_decref(swan_gc(s), type);
+    return -1;
+}
+
+static int
+s0_evaluate_TANY(struct swan *s, struct s0_scope *scope,
+                 struct s0_instruction *instr,
+                 s0_value_array *dest, struct cork_error *err)
+{
+    DEBUG("--- %s: Evaluating TANY", scope->name);
+    struct s0_type  *type;
+    struct s0_value  *value;
+    rip_check(type = s0_any_type_new(s, err));
     ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
     cork_gc_decref(swan_gc(s), type);
     return 0;
@@ -327,24 +363,6 @@ s0_evaluate_TBLOCK(struct swan *s, struct s0_scope *scope,
     rip_check(result = s0_evaluate_expect_type
               (s, scope, instr->_.tblock.result, err));
     rip_check(type = s0_block_type_new(s, result, err));
-    ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
-    cork_gc_decref(swan_gc(s), type);
-    return 0;
-
-error:
-    cork_gc_decref(swan_gc(s), type);
-    return -1;
-}
-
-static int
-s0_evaluate_TTYPE(struct swan *s, struct s0_scope *scope,
-                  struct s0_instruction *instr,
-                  s0_value_array *dest, struct cork_error *err)
-{
-    DEBUG("--- %s: Evaluating TTYPE", scope->name);
-    struct s0_type  *type;
-    struct s0_value  *value;
-    rip_check(type = s0_type_type_new(s, err));
     ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
     cork_gc_decref(swan_gc(s), type);
     return 0;

@@ -240,6 +240,17 @@ s0_literal_type_new(struct swan *s, struct cork_error *err)
 }
 
 struct s0_type *
+s0_any_type_new(struct swan *s, struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_type  *self;
+    rp_check_gc_new(s0_type, self, "any type");
+    self->kind = S0_TYPE_ANY;
+    return self;
+}
+
+struct s0_type *
 s0_function_type_new(struct swan *s, struct cork_error *err)
 {
     struct cork_alloc  *alloc = swan_alloc(s);
