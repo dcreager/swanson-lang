@@ -287,6 +287,34 @@ error:
 }
 
 static int
+s0_evaluate_TCLASS(struct swan *s, struct s0_scope *scope,
+                   struct s0_instruction *instr,
+                   s0_value_array *dest, struct cork_error *err)
+{
+    DEBUG("--- %s: Evaluating TCLASS", scope->name);
+    size_t  i;
+    struct s0_type  *type = NULL;
+    struct s0_value  *value;
+
+    ep_check(type = s0_class_type_new(s, instr->_.tclass.name, err));
+    for (i = 0; i < cork_array_size(&instr->_.tclass.entries); i++) {
+        struct s0_tinterface_entry  entry =
+            cork_array_at(&instr->_.tclass.entries, i);
+        struct s0_value  *entry_value;
+        ep_check(entry_value = s0_scope_get(s, scope, entry.entry, err));
+        ei_check(s0_class_type_add(s, type, entry.key, entry_value, err));
+    }
+
+    ep_check(value = s0_evaluate_save_type(s, scope, instr->dest, type, err));
+    cork_gc_decref(swan_gc(s), type);
+    return 0;
+
+error:
+    cork_gc_decref(swan_gc(s), type);
+    return -1;
+}
+
+static int
 s0_evaluate_TBLOCK(struct swan *s, struct s0_scope *scope,
                    struct s0_instruction *instr,
                    s0_value_array *dest, struct cork_error *err)

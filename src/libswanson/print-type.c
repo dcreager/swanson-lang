@@ -155,6 +155,10 @@ print_one(struct swan *s, struct s0_printer *state,
             return print_interface_name(s, index, dest, err);
         }
 
+        case S0_TYPE_CLASS:
+            return cork_buffer_append_string
+                (swan_alloc(s), dest, type->_.cls.name, err);
+
         case S0_TYPE_BLOCK:
         {
             rii_check(cork_buffer_append_string

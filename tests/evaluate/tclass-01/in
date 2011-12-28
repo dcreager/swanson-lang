@@ -1,0 +1,7 @@
+# Expected type: int
+tliteral %0;
+tfunction %1 = (%0) -> ();
+tclass %2 = "int" {
+  "print_literal": %1
+};
+return (%2);

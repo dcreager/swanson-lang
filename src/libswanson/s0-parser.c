@@ -627,6 +627,51 @@ s0_parse_interface_entries(struct swan *s, struct s0_parser *sp,
     return -1;
 }
 
+
+/* Parse a list of class entries. */
+static int
+s0_parse_class_entries(struct swan *s, struct s0_parser *sp,
+                       struct s0_instruction *dest, struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    rii_check(s0_parse_require_token(s, sp, "{", 1, err));
+    bool  first = true;
+
+    do {
+        int  rc;
+
+        /* At this point, we can try to read a close-brace to end the
+         * list. */
+        rc = s0_parse_try_token(s, sp, "}", 1, err);
+        if (rc != -2) {
+            return rc;
+        }
+
+        /* If this isn't the first element of the list, there needs to
+         * be a comma next. */
+        if (first) {
+            first = false;
+        } else {
+            rii_check(s0_parse_require_token(s, sp, ",", 1, err));
+        }
+
+        /* And then we have to parse an individual entry. */
+        s0_tagged_id  id;
+        const char  *key;
+        rii_check(s0_parse_string(s, sp, err));
+        ri_check_alloc(key = cork_strdup(swan_alloc(s), sp->scratch.buf),
+                       "TCLASS entry key");
+
+        rii_check(s0_parse_require_token(s, sp, ":", 1, err));
+        rii_check(s0_parse_any_id(s, sp, &id, err));
+        rii_check(s0i_tclass_add_entry(s, dest, key, id, err));
+    } while (true);
+
+    /* Should be unreachable */
+    cork_unknown_error_set(swan_alloc(s), err);
+    return -1;
+}
+
 /* forward declaration */
 static int
 s0_parse_instruction(struct swan *s, struct s0_parser *sp,
@@ -710,6 +755,26 @@ s0_parse_TINTERFACE(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_require_token(s, sp, "=", 1, err));
     rip_check(instr = s0i_tinterface_new(s, dest, err));
     ei_check(s0_parse_interface_entries(s, sp, instr, err));
+    ei_check(s0_parse_require_token(s, sp, ";", 1, err));
+    ei_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    return 0;
+
+error:
+    cork_gc_decref(swan_gc(s), instr);
+    return -1;
+}
+
+static int
+s0_parse_TCLASS(struct swan *s, struct s0_parser *sp,
+                struct cork_error *err)
+{
+    s0_id  dest;
+    struct s0_instruction  *instr;
+    rii_check(s0_parse_id(s, sp, S0_ID_TAG_TYPE, &dest, err));
+    rii_check(s0_parse_require_token(s, sp, "=", 1, err));
+    rii_check(s0_parse_string(s, sp, err));
+    rip_check(instr = s0i_tclass_new(s, dest, sp->scratch.buf, err));
+    ei_check(s0_parse_class_entries(s, sp, instr, err));
     ei_check(s0_parse_require_token(s, sp, ";", 1, err));
     ei_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
     return 0;

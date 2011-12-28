@@ -43,6 +43,7 @@ enum s0_type_kind {
     S0_TYPE_FUNCTION,
     S0_TYPE_LOCATION,
     S0_TYPE_INTERFACE,
+    S0_TYPE_CLASS,
     S0_TYPE_BLOCK
 };
 
@@ -55,6 +56,10 @@ struct s0_type {
         } function;
         struct { struct s0_type  *referent; } location;
         struct { struct cork_hash_table  entries; } interface;
+        struct {
+            const char  *name;
+            struct cork_hash_table  entries;
+        } cls;
         struct { struct s0_type  *result; } block;
 
         /* This is a placeholder for a recursive reference within the
@@ -97,6 +102,15 @@ int
 s0_interface_type_add(struct swan *s, struct s0_type *self,
                       const char *name, struct s0_type *type,
                       struct cork_error *err);
+
+struct s0_type *
+s0_class_type_new(struct swan *s, const char *name, struct cork_error *err);
+
+/* Creates new reference to value */
+int
+s0_class_type_add(struct swan *s, struct s0_type *self,
+                  const char *name, struct s0_value *value,
+                  struct cork_error *err);
 
 /* Creates new reference to referent */
 struct s0_type *
@@ -169,6 +183,7 @@ typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
     _(TFUNCTION) \
     _(TLOCATION) \
     _(TINTERFACE) \
+    _(TCLASS) \
     _(TBLOCK) \
     _(TTYPE) \
     _(LITERAL) \
@@ -209,6 +224,10 @@ struct s0_instruction {
         } tfunction;
         struct { s0_tagged_id  referent; }  tlocation;
         struct { s0_tinterface_entries  entries; }  tinterface;
+        struct {
+            const char  *name;
+            s0_tinterface_entries  entries;
+        } tclass;
         struct { s0_tagged_id  result; }  tblock;
         struct { const char  *contents; }  literal;
         struct {
@@ -249,6 +268,16 @@ int
 s0i_tinterface_add_entry(struct swan *s, struct s0_instruction *self,
                          const char *key, s0_tagged_id entry,
                          struct cork_error *err);
+
+struct s0_instruction *
+s0i_tclass_new(struct swan *s, s0_id dest, const char *name,
+               struct cork_error *err);
+
+/* key must have been allocated using cork_strdup */
+int
+s0i_tclass_add_entry(struct swan *s, struct s0_instruction *self,
+                     const char *key, s0_tagged_id entry,
+                     struct cork_error *err);
 
 struct s0_instruction *
 s0i_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,

@@ -119,6 +119,26 @@ START_TEST(test_parsing)
     );
 
     check_good_parse(
+        "tclass %0 = \"class\" {}; "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tclass %1 = \"class\" { \"hi\": %0 }; "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tclass %1 = \"class\" { \"hi\": %0, \"there\": %0 }; "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tclass %1 = \"class\" { \"h\\\"i\": %0 }; "
+    );
+    check_good_parse(
+        "tliteral %0; "
+        "tclass %1 = \"class\" { \"h\\\\i\": %0 }; "
+    );
+
+    check_good_parse(
         "tliteral %0; "
         "tblock %1 = %0; "
     );
@@ -232,6 +252,21 @@ START_TEST(test_parsing)
     check_bad_parse("tinterface %1 = %1;");
     check_bad_parse("tinterface $1 = {};");
     check_bad_parse("tinterface foo;");
+
+    check_bad_parse("tclass");
+    check_bad_parse("tclass %1");
+    check_bad_parse("tclass %1 =");
+    check_bad_parse("tclass %1 = \"class");
+    check_bad_parse("tclass %1 = \"class\"");
+    check_bad_parse("tclass %1 = \"class\" {");
+    check_bad_parse("tclass %1 = \"class\" { \"hi");
+    check_bad_parse("tclass %1 = \"class\" { \"hi\"");
+    check_bad_parse("tclass %1 = \"class\" { \"hi\":");
+    check_bad_parse("tclass %1 = \"class\" { \"hi\": %0");
+    check_bad_parse("tclass %1 = \"class\" { \"hi\": %0 }");
+    check_bad_parse("tclass %1 = %1;");
+    check_bad_parse("tclass $1 = {};");
+    check_bad_parse("tclass foo;");
 
     check_bad_parse("tblock");
     check_bad_parse("tblock %1");
