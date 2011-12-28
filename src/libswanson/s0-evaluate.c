@@ -395,6 +395,51 @@ s0_evaluate_LITERAL(struct swan *s, struct s0_scope *scope,
 }
 
 static int
+s0_evaluate_TUPLE(struct swan *s, struct s0_scope *scope,
+                  struct s0_instruction *instr,
+                  struct s0_value **dest, struct cork_error *err)
+{
+    DEBUG("--- %s: Evaluating TUPLE", scope->name);
+    size_t  i;
+    struct s0_value  *value;
+
+    rip_check(value = s0_tuple_value_new(s, err));
+
+    /* Construct the element list */
+    for (i = 0; i < cork_array_size(&instr->_.tuple.elements); i++) {
+        s0_tagged_id  element_id =
+            cork_array_at(&instr->_.tuple.elements, i);
+        struct s0_value  *element;
+        ep_check(element = s0_scope_get(s, scope, element_id, err));
+        ei_check(s0_tuple_value_add(s, value, element, err));
+    }
+
+    rii_check(s0_scope_add(s, scope, instr->dest, value, err));
+    return 0;
+
+error:
+    cork_gc_decref(swan_gc(s), value);
+    return -1;
+}
+
+static int
+s0_evaluate_GETTUPLE(struct swan *s, struct s0_scope *scope,
+                     struct s0_instruction *instr,
+                     struct s0_value **dest, struct cork_error *err)
+{
+    DEBUG("--- %s: Evaluating GETTUPLE", scope->name);
+    struct s0_value  *tuple;
+    struct s0_value  *value;
+
+    rip_check(tuple = s0_scope_get(s, scope, instr->_.gettuple.src, err));
+    rip_check(value = s0_tuple_value_get
+              (s, tuple, instr->_.gettuple.index, err));
+    rii_check(s0_scope_add
+              (s, scope, instr->dest, cork_gc_incref(swan_gc(s), value), err));
+    return 0;
+}
+
+static int
 s0_evaluate_MACRO(struct swan *s, struct s0_scope *scope,
                   struct s0_instruction *instr,
                   struct s0_value **dest, struct cork_error *err)

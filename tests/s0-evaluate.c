@@ -82,27 +82,20 @@ error:
 }
 
 static int
-print_value(struct swan *s, struct s0_basic_block *block,
+print_value(struct swan *s, struct cork_buffer *prefix,
             struct s0_value *value, struct cork_error *err)
 {
-    struct s0_instruction  *last_instruction =
-        cork_array_at(&block->body, cork_array_size(&block->body) - 1);
-    s0_tagged_id  last_id = last_instruction->_.ret.result;
-
     switch (value->kind) {
         case S0_VALUE_TYPE:
         {
-            printf("%c%"PRIuPTR" = ",
-                   s0_id_tag_name(s0_tagged_id_tag(last_id)),
-                   s0_tagged_id_id(last_id));
+            printf("%s = ", (char *) prefix->buf);
             return print_type(s, value->_.type, err);
         }
 
         case S0_VALUE_LITERAL:
         {
-            printf("%c%"PRIuPTR" = LITERAL:\n%s\n",
-                   s0_id_tag_name(s0_tagged_id_tag(last_id)),
-                   s0_tagged_id_id(last_id), value->_.literal);
+            printf("%s = LITERAL:\n%s\n",
+                   (char *) prefix->buf, value->_.literal);
             return 0;
         }
 
@@ -110,19 +103,46 @@ print_value(struct swan *s, struct s0_basic_block *block,
         {
             struct s0_type  *type;
             rip_check(type = s0_value_get_type(s, value, err));
-            printf("%c%"PRIuPTR" = MACRO\n"
-                   "%c%"PRIuPTR" :: ",
-                   s0_id_tag_name(s0_tagged_id_tag(last_id)),
-                   s0_tagged_id_id(last_id),
-                   s0_id_tag_name(s0_tagged_id_tag(last_id)),
-                   s0_tagged_id_id(last_id));
+            printf("%s = MACRO\n%s :: ",
+                   (char *) prefix->buf, (char *) prefix->buf);
             return print_type(s, type, err);
+        }
+
+        case S0_VALUE_TUPLE:
+        {
+            size_t  i;
+            size_t  count = cork_array_size(&value->_.tuple);
+            printf("%s = TUPLE(%zu)\n", (char *) prefix->buf, count);
+            for (i = 0; i < count; i++) {
+                struct s0_value  *element = cork_array_at(&value->_.tuple, i);
+                rii_check(cork_buffer_printf
+                          (swan_alloc(s), prefix, err, "[%zu]", i));
+                printf("\n");
+                rii_check(print_value(s, prefix, element, err));
+            }
+            return 0;
         }
 
         default:
             cork_unknown_error_set(swan_alloc(s), err);
             return -1;
     }
+}
+
+static int
+print_result(struct swan *s, struct s0_basic_block *block,
+             struct s0_value *value, struct cork_error *err)
+{
+    struct s0_instruction  *last_instruction =
+        cork_array_at(&block->body, cork_array_size(&block->body) - 1);
+    s0_tagged_id  last_id = last_instruction->_.ret.result;
+
+    struct cork_buffer  prefix = CORK_BUFFER_INIT(swan_alloc(s));
+    rii_check(cork_buffer_printf
+              (swan_alloc(s), &prefix, err, "%c%"PRIuPTR,
+               s0_id_tag_name(s0_tagged_id_tag(last_id)),
+               s0_tagged_id_id(last_id)));
+    return print_value(s, &prefix, value, err);
 }
 
 int
@@ -158,7 +178,7 @@ main(int argc, char **argv)
 
     /* Finally, evaluate it and print it */
     ep_check(result = s0_basic_block_evaluate(&s, block, NULL, &err));
-    ei_check(print_value(&s, block, result, &err));
+    ei_check(print_result(&s, block, result, &err));
 
     swan_done(&s);
     cork_error_done(alloc, &err);

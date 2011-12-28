@@ -1,0 +1,15 @@
+# Expected result: **LITERAL
+tliteral %0;
+ttype %1;
+tproduct %2 = (%1);
+macro $0 = "test" upvalues () %2 -> %2 {
+  gettuple $0 = !0.0;
+  tlocation %0 = $0;
+  tuple $1 = (%0);
+  return $1;
+};
+tuple $1 = (%0);
+call $2 = $0($1);
+call $3 = $0($2);
+gettuple $4 = $3.0;
+return $4;

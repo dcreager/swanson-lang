@@ -174,6 +174,13 @@ START_TEST(test_parsing)
 
     check_good_parse("literal $0 = \"hello world\";");
 
+    check_good_parse("tuple $0 = ();");
+    check_good_parse("tuple $0 = ($1);");
+    check_good_parse("tuple $0 = ($1,$2);");
+
+    check_good_parse("gettuple $0 = $0.0;");
+    check_good_parse("gettuple $0 = $0.1;");
+
     check_good_parse(
         "macro $0 = \"test\" upvalues ($0) %1 -> %0 {}; "
     );
@@ -274,6 +281,26 @@ START_TEST(test_parsing)
     check_bad_parse("literal $0 = \"hello world\"");
     check_bad_parse("literal %0;");
     check_bad_parse("literal foo;");
+
+    check_bad_parse("tuple");
+    check_bad_parse("tuple $0");
+    check_bad_parse("tuple $0 =");
+    check_bad_parse("tuple $0 = (");
+    check_bad_parse("tuple $0 = ($1");
+    check_bad_parse("tuple $0 = ($1,");
+    check_bad_parse("tuple $0 = ($1,$2");
+    check_bad_parse("tuple $0 = ($1,$2)");
+    check_bad_parse("tuple %0 = ($1,$2);");
+    check_bad_parse("tuple foo;");
+
+    check_bad_parse("gettuple");
+    check_bad_parse("gettuple $0");
+    check_bad_parse("gettuple $0 =");
+    check_bad_parse("gettuple $0 = $0");
+    check_bad_parse("gettuple $0 = $0.");
+    check_bad_parse("gettuple $0 = $0.1");
+    check_bad_parse("gettuple %0 = $0.1;");
+    check_bad_parse("gettuple foo;");
 
     check_bad_parse("macro");
     check_bad_parse("macro $0");

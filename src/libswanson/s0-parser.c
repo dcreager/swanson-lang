@@ -114,7 +114,7 @@ struct s0_bad_token_extra {
 
 static int
 s0_bad_token(struct cork_alloc *alloc, struct cork_error *err,
-              struct cork_buffer *dest)
+             struct cork_buffer *dest)
 {
     struct s0_bad_token_extra  *extra = cork_error_extra(err);
     return cork_buffer_printf
@@ -124,7 +124,7 @@ s0_bad_token(struct cork_alloc *alloc, struct cork_error *err,
 
 static int
 s0_bad_token_set(struct cork_alloc *alloc, struct cork_error *err,
-                  struct s0_position pos, const char *token)
+                 struct s0_position pos, const char *token)
 {
     struct s0_bad_token_extra  extra = { pos, token };
     return cork_error_set_extra(alloc, err,
@@ -408,6 +408,45 @@ s0_parse_operand_name(struct swan *s, struct s0_parser *sp,
 
 
 /* Parse an integer */
+static int
+s0_parse_int(struct swan *s, struct s0_parser *sp,
+             size_t *dest, struct cork_error *err)
+{
+    DEBUG("[%4zu:%2zu] Trying to parse integer",
+          sp->pos.line, sp->pos.column);
+    size_t  i = 0;
+    const char  *curr = sp->slice->buf;
+    struct s0_position  start = sp->pos;
+
+    /* We DON'T skip over whitespace, since we're going to parse an
+     * integer immediately after an identifier tag. */
+
+    while (i < sp->slice->size && isdigit(*curr)) {
+        s0_advance_char(i, curr, &sp->pos);
+    }
+
+    /* i is now points just past the end of the identifier */
+
+    /* Put the integer text into the scratch buffer so that it's NUL
+     * terminated */
+    rii_check(cork_buffer_set
+              (swan_alloc(s), &sp->scratch, sp->slice->buf, i, err));
+
+    /* Parse the integer value, onlying allowing decimal */
+    char  *endptr;
+    long  l_value = strtol(sp->scratch.buf, &endptr, 10);
+    if (*endptr != '\0' || errno == ERANGE ||
+        l_value < 0 || l_value > SIZE_MAX) {
+        s0_bad_token_set(swan_alloc(s), err, start, "integer");
+        return -1;
+    }
+
+    *dest = l_value;
+    return cork_slice_slice_offset(swan_alloc(s), sp->slice, i, err);
+}
+
+
+/* Parse an integer for an identifier */
 static int
 s0_parse_id_int(struct swan *s, struct s0_parser *sp,
                 char tag, uintptr_t *dest, struct cork_error *err)
@@ -816,6 +855,44 @@ s0_parse_LITERAL(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_string(s, sp, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_literal_new(s, dest, sp->scratch.buf, err));
+    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    return 0;
+}
+
+static int
+s0_parse_TUPLE(struct swan *s, struct s0_parser *sp,
+               struct cork_error *err)
+{
+    s0_id  dest;
+    struct s0_instruction  *instr;
+    rii_check(s0_parse_id(s, sp, S0_ID_TAG_LOCAL, &dest, err));
+    rii_check(s0_parse_require_token(s, sp, "=", 1, err));
+    rip_check(instr = s0i_tuple_new(s, dest, err));
+    ei_check(s0_parse_any_id_list(s, sp, &instr->_.tuple.elements, err));
+    ei_check(s0_parse_require_token(s, sp, ";", 1, err));
+    ei_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    return 0;
+
+error:
+    cork_gc_decref(swan_gc(s), instr);
+    return -1;
+}
+
+static int
+s0_parse_GETTUPLE(struct swan *s, struct s0_parser *sp,
+                  struct cork_error *err)
+{
+    s0_id  dest;
+    s0_tagged_id  src;
+    size_t  index;
+    struct s0_instruction  *instr;
+    rii_check(s0_parse_id(s, sp, S0_ID_TAG_LOCAL, &dest, err));
+    rii_check(s0_parse_require_token(s, sp, "=", 1, err));
+    rii_check(s0_parse_any_id(s, sp, &src, err));
+    rii_check(s0_parse_require_token(s, sp, ".", 1, err));
+    rii_check(s0_parse_int(s, sp, &index, err));
+    rii_check(s0_parse_require_token(s, sp, ";", 1, err));
+    rip_check(instr = s0i_gettuple_new(s, dest, src, index, err));
     rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
     return 0;
 }

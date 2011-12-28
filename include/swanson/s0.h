@@ -195,18 +195,12 @@ typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
     _(TCLASS) \
     _(TBLOCK) \
     _(LITERAL) \
+    _(TUPLE) \
+    _(GETTUPLE) \
     _(MACRO) \
     _(CALL) \
     _(RETURN) \
 
-#if 0
-    _(GET) \
-    _(LABEL) \
-    _(JTRUE) \
-    _(JFALSE) \
-    _(JUMP) \
-
-#endif
 
 enum s0_opcode {
 #define OPCODE_ENUM(name)  S0_##name,
@@ -239,6 +233,11 @@ struct s0_instruction {
         } tclass;
         struct { s0_tagged_id  result; }  tblock;
         struct { const char  *contents; }  literal;
+        struct { s0_tagged_id_array  elements; }  tuple;
+        struct {
+            s0_tagged_id  src;
+            size_t  index;
+        } gettuple;
         struct {
             const char  *name;
             s0_tagged_id_array  upvalues;
@@ -306,6 +305,13 @@ s0i_literal_new(struct swan *s, s0_id dest, const char *contents,
                 struct cork_error *err);
 
 struct s0_instruction *
+s0i_tuple_new(struct swan *s, s0_id dest, struct cork_error *err);
+
+struct s0_instruction *
+s0i_gettuple_new(struct swan *s, s0_id dest, s0_tagged_id src, size_t index,
+                 struct cork_error *err);
+
+struct s0_instruction *
 s0i_macro_new(struct swan *s, s0_id dest, const char *name,
               struct cork_error *err);
 
@@ -367,7 +373,8 @@ s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *basic_block,
 enum s0_value_kind {
     S0_VALUE_TYPE,
     S0_VALUE_LITERAL,
-    S0_VALUE_MACRO
+    S0_VALUE_MACRO,
+    S0_VALUE_TUPLE
 };
 
 struct s0_value {
@@ -376,6 +383,7 @@ struct s0_value {
         struct s0_type  *type;
         const char  *literal;
         struct s0_basic_block  *macro;
+        s0_value_array  tuple;
     } _;
     /* The type of the value */
     struct s0_type  *type;
@@ -395,6 +403,18 @@ s0_literal_value_new(struct swan *s, const char *contents,
 struct s0_value *
 s0_macro_value_new(struct swan *s, struct s0_basic_block *block,
                    struct cork_error *err);
+
+struct s0_value *
+s0_tuple_value_new(struct swan *s, struct cork_error *err);
+
+/* Creates new reference to value */
+int
+s0_tuple_value_add(struct swan *s, struct s0_value *self,
+                   struct s0_value *value, struct cork_error *err);
+
+struct s0_value *
+s0_tuple_value_get(struct swan *s, struct s0_value *self,
+                   size_t index, struct cork_error *err);
 
 struct s0_type *
 s0_value_get_type(struct swan *s, struct s0_value *value,
