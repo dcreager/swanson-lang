@@ -33,6 +33,21 @@ typedef cork_array(struct s0_instruction *)  s0_instruction_array;
 
 
 /*-----------------------------------------------------------------------
+ * Error handling
+ */
+
+/* Hash of "swanson.s0" */
+#define S0_ERROR  0x4972f292
+
+enum s0_error {
+    S0_REDEFINED,
+    S0_UNDEFINED,
+    S0_EVALUATION_ERROR,
+    S0_SYNTAX_ERROR
+};
+
+
+/*-----------------------------------------------------------------------
  * Types and type constructors
  */
 
@@ -444,38 +459,6 @@ s0_scope_add(struct swan *s, struct s0_scope *scope,
 struct s0_value *
 s0_scope_get(struct swan *s, struct s0_scope *scope,
              s0_tagged_id id, struct cork_error *err);
-
-
-/*-----------------------------------------------------------------------
- * Error handling
- */
-
-/* Hash of "swanson.s0" */
-#define S0_ERROR  0x4972f292
-
-enum s0_error {
-    S0_REDEFINED,
-    S0_UNDEFINED,
-    S0_EVALUATION_ERROR,
-    S0_SYNTAX_ERROR
-};
-
-int
-s0_interface_redefinition_set(struct cork_alloc *alloc,
-                              struct cork_error *err,
-                              const char *id);
-
-int
-s0_recursive_redefinition_set(struct cork_alloc *alloc,
-                              struct cork_error *err);
-
-int
-s0_scope_redefined_set(struct cork_alloc *alloc, struct cork_error *err,
-                       s0_tagged_id id, const char *scope_name);
-
-int
-s0_scope_undefined_set(struct cork_alloc *alloc, struct cork_error *err,
-                       s0_tagged_id id, const char *scope_name);
 
 
 #endif  /* SWANSON_S0_H */

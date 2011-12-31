@@ -18,80 +18,6 @@
 
 
 /*-----------------------------------------------------------------------
- * Error handling
- */
-
-static int
-swan_general_bad_type(struct cork_alloc *alloc, struct cork_error *err,
-                      struct cork_buffer *dest)
-{
-    const char  **reason = cork_error_extra(err);
-    return cork_buffer_set_string(alloc, dest, *reason, NULL);
-}
-
-int
-swan_general_bad_type_set(struct cork_alloc *alloc, struct cork_error *err,
-                          const char *reason)
-{
-    return cork_error_set_extra(alloc, err,
-                                SWAN_GENERAL_ERROR,
-                                SWAN_GENERAL_BAD_TYPE,
-                                swan_general_bad_type,
-                                reason);
-}
-
-
-struct s0_entry_redefinition_extra {
-    const char  *kind;
-    const char  *id;
-};
-
-static int
-s0_entry_redefinition(struct cork_alloc *alloc,
-                               struct cork_error *err,
-                               struct cork_buffer *dest)
-{
-    struct s0_entry_redefinition_extra  *extra = cork_error_extra(err);
-    return cork_buffer_printf
-        (alloc, dest, NULL,
-         "%s already has an entry named \"%s\"",
-         extra->kind, extra->id);
-}
-
-int
-s0_entry_redefinition_set(struct cork_alloc *alloc,
-                          struct cork_error *err,
-                          const char *kind, const char *id)
-{
-    struct s0_entry_redefinition_extra  extra = { kind, id };
-    return cork_error_set_extra(alloc, err,
-                                S0_ERROR,
-                                S0_REDEFINED,
-                                s0_entry_redefinition,
-                                extra);
-}
-
-static int
-s0_recursive_redefinition(struct cork_alloc *alloc,
-                               struct cork_error *err,
-                               struct cork_buffer *dest)
-{
-    return cork_buffer_set_string
-        (alloc, dest, "Recursive type redefined", NULL);
-}
-
-int
-s0_recursive_redefinition_set(struct cork_alloc *alloc,
-                                   struct cork_error *err)
-{
-    return cork_error_set(alloc, err,
-                          S0_ERROR,
-                          S0_REDEFINED,
-                          s0_recursive_redefinition);
-}
-
-
-/*-----------------------------------------------------------------------
  * Types
  */
 
@@ -260,8 +186,9 @@ s0_product_type_add(struct swan *s, struct s0_type *self,
                     struct s0_type *type, struct cork_error *err)
 {
     if (self->kind != S0_TYPE_PRODUCT) {
-        swan_general_bad_type_set
-            (swan_alloc(s), err, "Can only add elements to product types");
+        cork_error_set
+            (swan_alloc(s), err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
+             "Can only add elements to product types");
         return -1;
     }
 
@@ -341,8 +268,9 @@ s0_interface_type_add(struct swan *s, struct s0_type *self,
     struct cork_hash_table_entry  *entry = NULL;
 
     if (self->kind != S0_TYPE_INTERFACE) {
-        swan_general_bad_type_set
-            (swan_alloc(s), err, "Can only add entries to interface types");
+        cork_error_set
+            (swan_alloc(s), err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
+             "Can only add entries to interface types");
         return -1;
     }
 
@@ -351,7 +279,9 @@ s0_interface_type_add(struct swan *s, struct s0_type *self,
                (char *) name, &is_new, err));
 
     if (!is_new) {
-        s0_entry_redefinition_set(swan_alloc(s), err, "Interface", name);
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_REDEFINED,
+             "Interface already has an entry named \"%s\"", name);
         return -1;
     }
 
@@ -392,8 +322,9 @@ s0_class_type_add(struct swan *s, struct s0_type *self,
     struct cork_hash_table_entry  *entry = NULL;
 
     if (self->kind != S0_TYPE_CLASS) {
-        swan_general_bad_type_set
-            (swan_alloc(s), err, "Can only add entries to class types");
+        cork_error_set
+            (swan_alloc(s), err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
+             "Can only add entries to class types");
         return -1;
     }
 
@@ -402,7 +333,9 @@ s0_class_type_add(struct swan *s, struct s0_type *self,
                (char *) name, &is_new, err));
 
     if (!is_new) {
-        s0_entry_redefinition_set(swan_alloc(s), err, "Class", name);
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_REDEFINED,
+             "Class already has an entry named \"%s\"", name);
         return -1;
     }
 
@@ -442,13 +375,16 @@ s0_recursive_type_resolve(struct swan *s, struct s0_type *self,
                           struct s0_type *resolved, struct cork_error *err)
 {
     if (self->kind != S0_TYPE_RECURSIVE) {
-        swan_general_bad_type_set
-            (swan_alloc(s), err, "Cannot resolve non-recursive type");
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_REDEFINED,
+             "Recursive type redefined");
         return -1;
     }
 
     if (self->_.recursive.resolved != NULL) {
-        s0_recursive_redefinition_set(swan_alloc(s), err);
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_REDEFINED,
+             "Recursive type redefined");
         return -1;
     }
 

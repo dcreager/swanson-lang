@@ -20,7 +20,7 @@ int
 main(int argc, char **argv)
 {
     struct cork_alloc  *alloc = cork_allocator_new_debug();
-    struct cork_error  err = CORK_ERROR_INIT(alloc);
+    struct cork_error  err = CORK_ERROR_INIT();
     struct swan  *s = lgv_new(alloc, &err);
 
     struct lgv_block  *binit = lgv_block_new_constant_int(s, 0);

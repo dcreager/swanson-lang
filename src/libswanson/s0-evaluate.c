@@ -32,60 +32,6 @@
 
 
 /*-----------------------------------------------------------------------
- * Error reporting
- */
-
-struct s0_wrong_kind_extra {
-    s0_tagged_id  id;
-    const char  *expected;
-};
-
-static int
-s0_wrong_kind(struct cork_alloc *alloc, struct cork_error *err,
-              struct cork_buffer *dest)
-{
-    struct s0_wrong_kind_extra  *extra = cork_error_extra(err);
-    return cork_buffer_printf
-        (alloc, dest, NULL, "Expected %s for %c%"PRIuPTR,
-         extra->expected, s0_id_tag_name(s0_tagged_id_tag(extra->id)),
-         s0_tagged_id_id(extra->id));
-}
-
-static int
-s0_wrong_kind_set(struct cork_alloc *alloc, struct cork_error *err,
-                  s0_tagged_id id, const char *expected)
-{
-    struct s0_wrong_kind_extra  extra = { id, expected };
-    return cork_error_set_extra(alloc, err,
-                                S0_ERROR,
-                                S0_EVALUATION_ERROR,
-                                s0_wrong_kind,
-                                extra);
-}
-
-
-static int
-s0_no_result(struct cork_alloc *alloc, struct cork_error *err,
-             struct cork_buffer *dest)
-{
-    const char  **macro_name = cork_error_extra(err);
-    return cork_buffer_printf
-        (alloc, dest, NULL, "No result when calling %s", *macro_name);
-}
-
-static int
-s0_no_result_set(struct cork_alloc *alloc, struct cork_error *err,
-                 const char *macro_name)
-{
-    return cork_error_set_extra(alloc, err,
-                                S0_ERROR,
-                                S0_EVALUATION_ERROR,
-                                s0_no_result,
-                                macro_name);
-}
-
-
-/*-----------------------------------------------------------------------
  * Evaluation
  */
 
@@ -98,7 +44,11 @@ s0_evaluate_expect_type(struct swan *s, struct s0_scope *scope,
     if (value->kind == S0_VALUE_TYPE) {
         return value->_.type;
     } else {
-        s0_wrong_kind_set(swan_alloc(s), err, id, "type");
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_EVALUATION_ERROR,
+             "Expected type for %c%"PRIuPTR,
+             s0_id_tag_name(s0_tagged_id_tag(id)),
+             s0_tagged_id_id(id));
         return NULL;
     }
 }
@@ -134,14 +84,22 @@ error:
 
     if (value->kind != S0_VALUE_TYPE) {
         /* id is already bound to something other than a type. */
-        s0_scope_redefined_set(swan_alloc(s), err, id, scope->name);
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_REDEFINED,
+             "%c%"PRIuPTR" redefined in scope %s",
+             s0_id_tag_name(s0_tagged_id_tag(id)),
+             s0_tagged_id_id(id), scope->name);
         return NULL;
     }
 
     old_type = value->_.type;
     if (old_type->kind != S0_TYPE_RECURSIVE) {
         /* id is already bound to a non-recursive type. */
-        s0_scope_redefined_set(swan_alloc(s), err, id, scope->name);
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_REDEFINED,
+             "%c%"PRIuPTR" redefined in scope %s",
+             s0_id_tag_name(s0_tagged_id_tag(id)),
+             s0_tagged_id_id(id), scope->name);
         return NULL;
     }
 
@@ -517,8 +475,11 @@ s0_evaluate_CALL(struct swan *s, struct s0_scope *scope,
             return s0_evaluate_call_macro(s, scope, callee, instr, dest, err);
 
         default:
-            s0_wrong_kind_set
-                (swan_alloc(s), err, instr->_.call.callee, "macro");
+            cork_error_set
+                (swan_alloc(s), err, S0_ERROR, S0_EVALUATION_ERROR,
+                 "Expected macro for %c%"PRIuPTR,
+                 s0_id_tag_name(s0_tagged_id_tag(instr->_.call.callee)),
+                 s0_tagged_id_id(instr->_.call.callee));
             return -1;
     }
 }
@@ -582,7 +543,9 @@ s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *self,
     }
 
     if (output == NULL) {
-        s0_no_result_set(swan_alloc(s), err, self->name);
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_EVALUATION_ERROR,
+             "No result when calling %s", self->name);
         return NULL;
     }
 

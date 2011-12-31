@@ -34,8 +34,10 @@ lgv_int_int_literal(struct swan *s, struct swan_macro *macro,
                     struct cork_error *err, size_t num_args, ...)
 {
     if (num_args != 1) {
-        swan_macro_wrong_argument_count_set
-            (swan_alloc(s), err, 1, num_args, "int:int_literal");
+        cork_error_set
+            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+             "Wrong number of arguments to %s (got %zu, expected %zu)",
+             "int:int_literal", num_args, (size_t) 1);
         return NULL;
     }
 
@@ -49,8 +51,10 @@ lgv_int_int_literal(struct swan *s, struct swan_macro *macro,
     long  l_value = strtol(str->value, &endptr, 0);
     if (*endptr != '\0' || errno == ERANGE ||
         l_value < INT_MIN || l_value > INT_MAX) {
-        swan_macro_invalid_argument_set
-            (swan_alloc(s), err, "string constant", 0, "int:int_literal");
+        cork_error_set
+            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+             "Expected string constant for argument 0 in %s",
+             "int:int_literal");
         return NULL;
     }
 
@@ -66,8 +70,10 @@ lgv_int_add(struct swan *s, struct swan_macro *macro,
             struct cork_error *err, size_t num_args, ...)
 {
     if (num_args != 2) {
-        swan_macro_wrong_argument_count_set
-            (swan_alloc(s), err, 2, num_args, "int:add");
+        cork_error_set
+            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+             "Wrong number of arguments to %s (got %zu, expected %zu)",
+             "int:add", num_args, (size_t) 2);
         return NULL;
     }
 

@@ -17,59 +17,6 @@
 #include "swanson/state.h"
 #include "swanson/swanson0.h"
 
-/*-----------------------------------------------------------------------
- * Error handling
- */
-
-struct swan_scope_error_extra {
-    const char  *id;
-    const char  *scope_name;
-};
-
-static int
-swan_scope_redefined(struct cork_alloc *alloc, struct cork_error *err,
-                     struct cork_buffer *dest)
-{
-    struct swan_scope_error_extra  *extra = cork_error_extra(err);
-    return cork_buffer_printf
-        (alloc, dest, NULL, "%s redefined in scope %s",
-         extra->id, extra->scope_name);
-}
-
-int
-swan_scope_redefined_set(struct cork_alloc *alloc, struct cork_error *err,
-                         const char *id, const char *scope_name)
-{
-    struct swan_scope_error_extra  extra = { id, scope_name };
-    return cork_error_set_extra(alloc, err,
-                                SWAN_SCOPE_ERROR,
-                                SWAN_SCOPE_REDEFINED,
-                                swan_scope_redefined,
-                                extra);
-}
-
-static int
-swan_scope_undefined(struct cork_alloc *alloc, struct cork_error *err,
-                     struct cork_buffer *dest)
-{
-    struct swan_scope_error_extra  *extra = cork_error_extra(err);
-    return cork_buffer_printf
-        (alloc, dest, NULL, "No entry named %s in scope %s",
-         extra->id, extra->scope_name);
-}
-
-int
-swan_scope_undefined_set(struct cork_alloc *alloc, struct cork_error *err,
-                         const char *id, const char *scope_name)
-{
-    struct swan_scope_error_extra  extra = { id, scope_name };
-    return cork_error_set_extra(alloc, err,
-                                SWAN_SCOPE_ERROR,
-                                SWAN_SCOPE_UNDEFINED,
-                                swan_scope_undefined,
-                                extra);
-}
-
 
 /*-----------------------------------------------------------------------
  * Scopes
@@ -172,7 +119,9 @@ swan_scope_add(struct swan *s, struct swan_scope *self,
         (swan_alloc(s), &self->entries, (void *) name, &is_new, err);
 
     if (!is_new) {
-        swan_scope_redefined_set(swan_alloc(s), err, name, self->name);
+        cork_error_set
+            (swan_alloc(s), err, SWAN_SCOPE_ERROR, SWAN_SCOPE_REDEFINED,
+             "%s redefined in scope %s", name, self->name);
         cork_gc_decref(swan_gc(s), obj);
         return -1;
     }
@@ -190,7 +139,9 @@ swan_scope_get_(struct swan *s, const char *scope_name, struct swan_scope *self,
         cork_hash_table_get(swan_alloc(s), &self->entries, name);
     if (result == NULL) {
         if (self->parent_scope == NULL) {
-            swan_scope_undefined_set(swan_alloc(s), err, name, self->name);
+            cork_error_set
+                (swan_alloc(s), err, SWAN_SCOPE_ERROR, SWAN_SCOPE_REDEFINED,
+                 "No entry named %s in scope %s", name, self->name);
         } else {
             return swan_scope_get_(s, scope_name, self->parent_scope, name, err);
         }

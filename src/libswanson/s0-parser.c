@@ -37,132 +37,6 @@
 
 
 /*-----------------------------------------------------------------------
- * Error handling
- */
-
-struct s0_bad_operand_extra {
-    struct s0_position  pos;
-    const char  *operand;
-    size_t  operand_length;
-};
-
-static int
-s0_bad_operand(struct cork_alloc *alloc, struct cork_error *err,
-               struct cork_buffer *dest)
-{
-    struct s0_bad_operand_extra  *extra = cork_error_extra(err);
-    rii_check(cork_buffer_printf
-              (alloc, dest, NULL, "Unknown S0 operand at %zu.%zu: ",
-               extra->pos.line, extra->pos.column));
-    rii_check(cork_buffer_append
-              (alloc, dest, extra->operand, extra->operand_length, NULL));
-    return 0;
-}
-
-static int
-s0_bad_operand_set(struct cork_alloc *alloc, struct cork_error *err,
-                   struct s0_position pos, const char *operand,
-                   size_t operand_length)
-{
-    struct s0_bad_operand_extra  extra = { pos, operand, operand_length };
-    return cork_error_set_extra(alloc, err,
-                                S0_ERROR,
-                                S0_SYNTAX_ERROR,
-                                s0_bad_operand,
-                                extra);
-}
-
-
-struct s0_bad_tag_extra {
-    struct s0_position  pos;
-    char  expected_tag;
-};
-
-static int
-s0_bad_tag(struct cork_alloc *alloc, struct cork_error *err,
-           struct cork_buffer *dest)
-{
-    struct s0_bad_tag_extra  *extra = cork_error_extra(err);
-    if (extra->expected_tag == '\0') {
-        return cork_buffer_printf
-            (alloc, dest, NULL, "Expected identifier at %zu.%zu",
-             extra->pos.line, extra->pos.column);
-    } else {
-        return cork_buffer_printf
-            (alloc, dest, NULL, "Expected %c identifier at %zu.%zu",
-             extra->expected_tag, extra->pos.line, extra->pos.column);
-    }
-}
-
-static int
-s0_bad_tag_set(struct cork_alloc *alloc, struct cork_error *err,
-               struct s0_position pos, char expected_tag)
-{
-    struct s0_bad_tag_extra  extra = { pos, expected_tag };
-    return cork_error_set_extra(alloc, err,
-                                S0_ERROR,
-                                S0_SYNTAX_ERROR,
-                                s0_bad_tag,
-                                extra);
-}
-
-
-struct s0_bad_token_extra {
-    struct s0_position  pos;
-    const char  *token;
-};
-
-static int
-s0_bad_token(struct cork_alloc *alloc, struct cork_error *err,
-             struct cork_buffer *dest)
-{
-    struct s0_bad_token_extra  *extra = cork_error_extra(err);
-    return cork_buffer_printf
-        (alloc, dest, NULL, "Expected %s at %zu.%zu",
-         extra->token, extra->pos.line, extra->pos.column);
-}
-
-static int
-s0_bad_token_set(struct cork_alloc *alloc, struct cork_error *err,
-                 struct s0_position pos, const char *token)
-{
-    struct s0_bad_token_extra  extra = { pos, token };
-    return cork_error_set_extra(alloc, err,
-                                S0_ERROR,
-                                S0_SYNTAX_ERROR,
-                                s0_bad_token,
-                                extra);
-}
-
-
-struct s0_unterminated_string_extra {
-    struct s0_position  pos;
-};
-
-static int
-s0_unterminated_string(struct cork_alloc *alloc, struct cork_error *err,
-                       struct cork_buffer *dest)
-{
-    struct s0_unterminated_string_extra  *extra = cork_error_extra(err);
-    return cork_buffer_printf
-        (alloc, dest, NULL, "Unterminated string literal at %zu.%zu",
-         extra->pos.line, extra->pos.column);
-}
-
-static int
-s0_unterminated_string_set(struct cork_alloc *alloc, struct cork_error *err,
-                           struct s0_position pos)
-{
-    struct s0_unterminated_string_extra  extra = { pos };
-    return cork_error_set_extra(alloc, err,
-                                S0_ERROR,
-                                S0_SYNTAX_ERROR,
-                                s0_unterminated_string,
-                                extra);
-}
-
-
-/*-----------------------------------------------------------------------
  * Parser
  */
 
@@ -308,7 +182,10 @@ s0_parse_require_token(struct swan *s, struct s0_parser *sp,
 {
     int  rc = s0_parse_try_token(s, sp, token, token_length, err);
     if (rc == -2) {
-        s0_bad_token_set(swan_alloc(s), err, sp->pos, token);
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+             "Expected %s at %zu.%zu",
+             token, sp->pos.line, sp->pos.column);
         return -1;
     } else {
         return rc;
@@ -334,7 +211,10 @@ s0_parse_string(struct swan *s, struct s0_parser *sp,
     const char  *curr = sp->slice->buf;
 
     if (sp->slice->size == 0 || *curr != '"') {
-        s0_bad_token_set(swan_alloc(s), err, start, "string literal");
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+             "Expected string literal at %zu.%zu",
+             start.line, start.column);
         return -1;
     }
 
@@ -354,7 +234,10 @@ s0_parse_string(struct swan *s, struct s0_parser *sp,
         if (*curr == '\\') {
             s0_advance_char(i, curr, &sp->pos);
             if (sp->slice->size == 0) {
-                s0_unterminated_string_set(swan_alloc(s), err, start);
+                cork_error_set
+                    (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+                     "Unterminated string literal at %zu.%zu",
+                     start.line, start.column);
                 return -1;
             }
         }
@@ -367,7 +250,10 @@ s0_parse_string(struct swan *s, struct s0_parser *sp,
 
     /* If we fall through the loop, then we've run out of characters
      * without seeing the end of the string. */
-    s0_unterminated_string_set(swan_alloc(s), err, start);
+    cork_error_set
+        (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+         "Unterminated string literal at %zu.%zu",
+         start.line, start.column);
     return -1;
 }
 
@@ -402,7 +288,10 @@ s0_parse_operand_name(struct swan *s, struct s0_parser *sp,
         }
     }
 
-    s0_bad_operand_set(swan_alloc(s), err, start, sp->slice->buf, i);
+    cork_error_set
+        (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+         "Unknown S0 operand at %zu.%zu: %.*s",
+         start.line, start.column, (int) i, (char *) sp->slice->buf);
     return -1;
 }
 
@@ -437,7 +326,10 @@ s0_parse_int(struct swan *s, struct s0_parser *sp,
     long  l_value = strtol(sp->scratch.buf, &endptr, 10);
     if (*endptr != '\0' || errno == ERANGE ||
         l_value < 0 || l_value > SIZE_MAX) {
-        s0_bad_token_set(swan_alloc(s), err, start, "integer");
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+             "Expected integer at %zu.%zu",
+             start.line, start.column);
         return -1;
     }
 
@@ -477,7 +369,17 @@ s0_parse_id_int(struct swan *s, struct s0_parser *sp,
     long  l_value = strtol(sp->scratch.buf, &endptr, 10);
     if (*endptr != '\0' || errno == ERANGE ||
         l_value < 0 || l_value > UINTPTR_MAX) {
-        s0_bad_tag_set(swan_alloc(s), err, start, tag);
+        if (tag == '\0') {
+            cork_error_set
+                (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+                 "Expected %c identifier at %zu.%zu",
+                 tag, start.line, start.column);
+        } else {
+            cork_error_set
+                (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+                 "Expected identifier at %zu.%zu",
+                 start.line, start.column);
+        }
         return -1;
     }
 
@@ -496,7 +398,17 @@ s0_parse_id(struct swan *s, struct s0_parser *sp, enum s0_id_tag tag,
           sp->pos.line, sp->pos.column, (int) tag_ch);
 
     if ((sp->slice->size == 0) || (*((char *) sp->slice->buf) != tag_ch)) {
-        s0_bad_tag_set(swan_alloc(s), err, sp->pos, tag_ch);
+        if (tag == '\0') {
+            cork_error_set
+                (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+                 "Expected %c identifier at %zu.%zu",
+                 tag, sp->pos.line, sp->pos.column);
+        } else {
+            cork_error_set
+                (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+                 "Expected identifier at %zu.%zu",
+                 sp->pos.line, sp->pos.column);
+        }
         return -1;
     }
 
@@ -513,7 +425,10 @@ s0_parse_any_id(struct swan *s, struct s0_parser *sp,
           sp->pos.line, sp->pos.column);
 
     if (sp->slice->size == 0) {
-        s0_bad_tag_set(swan_alloc(s), err, sp->pos, '\0');
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+             "Expected identifier at %zu.%zu",
+             sp->pos.line, sp->pos.column);
         return -1;
     }
 
@@ -536,7 +451,10 @@ s0_parse_any_id(struct swan *s, struct s0_parser *sp,
             break;
 
         default:
-            s0_bad_tag_set(swan_alloc(s), err, sp->pos, '\0');
+            cork_error_set
+                (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+                 "Expected identifier at %zu.%zu",
+                 sp->pos.line, sp->pos.column);
             return -1;
     }
 
@@ -1018,11 +936,7 @@ s0_parse(struct swan *s, struct cork_slice *src, struct cork_error *err)
     rpp_check(result = s0_basic_block_new
               (s, "<top-level>", NULL, NULL, NULL, err));
 
-    struct s0_parser  sp = {
-        src, {0,0},
-        CORK_BUFFER_INIT(swan_alloc(s)),
-        &result->body
-    };
+    struct s0_parser  sp = { src, {0,0}, CORK_BUFFER_INIT(), &result->body };
 
     ei_check(s0_parse_skip_leading(s, &sp, err));
     while (src->size > 0) {

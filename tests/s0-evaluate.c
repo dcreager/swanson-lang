@@ -64,8 +64,8 @@ io_error:
 static int
 print_type(struct swan *s, struct s0_type *type, struct cork_error *err)
 {
-    struct cork_buffer  type_buf = CORK_BUFFER_INIT(swan_alloc(s));
-    struct cork_buffer  givens_buf = CORK_BUFFER_INIT(swan_alloc(s));
+    struct cork_buffer  type_buf = CORK_BUFFER_INIT();
+    struct cork_buffer  givens_buf = CORK_BUFFER_INIT();
     ei_check(s0_type_print(s, type, &type_buf, &givens_buf, err));
     printf("%s\n", (char *) type_buf.buf);
     if (givens_buf.buf != NULL) {
@@ -137,7 +137,7 @@ print_result(struct swan *s, struct s0_basic_block *block,
         cork_array_at(&block->body, cork_array_size(&block->body) - 1);
     s0_tagged_id  last_id = last_instruction->_.ret.result;
 
-    struct cork_buffer  prefix = CORK_BUFFER_INIT(swan_alloc(s));
+    struct cork_buffer  prefix = CORK_BUFFER_INIT();
     rii_check(cork_buffer_printf
               (swan_alloc(s), &prefix, err, "%c%"PRIuPTR,
                s0_id_tag_name(s0_tagged_id_tag(last_id)),
@@ -149,8 +149,7 @@ int
 main(int argc, char **argv)
 {
     struct cork_alloc  *alloc = cork_allocator_new_debug();
-    struct cork_error  err = CORK_ERROR_INIT(alloc);
-    struct cork_buffer  error_buf = CORK_BUFFER_INIT(alloc);
+    struct cork_error  err = CORK_ERROR_INIT();
     struct swan  s;
     struct cork_buffer  *buf;
     struct cork_slice  slice;
@@ -187,7 +186,6 @@ main(int argc, char **argv)
     return 0;
 
 error:
-    cork_error_message(alloc, &err, &error_buf);
-    fprintf(stderr, "%s\n", (char *) error_buf.buf);
+    fprintf(stderr, "%s\n", cork_error_message(&err));
     exit(EXIT_FAILURE);
 }

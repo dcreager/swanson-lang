@@ -16,72 +16,6 @@
 
 
 /*-----------------------------------------------------------------------
- * Error handling
- */
-
-struct swan_macro_invalid_extra {
-    const char  *expected;
-    size_t  arg_num;
-    const char  *context;
-};
-
-static int
-swan_macro_invalid_argument(struct cork_alloc *alloc, struct cork_error *err,
-                            struct cork_buffer *dest)
-{
-    struct swan_macro_invalid_extra  *extra = cork_error_extra(err);
-    return cork_buffer_printf
-        (alloc, dest, NULL, "Expected %s for argument %zu in %s",
-         extra->expected, extra->arg_num, extra->context);
-}
-
-int
-swan_macro_invalid_argument_set(struct cork_alloc *alloc,
-                                struct cork_error *err,
-                                const char *expected, size_t arg_num,
-                                const char *context)
-{
-    struct swan_macro_invalid_extra  extra = { expected, arg_num, context };
-    return cork_error_set_extra(alloc, err,
-                                SWAN_MACRO_ERROR,
-                                SWAN_MACRO_INVALID_ARGUMENT,
-                                swan_macro_invalid_argument,
-                                extra);
-}
-
-struct swan_macro_count_extra {
-    size_t  expected;
-    size_t  actual;
-    const char  *context;
-};
-
-static int
-swan_macro_wrong_argument_count(struct cork_alloc *alloc, struct cork_error *err,
-                                struct cork_buffer *dest)
-{
-    struct swan_macro_count_extra  *extra = cork_error_extra(err);
-    return cork_buffer_printf
-        (alloc, dest, NULL,
-         "Wrong number of arguments to %s (got %zu, expected %zu)",
-         extra->context, extra->actual, extra->expected);
-}
-
-int
-swan_macro_wrong_argument_count_set(struct cork_alloc *alloc,
-                                    struct cork_error *err,
-                                    size_t expected, size_t actual,
-                                    const char *context)
-{
-    struct swan_macro_count_extra  extra = { expected, actual, context };
-    return cork_error_set_extra(alloc, err,
-                                SWAN_MACRO_ERROR,
-                                SWAN_MACRO_INVALID_ARGUMENT,
-                                swan_macro_wrong_argument_count,
-                                extra);
-}
-
-
-/*-----------------------------------------------------------------------
  * Macros
  */
 
@@ -130,8 +64,10 @@ swan_check_arg_scope(struct swan *s, va_list args,
 {
     struct swan_obj  *arg = va_arg(args, struct swan_obj *);
     if (!swan_is_scope(arg)) {
-        swan_macro_invalid_argument_set
-            (swan_alloc(s), err, "scope object", arg_num, context);
+        cork_error_set
+            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+             "Expected scope object for argument %zu in %s",
+             arg_num, context);
         return NULL;
     }
     return swan_obj_scope(arg);
@@ -144,8 +80,10 @@ swan_check_arg_string(struct swan *s, va_list args,
 {
     struct swan_obj  *arg = va_arg(args, struct swan_obj *);
     if (!swan_is_string(arg)) {
-        swan_macro_invalid_argument_set
-            (swan_alloc(s), err, "string constant", arg_num, context);
+        cork_error_set
+            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+             "Expected string constant for argument %zu in %s",
+             arg_num, context);
         return NULL;
     }
     return swan_obj_string(arg);
@@ -158,8 +96,10 @@ swan_check_arg_macro(struct swan *s, va_list args,
 {
     struct swan_obj  *arg = va_arg(args, struct swan_obj *);
     if (!swan_is_macro(arg)) {
-        swan_macro_invalid_argument_set
-            (swan_alloc(s), err, "macro", arg_num, context);
+        cork_error_set
+            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+             "Expected macro for argument %zu in %s",
+             arg_num, context);
         return NULL;
     }
     return swan_obj_macro(arg);
@@ -172,8 +112,10 @@ swan_check_arg_expression(struct swan *s, va_list args,
 {
     struct swan_obj  *arg = va_arg(args, struct swan_obj *);
     if (!swan_is_expression(arg)) {
-        swan_macro_invalid_argument_set
-            (swan_alloc(s), err, "expression", arg_num, context);
+        cork_error_set
+            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+             "Expected expression for argument %zu in %s",
+             arg_num, context);
         return NULL;
     }
     return swan_obj_expression(arg);

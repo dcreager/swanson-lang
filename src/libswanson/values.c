@@ -16,32 +16,6 @@
 
 
 /*-----------------------------------------------------------------------
- * Error handling
- */
-
-static int
-s0_bad_tuple_index(struct cork_alloc *alloc,
-                   struct cork_error *err,
-                   struct cork_buffer *dest)
-{
-    size_t  *index = cork_error_extra(err);
-    return cork_buffer_printf
-        (alloc, dest, NULL, "Invalid tuple index: %zu", *index);
-}
-
-static int
-s0_bad_tuple_index_set(struct cork_alloc *alloc, struct cork_error *err,
-                       size_t index)
-{
-    return cork_error_set_extra(alloc, err,
-                                S0_ERROR,
-                                S0_REDEFINED,
-                                s0_bad_tuple_index,
-                                index);
-}
-
-
-/*-----------------------------------------------------------------------
  * Values
  */
 
@@ -165,8 +139,9 @@ s0_tuple_value_add(struct swan *s, struct s0_value *self,
                    struct s0_value *value, struct cork_error *err)
 {
     if (self->kind != S0_VALUE_TUPLE) {
-        swan_general_bad_type_set
-            (swan_alloc(s), err, "Can only add elements to tuples");
+        cork_error_set
+            (swan_alloc(s), err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
+             "Can only add elements to tuples");
         return -1;
     }
 
@@ -180,13 +155,16 @@ s0_tuple_value_get(struct swan *s, struct s0_value *self,
                    size_t index, struct cork_error *err)
 {
     if (self->kind != S0_VALUE_TUPLE) {
-        swan_general_bad_type_set
-            (swan_alloc(s), err, "Can only get elements from tuples");
+        cork_error_set
+            (swan_alloc(s), err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
+             "Can only get elements from tuples");
         return NULL;
     }
 
     if (index >= cork_array_size(&self->_.tuple)) {
-        s0_bad_tuple_index_set(swan_alloc(s), err, index);
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_UNDEFINED,
+             "Invalid tuple index: %zu", index);
         return NULL;
     }
 

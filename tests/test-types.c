@@ -26,8 +26,8 @@
 
 #define check_type(t, expected, expected_givens) \
     do { \
-        struct cork_buffer  actual = CORK_BUFFER_INIT(alloc); \
-        struct cork_buffer  givens = CORK_BUFFER_INIT(alloc); \
+        struct cork_buffer  actual = CORK_BUFFER_INIT(); \
+        struct cork_buffer  givens = CORK_BUFFER_INIT(); \
         fail_if_error(cork_buffer_set_string(alloc, &actual, "", &err)); \
         fail_if_error(cork_buffer_set_string(alloc, &givens, "", &err)); \
         fail_if_error(s0_type_print(&s, t, &actual, &givens, &err)); \

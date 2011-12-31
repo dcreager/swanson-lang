@@ -40,9 +40,5 @@ enum swan_general_error {
     SWAN_GENERAL_BAD_TYPE
 };
 
-int
-swan_general_bad_type_set(struct cork_alloc *alloc, struct cork_error *err,
-                          const char *reason);
-
 
 #endif  /* SWANSON_STATE_H */

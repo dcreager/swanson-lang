@@ -56,14 +56,6 @@ enum swan_scope_error {
     SWAN_SCOPE_UNDEFINED
 };
 
-int
-swan_scope_redefined_set(struct cork_alloc *alloc, struct cork_error *err,
-                         const char *id, const char *scope_name);
-
-int
-swan_scope_undefined_set(struct cork_alloc *alloc, struct cork_error *err,
-                         const char *id, const char *scope_name);
-
 
 struct swan_scope {
     struct swan_obj  parent;
@@ -143,18 +135,6 @@ swan_macro_new(struct swan *s, const char *name,
 enum swan_macro_error {
     SWAN_MACRO_INVALID_ARGUMENT
 };
-
-int
-swan_macro_invalid_argument_set(struct cork_alloc *alloc,
-                                struct cork_error *err,
-                                const char *expected, size_t arg_num,
-                                const char *context);
-
-int
-swan_macro_wrong_argument_count_set(struct cork_alloc *alloc,
-                                    struct cork_error *err,
-                                    size_t expected, size_t actual,
-                                    const char *context);
 
 
 /* Hash of "swanson.expression" */
