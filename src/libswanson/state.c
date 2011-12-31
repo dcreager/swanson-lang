@@ -18,6 +18,7 @@ swan_init(struct swan *self, struct cork_alloc *alloc,
           struct cork_error *err)
 {
     ei_check(cork_gc_init(&self->gc, alloc));
+    self->prelude = NULL;
     return 0;
 
 error:

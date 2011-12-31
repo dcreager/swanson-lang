@@ -17,6 +17,7 @@
 #include <libcork/core/checkers.h>
 #include <libcork/ds.h>
 
+#include "swanson/engine.h"
 #include "swanson/s0.h"
 #include "swanson/state.h"
 
@@ -123,6 +124,24 @@ print_value(struct swan *s, struct cork_buffer *prefix,
             return 0;
         }
 
+        case S0_VALUE_C:
+        {
+            struct s0_type  *type;
+            rip_check(type = s0_value_get_type(s, value, err));
+            printf("%s = C FUNCTION\n%s :: ",
+                   (char *) prefix->buf, (char *) prefix->buf);
+            return print_type(s, type, err);
+        }
+
+        case S0_VALUE_OBJECT:
+        {
+            struct s0_type  *type;
+            rip_check(type = s0_value_get_type(s, value, err));
+            printf("%s = OBJECT\n%s :: ",
+                   (char *) prefix->buf, (char *) prefix->buf);
+            return print_type(s, type, err);
+        }
+
         default:
             cork_unknown_error_set(swan_alloc(s), err);
             return -1;
@@ -174,6 +193,9 @@ main(int argc, char **argv)
         printf("File is empty\n");
         exit(EXIT_FAILURE);
     }
+
+    /* Create the prelude */
+    ep_check(block->upvalue = swan_prelude_new(&s, &err));
 
     /* Finally, evaluate it and print it */
     ep_check(result = s0_basic_block_evaluate(&s, block, NULL, &err));

@@ -1,0 +1,3 @@
+# Expected result: OBJECT
+getclass $0 = ^0 "if";
+return $0;

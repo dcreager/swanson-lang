@@ -19,6 +19,27 @@
  * Values
  */
 
+static const char *
+s0_value_kind_name(enum s0_value_kind kind)
+{
+    switch (kind) {
+        case S0_VALUE_TYPE:
+            return "type";
+        case S0_VALUE_LITERAL:
+            return "literal";
+        case S0_VALUE_MACRO:
+            return "macro";
+        case S0_VALUE_TUPLE:
+            return "tuple";
+        case S0_VALUE_C:
+            return "C function";
+        case S0_VALUE_OBJECT:
+            return "object";
+        default:
+            return "<unknown>";
+    }
+}
+
 static void
 s0_value_free(struct cork_gc *gc, void *vself)
 {
@@ -39,7 +60,7 @@ s0_value_free(struct cork_gc *gc, void *vself)
 
 static void
 s0_value_recurse(struct cork_gc *gc, void *vself,
-                      cork_gc_recurser recurse, void *ud)
+                 cork_gc_recurser recurse, void *ud)
 {
     struct s0_value  *self = vself;
     switch (self->kind) {
@@ -59,6 +80,14 @@ s0_value_recurse(struct cork_gc *gc, void *vself,
             }
             break;
         }
+
+        case S0_VALUE_OBJECT:
+            recurse(gc, self->_.obj, ud);
+            break;
+
+        case S0_VALUE_C:
+            recurse(gc, self->_.c, ud);
+            break;
 
         default:
             break;
@@ -172,6 +201,44 @@ s0_tuple_value_get(struct swan *s, struct s0_value *self,
 }
 
 
+struct s0_value *
+s0_c_value_new(struct swan *s, struct s0_c_function *func,
+               struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_value  *self = NULL;
+    e_check_gc_new(s0_value, self, "C function value");
+    self->kind = S0_VALUE_C;
+    self->type = NULL;
+    self->_.c = func;
+    return self;
+
+error:
+    cork_gc_decref(swan_gc(s), func);
+    return NULL;
+}
+
+
+struct s0_value *
+s0_object_value_new(struct swan *s, struct s0_object *obj,
+                    struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_value  *self = NULL;
+    e_check_gc_new(s0_value, self, "object value");
+    self->kind = S0_VALUE_OBJECT;
+    self->type = NULL;
+    self->_.obj = obj;
+    return self;
+
+error:
+    cork_gc_decref(swan_gc(s), obj);
+    return NULL;
+}
+
+
 static struct s0_type *
 s0_tuple_value_create_type(struct swan *s, struct s0_value *value,
                            struct cork_error *err)
@@ -217,6 +284,15 @@ s0_value_get_type(struct swan *s, struct s0_value *value,
                           (s, value, err));
                 break;
 
+            case S0_VALUE_C:
+                rpp_check(value->type = s0_function_type_new
+                          (s, value->_.c->input,
+                           value->_.c->output, err));
+                break;
+
+            case S0_VALUE_OBJECT:
+                return value->_.obj->type;
+
             default:
                 cork_unknown_error_set(swan_alloc(s), err);
                 return NULL;
@@ -224,4 +300,24 @@ s0_value_get_type(struct swan *s, struct s0_value *value,
     }
 
     return value->type;
+}
+
+
+struct s0_value *
+s0_value_evaluate(struct swan *s, struct s0_value *value,
+                  struct s0_value *input, struct cork_error *err)
+{
+    switch (value->kind) {
+        case S0_VALUE_MACRO:
+            return s0_basic_block_evaluate(s, value->_.macro, input, err);
+
+        case S0_VALUE_C:
+            return s0_c_function_call(s, value->_.c, input, err);
+
+        default:
+            cork_error_set
+                (swan_alloc(s), err, S0_ERROR, S0_EVALUATION_ERROR,
+                 "Cannot evaluate a %s", s0_value_kind_name(value->kind));
+            return NULL;
+    }
 }

@@ -16,10 +16,12 @@
 
 
 struct swan_engine;
+struct swan_prelude;
 
 struct swan {
     struct cork_gc  gc;
     struct swan_engine  *engine;
+    struct swan_prelude  *prelude;
 };
 
 int

@@ -1,0 +1,16 @@
+# Expected result: LITERAL "SUCCESS"
+tproduct %0 = ();
+tliteral %1;
+macro $0 = "true-branch" %0 -> %1 {
+  literal $0 = "FAILURE";
+  return $0;
+};
+macro $1 = "false-branch" %0 -> %1 {
+  literal $0 = "SUCCESS";
+  return $0;
+};
+getclass $2 = ^0 "if";
+getclass $3 = ^0 "false";
+tuple $4 = ($3,$0,$1);
+call $5 = $2($4);
+return $5;

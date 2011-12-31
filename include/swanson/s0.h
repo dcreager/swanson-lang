@@ -394,6 +394,56 @@ s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *basic_block,
 
 
 /*-----------------------------------------------------------------------
+ * C functions
+ */
+
+struct s0_c_function;
+
+typedef struct s0_value *
+(*s0_c_func)(struct swan *s, struct s0_c_function *self,
+             struct s0_value *input, struct cork_error *err);
+
+struct s0_c_function {
+    const char  *name;
+    s0_c_func  func;
+    struct s0_type  *input;
+    struct s0_type  *output;
+};
+
+/* Steals references to input and output */
+int
+s0_c_function_init(struct swan *s, struct s0_c_function *self,
+                   const char *name, s0_c_func func,
+                   struct s0_type *input, struct s0_type *output,
+                   struct cork_error *err);
+
+void
+s0_c_function_done(struct cork_gc *gc, struct s0_c_function *self);
+
+void
+s0_c_function_recurse(struct cork_gc *gc, struct s0_c_function *self,
+                      cork_gc_recurser recurse, void *ud);
+
+#define s0_c_function_call(s, self, input, err) \
+    ((self)->func((s), (self), (input), (err)))
+
+/* Steals references to input and output */
+struct s0_c_function *
+s0_c_function_new(struct swan *s, const char *name, s0_c_func func,
+                  struct s0_type *input, struct s0_type *output,
+                  struct cork_error *err);
+
+
+/*-----------------------------------------------------------------------
+ * Objects
+ */
+
+struct s0_object {
+    struct s0_type  *type;
+};
+
+
+/*-----------------------------------------------------------------------
  * Values
  */
 
@@ -401,7 +451,9 @@ enum s0_value_kind {
     S0_VALUE_TYPE,
     S0_VALUE_LITERAL,
     S0_VALUE_MACRO,
-    S0_VALUE_TUPLE
+    S0_VALUE_TUPLE,
+    S0_VALUE_C,
+    S0_VALUE_OBJECT
 };
 
 struct s0_value {
@@ -411,6 +463,8 @@ struct s0_value {
         const char  *literal;
         struct s0_basic_block  *macro;
         s0_value_array  tuple;
+        struct s0_c_function  *c;
+        struct s0_object  *obj;
     } _;
     /* The type of the value */
     struct s0_type  *type;
@@ -443,9 +497,28 @@ struct s0_value *
 s0_tuple_value_get(struct swan *s, struct s0_value *self,
                    size_t index, struct cork_error *err);
 
+/* Should only be used if you've already type-checked the value */
+#define s0_tuple_value_get_fast(value, index) \
+    (cork_array_at(&(value)->_.tuple, (index)))
+
+/* Steals reference to func */
+struct s0_value *
+s0_c_value_new(struct swan *s, struct s0_c_function *func,
+               struct cork_error *err);
+
+/* Steals reference to obj */
+struct s0_value *
+s0_object_value_new(struct swan *s, struct s0_object *obj,
+                    struct cork_error *err);
+
 struct s0_type *
 s0_value_get_type(struct swan *s, struct s0_value *value,
                   struct cork_error *err);
+
+
+struct s0_value *
+s0_value_evaluate(struct swan *s, struct s0_value *value,
+                  struct s0_value *input, struct cork_error *err);
 
 
 /*-----------------------------------------------------------------------

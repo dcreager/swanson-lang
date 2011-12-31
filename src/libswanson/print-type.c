@@ -124,6 +124,10 @@ print_one(struct swan *s, struct s0_printer *state,
           struct s0_type *type, struct cork_buffer *dest,
           bool parenthize, struct cork_error *err)
 {
+    if (type == NULL) {
+        return cork_buffer_append_string(swan_alloc(s), dest, "void", err);
+    }
+
     switch (type->kind) {
         case S0_TYPE_TYPE:
             return cork_buffer_append_string

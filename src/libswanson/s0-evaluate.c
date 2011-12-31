@@ -459,47 +459,29 @@ error:
 }
 
 static int
-s0_evaluate_call_macro(struct swan *s, struct s0_scope *scope,
-                       struct s0_value *macro, struct s0_instruction *instr,
-                       struct s0_value **dest, struct cork_error *err)
-{
-    struct s0_value  *input;
-    struct s0_value  *output;
-
-    /* We don't need to incref or decref the parameter; the scope has a
-     * reference to it, and the scope stays alive across the call to
-     * s0_basic_block evaluate. */
-    rip_check(input = s0_scope_get(s, scope, instr->_.call.input, err));
-
-    /* Call the macro */
-    rip_check(output = s0_basic_block_evaluate(s, macro->_.macro, input, err));
-
-    /* Save the results into the current scope */
-    rii_check(s0_scope_add(s, scope, instr->dest, output, err));
-    return 0;
-}
-
-static int
 s0_evaluate_CALL(struct swan *s, struct s0_scope *scope,
                  struct s0_instruction *instr,
                  struct s0_value **dest, struct cork_error *err)
 {
     DEBUG("--- %s: Evaluating CALL", scope->name);
     struct s0_value  *callee;
+    struct s0_value  *input;
+    struct s0_value  *output;
+
+    /* Grab the thing we're trying to call */
     rip_check(callee = s0_scope_get(s, scope, instr->_.call.callee, err));
 
-    switch (callee->kind) {
-        case S0_VALUE_MACRO:
-            return s0_evaluate_call_macro(s, scope, callee, instr, dest, err);
+    /* We don't need to incref or decref the parameter; the scope has a
+     * reference to it, and the scope stays alive across the call to
+     * s0_value_evaluate. */
+    rip_check(input = s0_scope_get(s, scope, instr->_.call.input, err));
 
-        default:
-            cork_error_set
-                (swan_alloc(s), err, S0_ERROR, S0_EVALUATION_ERROR,
-                 "Expected macro for %c%"PRIuPTR,
-                 s0_id_tag_name(s0_tagged_id_tag(instr->_.call.callee)),
-                 s0_tagged_id_id(instr->_.call.callee));
-            return -1;
-    }
+    /* Make the call */
+    rip_check(output = s0_value_evaluate(s, callee, input, err));
+
+    /* Save the results into the current scope */
+    rii_check(s0_scope_add(s, scope, instr->dest, output, err));
+    return 0;
 }
 
 static int
