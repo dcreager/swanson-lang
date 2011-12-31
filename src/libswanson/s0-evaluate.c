@@ -398,6 +398,24 @@ s0_evaluate_GETTUPLE(struct swan *s, struct s0_scope *scope,
 }
 
 static int
+s0_evaluate_GETCLASS(struct swan *s, struct s0_scope *scope,
+                     struct s0_instruction *instr,
+                     struct s0_value **dest, struct cork_error *err)
+{
+    DEBUG("--- %s: Evaluating GETCLASS", scope->name);
+    struct s0_type  *cls;
+    struct s0_value  *value;
+
+    rip_check(cls = s0_evaluate_expect_type
+              (s, scope, instr->_.getclass.src, err));
+    rip_check(value = s0_class_type_get
+              (s, cls, instr->_.getclass.index, err));
+    rii_check(s0_scope_add
+              (s, scope, instr->dest, cork_gc_incref(swan_gc(s), value), err));
+    return 0;
+}
+
+static int
 s0_evaluate_MACRO(struct swan *s, struct s0_scope *scope,
                   struct s0_instruction *instr,
                   struct s0_value **dest, struct cork_error *err)

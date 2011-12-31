@@ -181,6 +181,9 @@ START_TEST(test_parsing)
     check_good_parse("gettuple $0 = $0.0;");
     check_good_parse("gettuple $0 = $0.1;");
 
+    check_good_parse("getclass $0 = $0 \"foo\";");
+    check_good_parse("getclass $0 = $0 \"bar baz\";");
+
     check_good_parse(
         "macro $0 = \"test\" %1 -> %0 {}; "
     );
@@ -310,6 +313,15 @@ START_TEST(test_parsing)
     check_bad_parse("gettuple $0 = $0.1");
     check_bad_parse("gettuple %0 = $0.1;");
     check_bad_parse("gettuple foo;");
+
+    check_bad_parse("getclass");
+    check_bad_parse("getclass $0");
+    check_bad_parse("getclass $0 =");
+    check_bad_parse("getclass $0 = $0");
+    check_bad_parse("getclass $0 = $0 \"");
+    check_bad_parse("getclass $0 = $0 \"foo");
+    check_bad_parse("getclass $0 = $0 \"foo\"");
+    check_bad_parse("getclass foo;");
 
     check_bad_parse("macro");
     check_bad_parse("macro $0");

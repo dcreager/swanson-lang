@@ -51,8 +51,16 @@ s0_instruction_free(struct cork_gc *gc, void *vself)
             cork_strfree(gc->alloc, self->_.tclass.name);
             break;
 
+        case S0_LITERAL:
+            cork_strfree(gc->alloc, self->_.literal.contents);
+            break;
+
         case S0_TUPLE:
             cork_array_done(gc->alloc, &self->_.tuple.elements);
+            break;
+
+        case S0_GETCLASS:
+            cork_strfree(gc->alloc, self->_.getclass.index);
             break;
 
         case S0_MACRO:
@@ -283,6 +291,26 @@ s0i_gettuple_new(struct swan *s, s0_id dest, s0_tagged_id src, size_t index,
     self->_.gettuple.src = src;
     self->_.gettuple.index = index;
     return self;
+}
+
+struct s0_instruction *
+s0i_getclass_new(struct swan *s, s0_id dest, s0_tagged_id src,
+                 const char *index, struct cork_error *err)
+{
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_instruction  *self = NULL;
+    rp_check_gc_new(s0_instruction, self, "GETCLASS instruction");
+    self->op = S0_GETCLASS;
+    self->dest = s0_tagged_id(S0_ID_TAG_LOCAL, dest);
+    self->_.gettuple.src = src;
+    e_check_alloc(self->_.getclass.index = cork_strdup(swan_alloc(s), index),
+                  "GETCLASS index");
+    return self;
+
+error:
+    cork_gc_decref(swan_gc(s), self);
+    return NULL;
 }
 
 struct s0_instruction *

@@ -345,6 +345,32 @@ s0_class_type_add(struct swan *s, struct s0_type *self,
     return 0;
 }
 
+struct s0_value *
+s0_class_type_get(struct swan *s, struct s0_type *self,
+                  const char *name, struct cork_error *err)
+{
+    struct cork_hash_table_entry  *entry;
+
+    if (self->kind != S0_TYPE_CLASS) {
+        cork_error_set
+            (swan_alloc(s), err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
+             "Can only get entries from class types");
+        return NULL;
+    }
+
+    entry = cork_hash_table_get_entry
+        (swan_alloc(s), &self->_.cls.entries, name);
+    if (entry == NULL) {
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_UNDEFINED,
+             "No entry named \"%s\" in class \"%s\"",
+             name, self->_.cls.name);
+        return NULL;
+    }
+
+    return entry->value;
+}
+
 struct s0_type *
 s0_block_type_new(struct swan *s, struct s0_type *result,
                   struct cork_error *err)

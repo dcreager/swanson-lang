@@ -133,6 +133,10 @@ s0_class_type_add(struct swan *s, struct s0_type *self,
                   const char *name, struct s0_value *value,
                   struct cork_error *err);
 
+struct s0_value *
+s0_class_type_get(struct swan *s, struct s0_type *self,
+                  const char *name, struct cork_error *err);
+
 /* Creates new reference to referent */
 struct s0_type *
 s0_block_type_new(struct swan *s, struct s0_type *result,
@@ -216,6 +220,7 @@ typedef cork_array(s0_tagged_id)  s0_tagged_id_array;
     _(LITERAL) \
     _(TUPLE) \
     _(GETTUPLE) \
+    _(GETCLASS) \
     _(MACRO) \
     _(CALL) \
     _(RETURN) \
@@ -257,6 +262,10 @@ struct s0_instruction {
             s0_tagged_id  src;
             size_t  index;
         } gettuple;
+        struct {
+            s0_tagged_id  src;
+            const char  *index;
+        } getclass;
         struct {
             const char  *name;
             s0_tagged_id  upvalue;
@@ -329,6 +338,10 @@ s0i_tuple_new(struct swan *s, s0_id dest, struct cork_error *err);
 struct s0_instruction *
 s0i_gettuple_new(struct swan *s, s0_id dest, s0_tagged_id src, size_t index,
                  struct cork_error *err);
+
+struct s0_instruction *
+s0i_getclass_new(struct swan *s, s0_id dest, s0_tagged_id src,
+                 const char *index, struct cork_error *err);
 
 struct s0_instruction *
 s0i_macro_new(struct swan *s, s0_id dest, const char *name,

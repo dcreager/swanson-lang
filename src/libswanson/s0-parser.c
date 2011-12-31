@@ -816,6 +816,23 @@ s0_parse_GETTUPLE(struct swan *s, struct s0_parser *sp,
 }
 
 static int
+s0_parse_GETCLASS(struct swan *s, struct s0_parser *sp,
+                  struct cork_error *err)
+{
+    s0_id  dest;
+    s0_tagged_id  src;
+    struct s0_instruction  *instr;
+    rii_check(s0_parse_id(s, sp, S0_ID_TAG_LOCAL, &dest, err));
+    rii_check(s0_parse_require_token(s, sp, "=", 1, err));
+    rii_check(s0_parse_any_id(s, sp, &src, err));
+    rii_check(s0_parse_string(s, sp, err));
+    rii_check(s0_parse_require_token(s, sp, ";", 1, err));
+    rip_check(instr = s0i_getclass_new(s, dest, src, sp->scratch.buf, err));
+    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    return 0;
+}
+
+static int
 s0_parse_MACRO(struct swan *s, struct s0_parser *sp,
                struct cork_error *err)
 {
