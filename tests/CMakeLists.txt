@@ -49,6 +49,9 @@ configure_file(train ${CMAKE_BINARY_DIR}/train COPYONLY)
 add_executable(s0-evaluate s0-evaluate.c)
 target_link_libraries(s0-evaluate libswanson)
 
+add_executable(type-satisfies type-satisfies.c)
+target_link_libraries(type-satisfies libswanson)
+
 file(GLOB_RECURSE OUTPUT_TESTS command)
 foreach(OUTPUT_TEST ${OUTPUT_TESTS})
     get_filename_component(test_dir ${OUTPUT_TEST} PATH)

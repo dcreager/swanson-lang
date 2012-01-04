@@ -1,0 +1,25 @@
+# α -> β <: β -> α
+#
+# interface α {
+# }
+#
+# interface β {
+#   foo LITERAL
+# }
+#
+# If someone wants a β -> α, then they want to be able to pass a β into
+# the function.  Since the real function only expects an α, this
+# succeeds.  On the other hand, they want to receive an α.  The real
+# function produces a type with more guarantees than this (β), but
+# that's okay; those additional details will be ignored when the result
+# is used as an α.
+
+tliteral %0;
+tinterface %1 = {};
+tinterface %2 = {
+  "foo": %0
+};
+tfunction %3 = %1 -> %2;
+tfunction %4 = %2 -> %1;
+tuple $0 = (%3,%4);
+return $0;

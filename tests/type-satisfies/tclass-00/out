@@ -1,0 +1,5 @@
+bool satisfies α
+
+interface α {
+}
+

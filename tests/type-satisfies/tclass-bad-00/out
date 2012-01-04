@@ -1,0 +1,6 @@
+bool DOES NOT satsify α
+
+interface α {
+  / (bool,bool -> bool)
+}
+

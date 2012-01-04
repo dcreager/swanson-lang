@@ -1,0 +1,10 @@
+α DOES NOT satsify β
+
+interface α {
+  bar *LITERAL
+}
+
+interface β {
+  foo LITERAL
+}
+

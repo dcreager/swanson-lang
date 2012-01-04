@@ -12,6 +12,7 @@
 
 #include <libcork/core.h>
 #include <libcork/core/checkers.h>
+#include <libcork/ds.h>
 
 #include "swanson/s0.h"
 #include "swanson/state.h"

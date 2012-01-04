@@ -1,0 +1,9 @@
+# bool <: α
+getclass $0 = ^0 "bool";
+tproduct %0 = ($0,$0);
+tfunction %1 = %0 -> $0;
+tinterface %2 = {
+  "&&": %1
+};
+tuple $1 = ($0,%2);
+return $1;

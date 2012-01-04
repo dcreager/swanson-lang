@@ -151,6 +151,11 @@ s0_recursive_type_resolve(struct swan *s, struct s0_type *self,
                           struct s0_type *resolved, struct cork_error *err);
 
 
+bool
+s0_type_satisfies(struct swan *s, struct s0_type *self,
+                  struct s0_type *other, struct cork_error *err);
+
+
 /*-----------------------------------------------------------------------
  * Pretty-printing a type
  */
@@ -159,6 +164,13 @@ int
 s0_type_print(struct swan *s, struct s0_type *type,
               struct cork_buffer *dest, struct cork_buffer *givens,
               struct cork_error *err);
+
+typedef cork_array(struct cork_buffer *)  s0_buffer_array;
+
+int
+s0_type_print_many(struct swan *s, s0_type_array *types,
+                   s0_buffer_array *dests, struct cork_buffer *givens,
+                   struct cork_error *err);
 
 
 /*-----------------------------------------------------------------------

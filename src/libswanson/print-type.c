@@ -282,3 +282,49 @@ error:
     cork_hash_table_done(swan_alloc(s), &state.interfaces);
     return -1;
 }
+
+
+int
+s0_type_print_many(struct swan *s, s0_type_array *types,
+                   s0_buffer_array *dests, struct cork_buffer *givens,
+                   struct cork_error *err)
+{
+    size_t  i;
+    struct s0_printer  state;
+    rii_check(cork_hash_table_init
+              (swan_alloc(s), &state.interface_indices, 0,
+               constant_hasher, constant_comparator, err));
+    rii_check(cork_hash_table_init
+              (swan_alloc(s), &state.interfaces, 0,
+               constant_hasher, constant_comparator, err));
+    state.next_index = 0;
+
+    /* Print the type into dest.  If type contains references to any
+     * interfaces, we'll assign IDs to them as part of printing the
+     * overall type.  This will give us references to all interface
+     * types in the state.interfaces hash table. */
+    for (i = 0; i < cork_array_size(types); i++) {
+        struct s0_type  *type = cork_array_at(types, i);
+        struct cork_buffer  *dest;
+
+        ep_check(dest = cork_buffer_new(swan_alloc(s), err));
+        ei_check(cork_array_append(swan_alloc(s), dests, dest, err));
+        ei_check(print_one(s, &state, type, dest, false, err));
+    }
+
+    /* next_index might get updated as we're printing out each
+     * interface, if we encounter another interface that we've haven't
+     * seen before. */
+    for (i = 0; i < state.next_index; i++) {
+        ei_check(print_interface(s, &state, i, givens, err));
+    }
+
+    cork_hash_table_done(swan_alloc(s), &state.interface_indices);
+    cork_hash_table_done(swan_alloc(s), &state.interfaces);
+    return 0;
+
+error:
+    cork_hash_table_done(swan_alloc(s), &state.interface_indices);
+    cork_hash_table_done(swan_alloc(s), &state.interfaces);
+    return -1;
+}
