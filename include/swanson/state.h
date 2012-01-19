@@ -11,24 +11,17 @@
 #ifndef SWANSON_STATE_H
 #define SWANSON_STATE_H
 
-/**
- * @file
- * @brief Implementation of the @ref state module
- */
 
 #include <libcork/core.h>
 
-/**
- * @addtogroup state Global execution state
- *
- * <tt>#%include \<swanson/state.h\></tt>
- */
 
 struct swan_engine;
+struct swan_prelude;
 
 struct swan {
     struct cork_gc  gc;
     struct swan_engine  *engine;
+    struct swan_prelude  *prelude;
 };
 
 int
@@ -46,7 +39,7 @@ swan_done(struct swan *state);
 #define SWAN_GENERAL_ERROR  0xae419dc9
 
 enum swan_general_error {
-    SWAN_GENERAL_ERROR_CANNOT_ALLOCATE
+    SWAN_GENERAL_BAD_TYPE
 };
 
 

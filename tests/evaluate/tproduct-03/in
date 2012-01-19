@@ -1,0 +1,7 @@
+# Expected type: (LITERAL,void),*LITERAL
+tliteral %0;
+tlocation %1 = %0;
+tproduct %2 = ();
+tproduct %3 = (%0,%2);
+tproduct %4 = (%3,%1);
+return %4;

@@ -1,0 +1,6 @@
+α satisfies α
+
+interface α {
+  foo LITERAL
+}
+

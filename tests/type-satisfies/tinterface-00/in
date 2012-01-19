@@ -1,0 +1,4 @@
+# α <: α
+tinterface %0 = {};
+tuple $0 = (%0,%0);
+return $0;

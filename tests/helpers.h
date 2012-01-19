@@ -12,6 +12,18 @@
 #define TESTS_HELPERS_H
 
 
+#if !defined(PRINT_EXPECTED_FAILURES)
+#define PRINT_EXPECTED_FAILURES  0
+#endif
+
+#if PRINT_EXPECTED_FAILURES
+#define print_expected_failure() \
+            printf("%s\n", cork_error_message(&err));
+#else
+#define print_expected_failure()  /* do nothing */
+#endif
+
+
 #define DESCRIBE_TEST \
     fprintf(stderr, "--- %s\n", __func__);
 
@@ -36,22 +48,24 @@
 
 #define fail_if_error(call) \
     do { \
-        struct cork_error  err = CORK_ERROR_INIT(alloc); \
+        struct cork_error  err = CORK_ERROR_INIT(); \
         call; \
         if (cork_error_occurred(&err)) { \
             fail("%s", cork_error_message(&err)); \
         } \
-        cork_error_done(&err); \
+        cork_error_done(alloc, &err); \
     } while (0)
 
-#define fail_unless_error(call, msg) \
+#define fail_unless_error(call, ...) \
     do { \
-        struct cork_error  err = CORK_ERROR_INIT(alloc); \
+        struct cork_error  err = CORK_ERROR_INIT(); \
         call; \
         if (!cork_error_occurred(&err)) { \
-            fail(msg); \
+            fail(__VA_ARGS__); \
+        } else { \
+            print_expected_failure(); \
         } \
-        cork_error_done(&err); \
+        cork_error_done(alloc, &err); \
     } while (0)
 
 

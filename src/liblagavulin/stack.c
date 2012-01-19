@@ -10,8 +10,6 @@
 
 #include <libcork/core.h>
 
-#include "swanson/checkers.h"
-
 #include "lagavulin/stack.h"
 
 #if !defined(STACK_DEBUG)

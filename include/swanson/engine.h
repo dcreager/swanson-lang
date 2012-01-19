@@ -19,6 +19,7 @@
 #include <libcork/core.h>
 
 #include <swanson/state.h>
+#include <swanson/s0.h>
 #include <swanson/swanson0.h>
 
 /**
@@ -44,6 +45,10 @@ struct swan_engine {
 
 #define swan_create_kernel(s, err) \
     ((s)->engine->create_kernel((s), (err)))
+
+
+struct s0_value *
+swan_prelude_new(struct swan *s, struct cork_error *err);
 
 
 #endif  /* SWANSON_ENGINE_H */

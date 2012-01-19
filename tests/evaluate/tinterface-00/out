@@ -1,0 +1,6 @@
+%1 = α
+
+interface α {
+  name LITERAL
+}
+

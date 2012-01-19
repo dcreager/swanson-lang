@@ -15,8 +15,8 @@
 #include <string.h>
 
 #include <libcork/core.h>
+#include <libcork/core/checkers.h>
 
-#include "swanson/checkers.h"
 #include "swanson/engine.h"
 #include "swanson/state.h"
 #include "swanson/swanson0.h"
@@ -34,9 +34,10 @@ lgv_int_int_literal(struct swan *s, struct swan_macro *macro,
                     struct cork_error *err, size_t num_args, ...)
 {
     if (num_args != 1) {
-        cork_error_set(err, SWAN_MACRO_ERROR,
-                       SWAN_MACRO_ERROR_INVALID_ARGUMENT,
-                       "Wrong number of arguments to int:int_literal");
+        cork_error_set
+            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+             "Wrong number of arguments to %s (got %zu, expected %zu)",
+             "int:int_literal", num_args, (size_t) 1);
         return NULL;
     }
 
@@ -44,27 +45,24 @@ lgv_int_int_literal(struct swan *s, struct swan_macro *macro,
     va_start(args, num_args);
 
     struct swan_string  *str;
-    e_pcheck(str = swan_check_arg_string(s, args, "int:int_literal", 1, err));
+    rpp_check(str = swan_check_arg_string(s, args, "int:int_literal", 1, err));
 
     char  *endptr;
     long  l_value = strtol(str->value, &endptr, 0);
     if (*endptr != '\0' || errno == ERANGE ||
         l_value < INT_MIN || l_value > INT_MAX) {
-        cork_error_set(err, SWAN_MACRO_ERROR,
-                       SWAN_MACRO_ERROR_INVALID_ARGUMENT,
-                       "String constant %s isn't valid integer literal "
-                       "in int:int_literal", str->value);
+        cork_error_set
+            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+             "Expected string constant for argument 0 in %s",
+             "int:int_literal");
         return NULL;
     }
 
     struct lgv_block  *block = NULL;
     struct swan_expression  *expr = NULL;
-    e_pcheck(block = lgv_block_new_constant_int(s, (int) l_value));
-    e_pcheck(expr = lgv_expression_new(s, block, err));
+    rpp_check(block = lgv_block_new_constant_int(s, (int) l_value));
+    rpp_check(expr = lgv_expression_new(s, block, err));
     return expr;
-
-error:
-    return NULL;
 }
 
 static struct swan_expression *
@@ -72,9 +70,10 @@ lgv_int_add(struct swan *s, struct swan_macro *macro,
             struct cork_error *err, size_t num_args, ...)
 {
     if (num_args != 2) {
-        cork_error_set(err, SWAN_MACRO_ERROR,
-                       SWAN_MACRO_ERROR_INVALID_ARGUMENT,
-                       "Wrong number of arguments to int:add");
+        cork_error_set
+            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+             "Wrong number of arguments to %s (got %zu, expected %zu)",
+             "int:add", num_args, (size_t) 2);
         return NULL;
     }
 
@@ -83,22 +82,19 @@ lgv_int_add(struct swan *s, struct swan_macro *macro,
 
     struct swan_expression  *lhs;
     struct swan_expression  *rhs;
-    e_pcheck(lhs = swan_check_arg_expression(s, args, "int:add", 1, err));
-    e_pcheck(rhs = swan_check_arg_expression(s, args, "int:add", 2, err));
+    rpp_check(lhs = swan_check_arg_expression(s, args, "int:add", 1, err));
+    rpp_check(rhs = swan_check_arg_expression(s, args, "int:add", 2, err));
 
     struct lgv_block  *blhs = lgv_expression_block(lhs);
     struct lgv_block  *brhs = lgv_expression_block(rhs);
     struct lgv_block  *block = NULL;
     struct swan_expression  *expr = NULL;
 
-    e_pcheck(block = lgv_block_new_add_int(s));
-    e_pcheck(block = lgv_block_new_seq(s, brhs, block));
-    e_pcheck(block = lgv_block_new_seq(s, blhs, block));
-    e_pcheck(expr = lgv_expression_new(s, block, err));
+    rpp_check(block = lgv_block_new_add_int(s));
+    rpp_check(block = lgv_block_new_seq(s, brhs, block));
+    rpp_check(block = lgv_block_new_seq(s, blhs, block));
+    rpp_check(expr = lgv_expression_new(s, block, err));
     return expr;
-
-error:
-    return NULL;
 }
 
 
@@ -108,17 +104,17 @@ lgv_engine_create_kernel(struct swan *s, struct cork_error *err)
     struct swan_scope  *kernel = NULL;
     struct swan_macro  *macro = NULL;
 
-    e_pcheck(kernel = swan_scope_new(s, "kernel", NULL, err));
+    ep_check(kernel = swan_scope_new(s, "kernel", NULL, err));
 
-    e_pcheck(macro = swan_macro_new
+    ep_check(macro = swan_macro_new
              (s, "int:int-literal", lgv_int_int_literal, err));
-    e_check(swan_scope_add
-            (s, kernel, "int:int-literal", swan_macro_obj(macro), err));
+    ei_check(swan_scope_add
+             (s, kernel, "int:int-literal", swan_macro_obj(macro), err));
 
-    e_pcheck(macro = swan_macro_new
+    ep_check(macro = swan_macro_new
              (s, "int:add", lgv_int_add, err));
-    e_check(swan_scope_add
-            (s, kernel, "int:add", swan_macro_obj(macro), err));
+    ei_check(swan_scope_add
+             (s, kernel, "int:add", swan_macro_obj(macro), err));
 
     return kernel;
 
@@ -148,18 +144,14 @@ lgv_engine_execute(struct swan *s, struct swan_expression *expr,
     struct lgv_block  *halt = NULL;
     struct lgv_block  *head = NULL;
 
-    e_pcheck(halt = lgv_block_new_halt(s));
+    ep_check(halt = lgv_block_new_halt(s));
     lgv_block_set_next(s, block, halt);
     head = lgv_block_get_head(s, block);
-    e_check(lgv_block_execute
-            (s, head, &engine->root_state, engine->root_state.stack.top));
+    ei_check(lgv_block_execute
+             (s, head, &engine->root_state, engine->root_state.stack.top));
     return 0;
 
 error:
-    cork_error_set(err, SWAN_GENERAL_ERROR,
-                   SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                   "Cannot execute Lagavulin expression");
-
     if (halt != NULL) {
         cork_gc_decref(swan_gc(s), halt);
     }
@@ -170,15 +162,11 @@ error:
 static struct swan_engine *
 lgv_engine_new(struct swan *s, struct cork_error *err)
 {
-    struct lgv_engine  *self = cork_new(swan_alloc(s), struct lgv_engine);
-    if (self == NULL) {
-        cork_error_set(err, SWAN_GENERAL_ERROR,
-                       SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                       "Cannot allocate Lagavulin engine");
-        return NULL;
-    }
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct lgv_engine  *self = NULL;
+    rp_check_new(struct lgv_engine, self, "Lagavulin engine");
 
-    e_check(lgv_state_init(s, &self->root_state));
+    ei_check(lgv_state_init(s, &self->root_state));
     self->parent.execute = lgv_engine_execute;
     self->parent.create_kernel = lgv_engine_create_kernel;
     return &self->parent;
@@ -203,17 +191,11 @@ lgv_engine_free(struct swan *s, struct swan_engine *vself)
 struct swan *
 lgv_new(struct cork_alloc *alloc, struct cork_error *err)
 {
-    struct swan  *self = cork_new(alloc, struct swan);
-    if (self == NULL) {
-        cork_error_set(err, SWAN_GENERAL_ERROR,
-                       SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                       "Cannot allocate Lagavulin state");
-        return NULL;
-    }
+    struct swan  *self = NULL;
+    rp_check_new(struct swan, self, "Lagavulin state");
 
-    e0_check(error1, swan_init(self, alloc, err));
-    e_pcheck(self->engine = lgv_engine_new(self, err));
-
+    ei_check(swan_init(self, alloc, err));
+    ep_check(self->engine = lgv_engine_new(self, err));
     return self;
 
 error:
@@ -222,7 +204,6 @@ error:
     }
     swan_done(self);
 
-error1:
     cork_delete(alloc, struct swan, self);
     return NULL;
 }

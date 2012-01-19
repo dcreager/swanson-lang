@@ -1,0 +1,13 @@
+# Expected type: int
+trecursive %0;
+trecursive %1;
+tliteral %2;
+tfunction %3 = %2 -> %1;
+tfunction %4 = %1 -> %0;
+tclass %1 = "long" {
+  "bar": %3
+};
+tclass %0 = "int" {
+  "foo": %4
+};
+return %0;

@@ -1,0 +1,13 @@
+α satisfies β
+
+interface α {
+  foo LITERAL
+  bar *LITERAL
+  baz *LITERAL
+}
+
+interface β {
+  foo LITERAL
+  bar *LITERAL
+}
+

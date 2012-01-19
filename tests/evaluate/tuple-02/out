@@ -1,0 +1,4 @@
+$1 = TUPLE(1)
+
+[0] = LITERAL:
+hello world

@@ -1,0 +1,13 @@
+# Expected type: interface α
+trecursive %0;
+trecursive %1;
+tliteral %2;
+tfunction %3 = %2 -> %1;
+tfunction %4 = %1 -> %0;
+tinterface %1 = {
+  "bar": %3
+};
+tinterface %0 = {
+  "foo": %4
+};
+return %0;

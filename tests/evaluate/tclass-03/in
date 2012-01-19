@@ -1,0 +1,11 @@
+# Expected type: int
+trecursive %0;
+tlocation %1 = %0;
+tproduct %4 = (%1, %0);
+tfunction %2 = %1 -> %0;
+tfunction %3 = %4 -> %0;
+tclass %0 = "int" {
+  "get": %2,
+  "set": %3
+};
+return %0;

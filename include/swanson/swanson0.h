@@ -48,12 +48,14 @@ struct swan_obj {
 #define swan_scope_obj(obj) \
     (&((obj)->parent))
 
+
 /* Hash of "swanson.scope" */
 #define SWAN_SCOPE_ERROR  0x2511f99c
 enum swan_scope_error {
-    SWAN_SCOPE_ERROR_REDEFINED,
-    SWAN_SCOPE_ERROR_UNDEFINED
+    SWAN_SCOPE_REDEFINED,
+    SWAN_SCOPE_UNDEFINED
 };
+
 
 struct swan_scope {
     struct swan_obj  parent;
@@ -131,7 +133,7 @@ swan_macro_new(struct swan *s, const char *name,
 /* Hash of "swanson.macro" */
 #define SWAN_MACRO_ERROR  0xc007f757
 enum swan_macro_error {
-    SWAN_MACRO_ERROR_INVALID_ARGUMENT
+    SWAN_MACRO_INVALID_ARGUMENT
 };
 
 

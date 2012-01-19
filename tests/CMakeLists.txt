@@ -33,7 +33,34 @@ endmacro(make_test)
 
 make_test(test-blocks)
 make_test(test-engine)
+make_test(test-s0-parser)
 make_test(test-scopes)
+make_test(test-types)
 
 add_executable(simple-speed-test simple-speed-test.c)
 target_link_libraries(simple-speed-test libswanson liblagavulin)
+
+configure_file(run-test ${CMAKE_BINARY_DIR}/run-test COPYONLY)
+configure_file(train ${CMAKE_BINARY_DIR}/train COPYONLY)
+
+#-----------------------------------------------------------------------
+# stdout/stderr test cases
+
+add_executable(s0-evaluate s0-evaluate.c)
+target_link_libraries(s0-evaluate libswanson)
+
+add_executable(type-satisfies type-satisfies.c)
+target_link_libraries(type-satisfies libswanson)
+
+file(GLOB_RECURSE OUTPUT_TESTS command)
+foreach(OUTPUT_TEST ${OUTPUT_TESTS})
+    get_filename_component(test_dir ${OUTPUT_TEST} PATH)
+    get_filename_component(test_suffix ${test_dir} NAME)
+    get_filename_component(test_parent_dir ${test_dir} PATH)
+    get_filename_component(test_prefix ${test_parent_dir} NAME)
+    set(test_name "${test_prefix}:${test_suffix}")
+
+    add_test(NAME ${test_name}
+             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+             COMMAND ${CMAKE_BINARY_DIR}/run-test ${test_dir})
+endforeach(OUTPUT_TEST ${OUTPUT_TESTS})

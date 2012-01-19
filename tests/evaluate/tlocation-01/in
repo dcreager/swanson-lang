@@ -1,0 +1,5 @@
+# Expected type: **LITERAL
+tliteral %0;
+tlocation %1 = %0;
+tlocation %2 = %1;
+return %2;

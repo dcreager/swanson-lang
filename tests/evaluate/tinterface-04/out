@@ -1,0 +1,10 @@
+%0 = α
+
+interface α {
+  foo (β -> α)
+}
+
+interface β {
+  bar (LITERAL -> β)
+}
+

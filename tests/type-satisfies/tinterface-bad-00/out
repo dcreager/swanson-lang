@@ -1,0 +1,9 @@
+α DOES NOT satsify β
+
+interface α {
+}
+
+interface β {
+  foo LITERAL
+}
+

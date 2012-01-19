@@ -11,158 +11,125 @@
 #include <string.h>
 
 #include <libcork/core.h>
+#include <libcork/core/checkers.h>
 #include <libcork/ds.h>
 
-#include "swanson/checkers.h"
+#include "swanson/s0.h"
 #include "swanson/state.h"
-#include "swanson/swanson0.h"
 
-static bool
-swan_scope_comparator(const void *vk1, const void *vk2)
-{
-    const char  *k1 = vk1;
-    const char  *k2 = vk2;
-    return strcmp(k1, k2) == 0;
-}
+
+/*-----------------------------------------------------------------------
+ * Scopes
+ */
 
 static cork_hash
-swan_scope_hasher(const void *vk)
+constant_hasher(const void *key)
 {
-    const char  *k = vk;
-    size_t  len = strlen(k);
-    return cork_hash_buffer(0, k, len);
+    return (cork_hash) (uintptr_t) key;
 }
 
-struct recurse_state {
-    cork_gc_recurser  recurse;
-    void  *ud;
-};
-
-static enum cork_hash_table_map_result
-swan_scope_recurse_entries(struct cork_hash_table_entry *entry, void *ud)
+static bool
+constant_comparator(const void *key1, const void *key2)
 {
-    struct recurse_state  *state = ud;
-    state->recurse(entry->value, state->ud);
-    return CORK_HASH_TABLE_MAP_CONTINUE;
+    return ((uintptr_t) key1) == ((uintptr_t) key2);
 }
 
 static void
-swan_scope_recurse(void *vself, cork_gc_recurser recurse, void *ud)
+s0_scope_recurse(struct cork_gc *gc, void *vself,
+                 cork_gc_recurser recurse, void *ud)
 {
-    struct swan_scope  *self = vself;
-    struct recurse_state  state = { recurse, ud };
-    cork_hash_table_map(&self->entries, swan_scope_recurse_entries, &state);
-    recurse(self->parent_scope, ud);
-}
+    struct s0_scope  *self = vself;
+    struct cork_hash_table_iterator  iter;
+    struct cork_hash_table_entry  *entry;
 
-static enum cork_hash_table_map_result
-swan_scope_free_entries(struct cork_hash_table_entry *entry, void *ud)
-{
-    struct swan  *s = ud;
-    cork_strfree(swan_alloc(s), entry->key);
-    /* We don't have to decref the value, since the recurse function
-     * will do that for us. */
-    return CORK_HASH_TABLE_MAP_DELETE;
+    cork_hash_table_iterator_init(&self->entries, &iter);
+    while ((entry = cork_hash_table_iterator_next(&self->entries, &iter))
+           != NULL) {
+        recurse(gc, entry->value, ud);
+    }
 }
 
 static void
-swan_scope_free(struct cork_gc *gc, void *vself)
+s0_scope_free(struct cork_gc *gc, void *vself)
 {
     struct swan  *s = cork_container_of(gc, struct swan, gc);
-    struct swan_scope  *self = vself;
+    struct s0_scope  *self = vself;
 
-    cork_hash_table_map(&self->entries, swan_scope_free_entries, s);
-    cork_hash_table_done(&self->entries);
+    cork_hash_table_done(swan_alloc(s), &self->entries);
     if (self->name != NULL) {
         cork_strfree(swan_alloc(s), self->name);
     }
 }
 
-static struct cork_gc_obj_iface  swan_scope_gc = {
-    swan_scope_free, swan_scope_recurse
+static struct cork_gc_obj_iface  s0_scope_gc = {
+    s0_scope_free, s0_scope_recurse
 };
 
-struct swan_scope *
-swan_scope_new(struct swan *s, const char *name, struct swan_scope *parent,
-               struct cork_error *err)
+struct s0_scope *
+s0_scope_new(struct swan *s, const char *name, struct cork_error *err)
 {
-    struct swan_scope  *self = NULL;
+    struct cork_alloc  *alloc = swan_alloc(s);
+    struct cork_gc  *gc = swan_gc(s);
+    struct s0_scope  *self = NULL;
+    rp_check_gc_new(s0_scope, self, "scope");
 
-    self = cork_gc_new(swan_gc(s), struct swan_scope, &swan_scope_gc);
-    if (self == NULL) {
-        goto error;
-    }
-    self->parent.cls = SWAN_SCOPE_CLASS;
-    self->parent_scope = cork_gc_incref(swan_gc(s), parent);
-
-    e_bcheck(cork_hash_table_init
-             (swan_alloc(s), &self->entries, 0,
-              swan_scope_hasher, swan_scope_comparator));
-
-    self->name = cork_strdup(swan_alloc(s), name);
-    if (self->name == NULL) {
-        goto error;
-    }
-
+    ei_check(cork_hash_table_init
+             (alloc, &self->entries, 0,
+              constant_hasher, constant_comparator, err));
+    e_check_alloc(self->name = cork_strdup(swan_alloc(s), name), "scope name");
     return self;
 
 error:
-    if (self != NULL) {
-        cork_gc_decref(swan_gc(s), self);
-    }
-
-    cork_error_set(err, SWAN_GENERAL_ERROR,
-                   SWAN_GENERAL_ERROR_CANNOT_ALLOCATE,
-                   "Cannot allocate new scope %s", name);
+    cork_gc_decref(swan_gc(s), self);
     return NULL;
 }
 
 int
-swan_scope_add(struct swan *s, struct swan_scope *self,
-               const char *name, struct swan_obj *obj,
-               struct cork_error *err)
+s0_scope_add(struct swan *s, struct s0_scope *self,
+             s0_tagged_id id, struct s0_value *value,
+             struct cork_error *err)
 {
     bool  is_new;
     struct cork_hash_table_entry  *entry =
         cork_hash_table_get_or_create
-        (&self->entries, (void *) name, &is_new);
+        (swan_alloc(s), &self->entries, (void *) id, &is_new, err);
 
     if (!is_new) {
-        cork_error_set(err, SWAN_SCOPE_ERROR,
-                       SWAN_SCOPE_ERROR_REDEFINED,
-                       "%s redefined in scope %s",
-                       name, self->name);
-        cork_gc_decref(swan_gc(s), obj);
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_REDEFINED,
+             "%c%"PRIuPTR" redefined in scope %s",
+             s0_id_tag_name(s0_tagged_id_tag(id)),
+             s0_tagged_id_id(id), self->name);
+        cork_gc_decref(swan_gc(s), value);
         return -1;
     }
 
-    entry->key = (void *) cork_strdup(swan_alloc(s), name);
-    entry->value = obj;
+    entry->key = (void *) id;
+    entry->value = value;
     return 0;
 }
 
-static struct swan_obj *
-swan_scope_get_(const char *scope_name, struct swan_scope *self,
-                const char *name, struct cork_error *err)
+struct s0_value *
+s0_scope_get(struct swan *s, struct s0_scope *self,
+             s0_tagged_id id, struct cork_error *err)
 {
-    struct swan_obj  *result =
-        cork_hash_table_get(&self->entries, name);
+    struct s0_value  *result =
+        cork_hash_table_get(swan_alloc(s), &self->entries, (void *) id);
     if (result == NULL) {
-        if (self->parent_scope == NULL) {
-            cork_error_set(err, SWAN_SCOPE_ERROR,
-                           SWAN_SCOPE_ERROR_UNDEFINED,
-                           "No entry named %s in scope %s",
-                           name, scope_name);
-        } else {
-            return swan_scope_get_(scope_name, self->parent_scope, name, err);
-        }
+        cork_error_set
+            (swan_alloc(s), err, S0_ERROR, S0_UNDEFINED,
+             "No entry named %c%"PRIuPTR" in scope %s",
+             s0_id_tag_name(s0_tagged_id_tag(id)),
+             s0_tagged_id_id(id), self->name);
+        return NULL;
+    } else {
+        return result;
     }
-    return result;
 }
 
-struct swan_obj *
-swan_scope_get(struct swan *s, struct swan_scope *self,
-               const char *name, struct cork_error *err)
+struct s0_scope *
+s0_scope_new_top_level(struct swan *s, struct cork_error *err)
 {
-    return swan_scope_get_(self->name, self, name, err);
+    /* Eventually we'll add the prelude and kernel to the scope here */
+    return s0_scope_new(s, "<top-level>", err);
 }

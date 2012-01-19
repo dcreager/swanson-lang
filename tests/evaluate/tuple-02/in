@@ -1,0 +1,4 @@
+# Expected result: TUPLE
+literal $0 = "hello world";
+tuple $1 = ($0);
+return $1;
