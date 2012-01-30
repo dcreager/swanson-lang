@@ -40,17 +40,23 @@ make_test(test-types)
 add_executable(simple-speed-test simple-speed-test.c)
 target_link_libraries(simple-speed-test libswanson liblagavulin)
 
-configure_file(run-test ${CMAKE_BINARY_DIR}/run-test COPYONLY)
-configure_file(train ${CMAKE_BINARY_DIR}/train COPYONLY)
-
-#-----------------------------------------------------------------------
-# stdout/stderr test cases
-
 add_executable(s0-evaluate s0-evaluate.c)
 target_link_libraries(s0-evaluate libswanson)
 
 add_executable(type-satisfies type-satisfies.c)
 target_link_libraries(type-satisfies libswanson)
+
+#-----------------------------------------------------------------------
+# Command-line tests
+
+# This will automatically find any test cases in tests/ that should be
+# run using the run-script helper script.  This lets you pass in
+# arbitary command-line options and stdin to a compiled executable, and
+# verify its stdout and stderr.  The expectation is that your
+# directories will be named tests/${category}/${test_name}
+
+configure_file(run-test ${CMAKE_BINARY_DIR}/run-test COPYONLY)
+configure_file(train ${CMAKE_BINARY_DIR}/train COPYONLY)
 
 file(GLOB_RECURSE OUTPUT_TESTS command)
 foreach(OUTPUT_TEST ${OUTPUT_TESTS})

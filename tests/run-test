@@ -24,6 +24,7 @@ if [ ! -f "${SPEC_DIR}"/command ]; then
     exit 1
 fi
 
+TEST_NAME=`basename ${SPEC_DIR}`
 COMMAND=`cat "${SPEC_DIR}/command"`
 
 if [ -f "${SPEC_DIR}"/in ]; then
@@ -32,7 +33,6 @@ else
     IN_FILE=/dev/null
 fi
 
-TEST_NAME=`basename ${SPEC_DIR}`
 mkdir -p results
 ${COMMAND} < ${IN_FILE} \
     > results/${TEST_NAME}.out 2> results/${TEST_NAME}.err

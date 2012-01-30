@@ -1,12 +1,17 @@
-Swanson documentation
-=====================
+.. _index:
 
-This is the documentation for Swanson |release|, last updated |today|.
+|project_name| documentation
+============================
+
+This is the documentation for |project_name| |release|, last updated
+|today|.
+
 
 Introduction
 ------------
 
 Swanson is a high-level, statically typed, dynamic programming language.
+
 
 Contents
 --------
@@ -19,7 +24,7 @@ Contents
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`search`
