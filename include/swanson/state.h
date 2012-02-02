@@ -25,14 +25,12 @@ struct swan {
 };
 
 int
-swan_init(struct swan *state, struct cork_alloc *alloc,
-          struct cork_error *err);
+swan_init(struct swan *state, struct cork_error *err);
 
 void
 swan_done(struct swan *state);
 
 #define swan_gc(s)  (&(s)->gc)
-#define swan_alloc(s)  ((s)->gc.alloc)
 
 
 /* Hash of "swanson.general" */

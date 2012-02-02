@@ -32,7 +32,7 @@ read_file(struct swan *s, const char *filename, struct cork_error *err)
     size_t  bytes_read;
     struct cork_buffer  *buf;
 
-    buf = cork_buffer_new(swan_alloc(s), err);
+    buf = cork_buffer_new(err);
 
     if (strcmp(filename, "-") == 0) {
         /* Read from stdin */
@@ -48,7 +48,7 @@ read_file(struct swan *s, const char *filename, struct cork_error *err)
 
     while ((bytes_read = fread(BUF, 1, BUF_SIZE, in)) != 0) {
         rpi_check(cork_buffer_append
-                  (swan_alloc(s), buf, BUF, bytes_read, err));
+                  (buf, BUF, bytes_read, err));
     }
 
     if (should_close) {
@@ -72,13 +72,13 @@ print_type(struct swan *s, struct s0_type *type, struct cork_error *err)
     if (givens_buf.buf != NULL) {
         printf("\n%s\n", (char *) givens_buf.buf);
     }
-    cork_buffer_done(swan_alloc(s), &type_buf);
-    cork_buffer_done(swan_alloc(s), &givens_buf);
+    cork_buffer_done(&type_buf);
+    cork_buffer_done(&givens_buf);
     return 0;
 
 error:
-    cork_buffer_done(swan_alloc(s), &type_buf);
-    cork_buffer_done(swan_alloc(s), &givens_buf);
+    cork_buffer_done(&type_buf);
+    cork_buffer_done(&givens_buf);
     return -1;
 }
 
@@ -117,7 +117,7 @@ print_value(struct swan *s, struct cork_buffer *prefix,
             for (i = 0; i < count; i++) {
                 struct s0_value  *element = cork_array_at(&value->_.tuple, i);
                 rii_check(cork_buffer_printf
-                          (swan_alloc(s), prefix, err, "[%zu]", i));
+                          (prefix, err, "[%zu]", i));
                 printf("\n");
                 rii_check(print_value(s, prefix, element, err));
             }
@@ -143,7 +143,7 @@ print_value(struct swan *s, struct cork_buffer *prefix,
         }
 
         default:
-            cork_unknown_error_set(swan_alloc(s), err);
+            cork_unknown_error_set(err);
             return -1;
     }
 }
@@ -158,7 +158,7 @@ print_result(struct swan *s, struct s0_basic_block *block,
 
     struct cork_buffer  prefix = CORK_BUFFER_INIT();
     rii_check(cork_buffer_printf
-              (swan_alloc(s), &prefix, err, "%c%"PRIuPTR,
+              (&prefix, err, "%c%"PRIuPTR,
                s0_id_tag_name(s0_tagged_id_tag(last_id)),
                s0_tagged_id_id(last_id)));
     return print_value(s, &prefix, value, err);
@@ -167,7 +167,6 @@ print_result(struct swan *s, struct s0_basic_block *block,
 int
 main(int argc, char **argv)
 {
-    struct cork_alloc  *alloc = cork_allocator_new_debug();
     struct cork_error  err = CORK_ERROR_INIT();
     struct swan  s;
     struct cork_buffer  *buf;
@@ -180,13 +179,13 @@ main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    swan_init(&s, alloc, NULL);
+    swan_init(&s, NULL);
 
     /* Read in the S0 file */
     ep_check(buf = read_file(&s, argv[1], &err));
 
     /* Then parse it */
-    ei_check(cork_buffer_to_slice(alloc, buf, &slice, &err));
+    ei_check(cork_buffer_to_slice(buf, &slice, &err));
     ep_check(block = s0_parse(&s, &slice, &err));
 
     if (cork_array_is_empty(&block->body)) {
@@ -202,8 +201,7 @@ main(int argc, char **argv)
     ei_check(print_result(&s, block, result, &err));
 
     swan_done(&s);
-    cork_error_done(alloc, &err);
-    cork_allocator_free(alloc);
+    cork_error_done(&err);
 
     return 0;
 

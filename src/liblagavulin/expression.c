@@ -36,9 +36,7 @@ struct swan_expression *
 lgv_expression_new(struct swan *s, struct lgv_block *b,
                    struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
-
     struct lgv_expression  *self = NULL;
     e_check_gc_new(lgv_expression, self, "expression");
     ei_check(swan_expression_init(s, &self->parent, err));

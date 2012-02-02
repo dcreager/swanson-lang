@@ -35,7 +35,7 @@ lgv_int_int_literal(struct swan *s, struct swan_macro *macro,
 {
     if (num_args != 1) {
         cork_error_set
-            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+            (err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
              "Wrong number of arguments to %s (got %zu, expected %zu)",
              "int:int_literal", num_args, (size_t) 1);
         return NULL;
@@ -52,7 +52,7 @@ lgv_int_int_literal(struct swan *s, struct swan_macro *macro,
     if (*endptr != '\0' || errno == ERANGE ||
         l_value < INT_MIN || l_value > INT_MAX) {
         cork_error_set
-            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+            (err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
              "Expected string constant for argument 0 in %s",
              "int:int_literal");
         return NULL;
@@ -71,7 +71,7 @@ lgv_int_add(struct swan *s, struct swan_macro *macro,
 {
     if (num_args != 2) {
         cork_error_set
-            (swan_alloc(s), err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+            (err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
              "Wrong number of arguments to %s (got %zu, expected %zu)",
              "int:add", num_args, (size_t) 2);
         return NULL;
@@ -162,7 +162,6 @@ error:
 static struct swan_engine *
 lgv_engine_new(struct swan *s, struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct lgv_engine  *self = NULL;
     rp_check_new(struct lgv_engine, self, "Lagavulin engine");
 
@@ -174,7 +173,7 @@ lgv_engine_new(struct swan *s, struct cork_error *err)
 error:
     /* We don't call lgv_engine_free since it will try to finalize the
      * non-initialized state object. */
-    cork_delete(swan_alloc(s), struct lgv_engine, self);
+    cork_delete(struct lgv_engine, self);
     return NULL;
 }
 
@@ -184,17 +183,17 @@ lgv_engine_free(struct swan *s, struct swan_engine *vself)
     struct lgv_engine  *self =
         cork_container_of(vself, struct lgv_engine, parent);
     lgv_state_done(s, &self->root_state);
-    cork_delete(swan_alloc(s), struct lgv_engine, self);
+    cork_delete(struct lgv_engine, self);
 }
 
 
 struct swan *
-lgv_new(struct cork_alloc *alloc, struct cork_error *err)
+lgv_new(struct cork_error *err)
 {
     struct swan  *self = NULL;
     rp_check_new(struct swan, self, "Lagavulin state");
 
-    ei_check(swan_init(self, alloc, err));
+    ei_check(swan_init(self, err));
     ep_check(self->engine = lgv_engine_new(self, err));
     return self;
 
@@ -204,7 +203,7 @@ error:
     }
     swan_done(self);
 
-    cork_delete(alloc, struct swan, self);
+    cork_delete(struct swan, self);
     return NULL;
 }
 

@@ -8,6 +8,8 @@
  * ----------------------------------------------------------------------
  */
 
+#include <stdlib.h>
+
 #include <libcork/core.h>
 
 #include "lagavulin/stack.h"
@@ -31,8 +33,7 @@
 int
 lgv_stack_init(struct swan *s, struct lgv_stack *self, size_t initial_count)
 {
-    size_t  allocated_size = sizeof(struct lgv_stack_entry) * initial_count;
-    self->entries = cork_malloc(swan_alloc(s), allocated_size);
+    self->entries = calloc(initial_count, sizeof(struct lgv_stack_entry));
     if (self->entries == NULL) {
         return -1;
     }
@@ -46,9 +47,7 @@ void
 lgv_stack_done(struct swan *s, struct lgv_stack *self)
 {
     if (self->entries != NULL) {
-        size_t  allocated_size =
-            sizeof(struct lgv_stack_entry) * self->allocated_count;
-        cork_free(swan_alloc(s), self->entries, allocated_size);
+        free(self->entries);
         self->entries = NULL;
     }
     self->top = NULL;
@@ -70,8 +69,7 @@ lgv_stack_ensure_size(struct swan *s, struct lgv_stack *self, size_t count)
     }
 
     struct lgv_stack_entry  *new_entries =
-        cork_realloc(swan_alloc(s), self->entries,
-                     old_allocated_size, new_allocated_size);
+        cork_realloc(self->entries, new_allocated_size);
     if (new_entries == NULL) {
         return -1;
     }

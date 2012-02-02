@@ -29,17 +29,16 @@
 static void
 check_good_parse_(struct swan *s, const char *buf)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_buffer  *b;
     struct cork_slice  slice;
     struct s0_basic_block  *result;
 
-    fail_if_error(b = cork_buffer_new(alloc, &err));
-    fail_if_error(cork_buffer_set_string(alloc, b, buf, &err));
-    fail_if_error(cork_buffer_to_slice(alloc, b, &slice, &err));
+    fail_if_error(b = cork_buffer_new(&err));
+    fail_if_error(cork_buffer_set_string(b, buf, &err));
+    fail_if_error(cork_buffer_to_slice(b, &slice, &err));
     fail_if_error(result = s0_parse(s, &slice, &err));
     cork_gc_decref(swan_gc(s), result);
-    cork_slice_finish(alloc, &slice);
+    cork_slice_finish(&slice);
 }
 
 #define check_good_parse(buf)  check_good_parse_(&s, buf)
@@ -47,18 +46,17 @@ check_good_parse_(struct swan *s, const char *buf)
 static void
 check_bad_parse_(struct swan *s, const char *buf)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_buffer  *b;
     struct cork_slice  slice;
     struct s0_basic_block  *result;
 
-    fail_if_error(b = cork_buffer_new(alloc, &err));
-    fail_if_error(cork_buffer_set_string(alloc, b, buf, &err));
-    fail_if_error(cork_buffer_to_slice(alloc, b, &slice, &err));
+    fail_if_error(b = cork_buffer_new(&err));
+    fail_if_error(cork_buffer_set_string(b, buf, &err));
+    fail_if_error(cork_buffer_to_slice(b, &slice, &err));
     fail_unless_error(result = s0_parse(s, &slice, &err),
                       "Parse shouldn't succeed for %s", buf);
     cork_gc_decref(swan_gc(s), result);
-    cork_slice_finish(alloc, &slice);
+    cork_slice_finish(&slice);
 }
 
 #define check_bad_parse(buf)  check_bad_parse_(&s, buf)

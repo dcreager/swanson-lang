@@ -51,11 +51,11 @@ s0_interface_entries_satisfy(struct swan *s, struct cork_hash_table *self,
     struct cork_hash_table_entry  *entry;
 
     cork_hash_table_iterator_init(other, &iter);
-    while ((entry = cork_hash_table_iterator_next(other, &iter)) != NULL) {
+    while ((entry = cork_hash_table_iterator_next(&iter)) != NULL) {
         struct s0_type  *self_child;
         struct s0_type  *other_child = entry->value;
         struct cork_hash_table_entry  *self_entry =
-            cork_hash_table_get_entry(swan_alloc(s), self, entry->key);
+            cork_hash_table_get_entry(self, entry->key);
 
         if (self_entry == NULL) {
             return false;
@@ -82,11 +82,11 @@ s0_class_entries_satisfy(struct swan *s, struct cork_hash_table *self,
     struct cork_hash_table_entry  *entry;
 
     cork_hash_table_iterator_init(other, &iter);
-    while ((entry = cork_hash_table_iterator_next(other, &iter)) != NULL) {
+    while ((entry = cork_hash_table_iterator_next(&iter)) != NULL) {
         struct s0_type  *self_child;
         struct s0_type  *other_child = entry->value;
         struct cork_hash_table_entry  *self_entry =
-            cork_hash_table_get_entry(swan_alloc(s), self, entry->key);
+            cork_hash_table_get_entry(self, entry->key);
 
         if (self_entry == NULL) {
             return false;

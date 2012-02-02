@@ -28,8 +28,8 @@
     do { \
         struct cork_buffer  actual = CORK_BUFFER_INIT(); \
         struct cork_buffer  givens = CORK_BUFFER_INIT(); \
-        fail_if_error(cork_buffer_set_string(alloc, &actual, "", &err)); \
-        fail_if_error(cork_buffer_set_string(alloc, &givens, "", &err)); \
+        fail_if_error(cork_buffer_set_string(&actual, "", &err)); \
+        fail_if_error(cork_buffer_set_string(&givens, "", &err)); \
         fail_if_error(s0_type_print(&s, t, &actual, &givens, &err)); \
         if ((strcmp(actual.buf, expected) != 0) || \
             (strcmp(givens.buf, expected_givens) != 0)) { \

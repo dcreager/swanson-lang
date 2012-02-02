@@ -61,14 +61,13 @@ assign_id(struct swan *s, struct s0_printer *state,
     bool  is_new;
     struct cork_hash_table_entry  *entry = NULL;
     rip_check(entry = cork_hash_table_get_or_create
-              (swan_alloc(s), &state->interface_indices,
-               type, &is_new, err));
+              (&state->interface_indices, type, &is_new, err));
 
     if (is_new) {
         *index = state->next_index++;
         entry->value = (void *) (intptr_t) *index;
         rii_check(cork_hash_table_put
-                  (swan_alloc(s), &state->interfaces,
+                  (&state->interfaces,
                    entry->value, type, NULL, NULL, NULL, err));
     } else {
         *index = (size_t) (intptr_t) entry->value;
@@ -81,11 +80,10 @@ print_interface_name(struct swan *s, size_t index, struct cork_buffer *dest,
                      struct cork_error *err)
 {
     if (index < TYPE_NAME_COUNT) {
-        return cork_buffer_append_string
-            (swan_alloc(s), dest, TYPE_NAMES[index], err);
+        return cork_buffer_append_string(dest, TYPE_NAMES[index], err);
     } else {
         return cork_buffer_append_printf
-            (swan_alloc(s), dest, err, "i%zu", index - TYPE_NAME_COUNT);
+            (dest, err, "i%zu", index - TYPE_NAME_COUNT);
     }
 }
 
@@ -96,24 +94,21 @@ print_type_list(struct swan *s, struct s0_printer *state,
 {
 
     if (cork_array_is_empty(array)) {
-        return cork_buffer_append_string(swan_alloc(s), dest, "void", err);
+        return cork_buffer_append_string(dest, "void", err);
     } else {
         size_t  i;
         if (parenthize) {
-            rii_check(cork_buffer_append_string
-                      (swan_alloc(s), dest, "(", err));
+            rii_check(cork_buffer_append_string(dest, "(", err));
         }
         for (i = 0; i < cork_array_size(array); i++) {
             if (i > 0) {
-                rii_check(cork_buffer_append_string
-                          (swan_alloc(s), dest, ",", err));
+                rii_check(cork_buffer_append_string(dest, ",", err));
             }
             rii_check(print_one
                       (s, state, cork_array_at(array, i), dest, true, err));
         }
         if (parenthize) {
-            rii_check(cork_buffer_append_string
-                      (swan_alloc(s), dest, ")", err));
+            rii_check(cork_buffer_append_string(dest, ")", err));
         }
     }
     return 0;
@@ -125,21 +120,18 @@ print_one(struct swan *s, struct s0_printer *state,
           bool parenthize, struct cork_error *err)
 {
     if (type == NULL) {
-        return cork_buffer_append_string(swan_alloc(s), dest, "void", err);
+        return cork_buffer_append_string(dest, "void", err);
     }
 
     switch (type->kind) {
         case S0_TYPE_TYPE:
-            return cork_buffer_append_string
-                (swan_alloc(s), dest, "TYPE", err);
+            return cork_buffer_append_string(dest, "TYPE", err);
 
         case S0_TYPE_LITERAL:
-            return cork_buffer_append_string
-                (swan_alloc(s), dest, "LITERAL", err);
+            return cork_buffer_append_string(dest, "LITERAL", err);
 
         case S0_TYPE_ANY:
-            return cork_buffer_append_string
-                (swan_alloc(s), dest, "*", err);
+            return cork_buffer_append_string(dest, "*", err);
 
         case S0_TYPE_PRODUCT:
         {
@@ -151,26 +143,22 @@ print_one(struct swan *s, struct s0_printer *state,
         case S0_TYPE_FUNCTION:
         {
             if (parenthize) {
-                rii_check(cork_buffer_append_string
-                          (swan_alloc(s), dest, "(", err));
+                rii_check(cork_buffer_append_string(dest, "(", err));
             }
             rii_check(print_one
                       (s, state, type->_.function.input, dest, false, err));
-            rii_check(cork_buffer_append_string
-                      (swan_alloc(s), dest, " -> ", err));
+            rii_check(cork_buffer_append_string(dest, " -> ", err));
             rii_check(print_one
                       (s, state, type->_.function.output, dest, false, err));
             if (parenthize) {
-                rii_check(cork_buffer_append_string
-                          (swan_alloc(s), dest, ")", err));
+                rii_check(cork_buffer_append_string(dest, ")", err));
             }
             return 0;
         }
 
         case S0_TYPE_LOCATION:
         {
-            rii_check(cork_buffer_append_string
-                      (swan_alloc(s), dest, "*", err));
+            rii_check(cork_buffer_append_string(dest, "*", err));
             return print_one
                 (s, state, type->_.location.referent, dest, true, err);
         }
@@ -183,17 +171,14 @@ print_one(struct swan *s, struct s0_printer *state,
         }
 
         case S0_TYPE_CLASS:
-            return cork_buffer_append_string
-                (swan_alloc(s), dest, type->_.cls.name, err);
+            return cork_buffer_append_string(dest, type->_.cls.name, err);
 
         case S0_TYPE_BLOCK:
         {
-            rii_check(cork_buffer_append_string
-                      (swan_alloc(s), dest, "{", err));
+            rii_check(cork_buffer_append_string(dest, "{", err));
             rii_check(print_one
                       (s, state, type->_.block.result, dest, false, err));
-            return cork_buffer_append_string
-                (swan_alloc(s), dest, "}", err);
+            return cork_buffer_append_string(dest, "}", err);
         }
 
         case S0_TYPE_RECURSIVE:
@@ -216,30 +201,23 @@ print_interface(struct swan *s, struct s0_printer *state,
     struct cork_hash_table_iterator  iter;
     struct cork_hash_table_entry  *entry;
     rip_check(type = cork_hash_table_get
-              (swan_alloc(s), &state->interfaces,
-               (void *) (intptr_t) index));
+              (&state->interfaces, (void *) (intptr_t) index));
 
     if (index > 0) {
-        rii_check(cork_buffer_append_string(swan_alloc(s), dest, "\n", err));
+        rii_check(cork_buffer_append_string(dest, "\n", err));
     }
 
-    rii_check(cork_buffer_append_string
-              (swan_alloc(s), dest, "interface ", err));
+    rii_check(cork_buffer_append_string(dest, "interface ", err));
     rii_check(print_interface_name(s, index, dest, err));
-    rii_check(cork_buffer_append_string
-              (swan_alloc(s), dest, " {\n", err));
+    rii_check(cork_buffer_append_string(dest, " {\n", err));
     cork_hash_table_iterator_init(&type->_.interface.entries, &iter);
-    while ((entry = cork_hash_table_iterator_next
-                (&type->_.interface.entries, &iter)) != NULL) {
+    while ((entry = cork_hash_table_iterator_next(&iter)) != NULL) {
         const char  *name = entry->key;
-        rii_check(cork_buffer_append_printf
-                  (swan_alloc(s), dest, err, "  %s ", name));
+        rii_check(cork_buffer_append_printf(dest, err, "  %s ", name));
         rii_check(print_one(s, state, entry->value, dest, true, err));
-        rii_check(cork_buffer_append_string
-                  (swan_alloc(s), dest, "\n", err));
+        rii_check(cork_buffer_append_string(dest, "\n", err));
     }
-    rii_check(cork_buffer_append_string
-              (swan_alloc(s), dest, "}\n", err));
+    rii_check(cork_buffer_append_string(dest, "}\n", err));
 
     return 0;
 }
@@ -252,12 +230,10 @@ s0_type_print(struct swan *s, struct s0_type *type,
 {
     size_t  i;
     struct s0_printer  state;
-    rii_check(cork_hash_table_init
-              (swan_alloc(s), &state.interface_indices, 0,
-               constant_hasher, constant_comparator, err));
-    rii_check(cork_hash_table_init
-              (swan_alloc(s), &state.interfaces, 0,
-               constant_hasher, constant_comparator, err));
+    cork_hash_table_init
+        (&state.interface_indices, 0, constant_hasher, constant_comparator);
+    cork_hash_table_init
+        (&state.interfaces, 0, constant_hasher, constant_comparator);
     state.next_index = 0;
 
     /* Print the type into dest.  If type contains references to any
@@ -273,13 +249,13 @@ s0_type_print(struct swan *s, struct s0_type *type,
         ei_check(print_interface(s, &state, i, givens, err));
     }
 
-    cork_hash_table_done(swan_alloc(s), &state.interface_indices);
-    cork_hash_table_done(swan_alloc(s), &state.interfaces);
+    cork_hash_table_done(&state.interface_indices);
+    cork_hash_table_done(&state.interfaces);
     return 0;
 
 error:
-    cork_hash_table_done(swan_alloc(s), &state.interface_indices);
-    cork_hash_table_done(swan_alloc(s), &state.interfaces);
+    cork_hash_table_done(&state.interface_indices);
+    cork_hash_table_done(&state.interfaces);
     return -1;
 }
 
@@ -291,12 +267,10 @@ s0_type_print_many(struct swan *s, s0_type_array *types,
 {
     size_t  i;
     struct s0_printer  state;
-    rii_check(cork_hash_table_init
-              (swan_alloc(s), &state.interface_indices, 0,
-               constant_hasher, constant_comparator, err));
-    rii_check(cork_hash_table_init
-              (swan_alloc(s), &state.interfaces, 0,
-               constant_hasher, constant_comparator, err));
+    cork_hash_table_init
+        (&state.interface_indices, 0, constant_hasher, constant_comparator);
+    cork_hash_table_init
+        (&state.interfaces, 0, constant_hasher, constant_comparator);
     state.next_index = 0;
 
     /* Print the type into dest.  If type contains references to any
@@ -307,8 +281,8 @@ s0_type_print_many(struct swan *s, s0_type_array *types,
         struct s0_type  *type = cork_array_at(types, i);
         struct cork_buffer  *dest;
 
-        ep_check(dest = cork_buffer_new(swan_alloc(s), err));
-        ei_check(cork_array_append(swan_alloc(s), dests, dest, err));
+        ep_check(dest = cork_buffer_new(err));
+        ei_check(cork_array_append(dests, dest, err));
         ei_check(print_one(s, &state, type, dest, false, err));
     }
 
@@ -319,12 +293,12 @@ s0_type_print_many(struct swan *s, s0_type_array *types,
         ei_check(print_interface(s, &state, i, givens, err));
     }
 
-    cork_hash_table_done(swan_alloc(s), &state.interface_indices);
-    cork_hash_table_done(swan_alloc(s), &state.interfaces);
+    cork_hash_table_done(&state.interface_indices);
+    cork_hash_table_done(&state.interfaces);
     return 0;
 
 error:
-    cork_hash_table_done(swan_alloc(s), &state.interface_indices);
-    cork_hash_table_done(swan_alloc(s), &state.interfaces);
+    cork_hash_table_done(&state.interface_indices);
+    cork_hash_table_done(&state.interfaces);
     return -1;
 }

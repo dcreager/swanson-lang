@@ -19,7 +19,7 @@ static void
 s0_basic_block_free(struct cork_gc *gc, void *vself)
 {
     struct s0_basic_block  *self = vself;
-    cork_strfree(gc->alloc, self->name);
+    cork_strfree(self->name);
 }
 
 static void
@@ -46,16 +46,14 @@ s0_basic_block_new(struct swan *s, const char *name,
                    struct s0_value *upvalue, struct s0_type *input,
                    struct s0_type *output, struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct s0_basic_block  *self = NULL;
     rp_check_gc_new(s0_basic_block, self, "basic block");
-    e_check_alloc(self->name = cork_strdup(swan_alloc(s), name),
-                  "basic block name");
+    e_check_alloc(self->name = cork_strdup(name), "basic block name");
     self->upvalue = cork_gc_incref(swan_gc(s), upvalue);
     self->input = cork_gc_incref(swan_gc(s), input);
     self->output = cork_gc_incref(swan_gc(s), output);
-    cork_array_init(swan_alloc(s), &self->body);
+    cork_array_init(&self->body);
     return self;
 
 error:

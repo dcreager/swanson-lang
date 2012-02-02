@@ -105,7 +105,7 @@ s0_parse_skip_comment(struct swan *s, struct s0_parser *sp,
     }
 
     /* i is now the index of the first character after the comment. */
-    return cork_slice_slice_offset(swan_alloc(s), sp->slice, i, err);
+    return cork_slice_slice_offset(sp->slice, i, err);
 }
 
 /* Skips any whitespace at the beginning of slice.  Afterwards, the
@@ -129,7 +129,7 @@ s0_parse_skip_whitespace(struct swan *s, struct s0_parser *sp,
     /* i is now the index of the first non-whitespace character (which
      * might be one past the end of the slice if the slice is all
      * whitespace) */
-    return cork_slice_slice_offset(swan_alloc(s), sp->slice, i, err);
+    return cork_slice_slice_offset(sp->slice, i, err);
 }
 
 /* Skips any "leading" text — any combination of whitespace or comments. */
@@ -170,7 +170,7 @@ s0_parse_try_token(struct swan *s, struct s0_parser *sp,
     }
 
     return cork_slice_slice_offset
-        (swan_alloc(s), sp->slice, token_length, err);
+        (sp->slice, token_length, err);
 }
 
 /* Tries to parse a particular token, raising a syntax error if it's
@@ -183,7 +183,7 @@ s0_parse_require_token(struct swan *s, struct s0_parser *sp,
     int  rc = s0_parse_try_token(s, sp, token, token_length, err);
     if (rc == -2) {
         cork_error_set
-            (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+            (err, S0_ERROR, S0_SYNTAX_ERROR,
              "Expected %s at %zu.%zu",
              token, sp->pos.line, sp->pos.column);
         return -1;
@@ -212,7 +212,7 @@ s0_parse_string(struct swan *s, struct s0_parser *sp,
 
     if (sp->slice->size == 0 || *curr != '"') {
         cork_error_set
-            (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+            (err, S0_ERROR, S0_SYNTAX_ERROR,
              "Expected string literal at %zu.%zu",
              start.line, start.column);
         return -1;
@@ -220,14 +220,14 @@ s0_parse_string(struct swan *s, struct s0_parser *sp,
 
     /* Advance past the opening quote */
     s0_advance_char(i, curr, &sp->pos);
-    cork_buffer_clear(swan_alloc(s), &sp->scratch);
+    cork_buffer_clear(&sp->scratch);
 
     while (i < sp->slice->size) {
         /* Closing quote? */
         if (*curr == '"') {
             s0_advance_char(i, curr, &sp->pos);
             return cork_slice_slice_offset
-                (swan_alloc(s), sp->slice, i, err);
+                (sp->slice, i, err);
         }
 
         /* Escaped character? */
@@ -235,7 +235,7 @@ s0_parse_string(struct swan *s, struct s0_parser *sp,
             s0_advance_char(i, curr, &sp->pos);
             if (sp->slice->size == 0) {
                 cork_error_set
-                    (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+                    (err, S0_ERROR, S0_SYNTAX_ERROR,
                      "Unterminated string literal at %zu.%zu",
                      start.line, start.column);
                 return -1;
@@ -244,14 +244,14 @@ s0_parse_string(struct swan *s, struct s0_parser *sp,
 
         /* add the current character to the buffer */
         rii_check(cork_buffer_append
-                  (swan_alloc(s), &sp->scratch, curr, 1, err));
+                  (&sp->scratch, curr, 1, err));
         s0_advance_char(i, curr, &sp->pos);
     }
 
     /* If we fall through the loop, then we've run out of characters
      * without seeing the end of the string. */
     cork_error_set
-        (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+        (err, S0_ERROR, S0_SYNTAX_ERROR,
          "Unterminated string literal at %zu.%zu",
          start.line, start.column);
     return -1;
@@ -275,7 +275,7 @@ s0_parse_operand_name(struct swan *s, struct s0_parser *sp,
 
     /* i now points just past a string of alpha characters */
     rii_check(cork_buffer_set
-              (swan_alloc(s), &sp->scratch, sp->slice->buf, i, err));
+              (&sp->scratch, sp->slice->buf, i, err));
 
     /* See if this represents a valid operand name */
     size_t  j;
@@ -284,12 +284,12 @@ s0_parse_operand_name(struct swan *s, struct s0_parser *sp,
             *dest = j;
             DEBUG("[%4zu:%2zu]   %s",
                   start.line, start.column, OPERAND_NAMES[j]);
-            return cork_slice_slice_offset(swan_alloc(s), sp->slice, i, err);
+            return cork_slice_slice_offset(sp->slice, i, err);
         }
     }
 
     cork_error_set
-        (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+        (err, S0_ERROR, S0_SYNTAX_ERROR,
          "Unknown S0 operand at %zu.%zu: %.*s",
          start.line, start.column, (int) i, (char *) sp->slice->buf);
     return -1;
@@ -319,7 +319,7 @@ s0_parse_int(struct swan *s, struct s0_parser *sp,
     /* Put the integer text into the scratch buffer so that it's NUL
      * terminated */
     rii_check(cork_buffer_set
-              (swan_alloc(s), &sp->scratch, sp->slice->buf, i, err));
+              (&sp->scratch, sp->slice->buf, i, err));
 
     /* Parse the integer value, onlying allowing decimal */
     char  *endptr;
@@ -327,14 +327,14 @@ s0_parse_int(struct swan *s, struct s0_parser *sp,
     if (*endptr != '\0' || errno == ERANGE ||
         l_value < 0 || l_value > SIZE_MAX) {
         cork_error_set
-            (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+            (err, S0_ERROR, S0_SYNTAX_ERROR,
              "Expected integer at %zu.%zu",
              start.line, start.column);
         return -1;
     }
 
     *dest = l_value;
-    return cork_slice_slice_offset(swan_alloc(s), sp->slice, i, err);
+    return cork_slice_slice_offset(sp->slice, i, err);
 }
 
 
@@ -362,7 +362,7 @@ s0_parse_id_int(struct swan *s, struct s0_parser *sp,
     /* Put the integer text into the scratch buffer so that it's NUL
      * terminated */
     rii_check(cork_buffer_set
-              (swan_alloc(s), &sp->scratch, sp->slice->buf+1, i-1, err));
+              (&sp->scratch, sp->slice->buf+1, i-1, err));
 
     /* Parse the integer value, onlying allowing decimal */
     char  *endptr;
@@ -371,12 +371,12 @@ s0_parse_id_int(struct swan *s, struct s0_parser *sp,
         l_value < 0 || l_value > UINTPTR_MAX) {
         if (tag == '\0') {
             cork_error_set
-                (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+                (err, S0_ERROR, S0_SYNTAX_ERROR,
                  "Expected %c identifier at %zu.%zu",
                  tag, start.line, start.column);
         } else {
             cork_error_set
-                (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+                (err, S0_ERROR, S0_SYNTAX_ERROR,
                  "Expected identifier at %zu.%zu",
                  start.line, start.column);
         }
@@ -384,7 +384,7 @@ s0_parse_id_int(struct swan *s, struct s0_parser *sp,
     }
 
     *dest = l_value;
-    return cork_slice_slice_offset(swan_alloc(s), sp->slice, i, err);
+    return cork_slice_slice_offset(sp->slice, i, err);
 }
 
 /* Parse an identifier with the given tag. */
@@ -400,12 +400,12 @@ s0_parse_id(struct swan *s, struct s0_parser *sp, enum s0_id_tag tag,
     if ((sp->slice->size == 0) || (*((char *) sp->slice->buf) != tag_ch)) {
         if (tag == '\0') {
             cork_error_set
-                (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+                (err, S0_ERROR, S0_SYNTAX_ERROR,
                  "Expected %c identifier at %zu.%zu",
                  tag, sp->pos.line, sp->pos.column);
         } else {
             cork_error_set
-                (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+                (err, S0_ERROR, S0_SYNTAX_ERROR,
                  "Expected identifier at %zu.%zu",
                  sp->pos.line, sp->pos.column);
         }
@@ -426,7 +426,7 @@ s0_parse_any_id(struct swan *s, struct s0_parser *sp,
 
     if (sp->slice->size == 0) {
         cork_error_set
-            (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+            (err, S0_ERROR, S0_SYNTAX_ERROR,
              "Expected identifier at %zu.%zu",
              sp->pos.line, sp->pos.column);
         return -1;
@@ -452,7 +452,7 @@ s0_parse_any_id(struct swan *s, struct s0_parser *sp,
 
         default:
             cork_error_set
-                (swan_alloc(s), err, S0_ERROR, S0_SYNTAX_ERROR,
+                (err, S0_ERROR, S0_SYNTAX_ERROR,
                  "Expected identifier at %zu.%zu",
                  sp->pos.line, sp->pos.column);
             return -1;
@@ -493,11 +493,11 @@ s0_parse_any_id_list(struct swan *s, struct s0_parser *sp,
         /* And then we have to parse an identifier. */
         s0_tagged_id  id;
         rii_check(s0_parse_any_id(s, sp, &id, err));
-        rii_check(cork_array_append(swan_alloc(s), dest, id, err));
+        rii_check(cork_array_append(dest, id, err));
     } while (true);
 
     /* Should be unreachable */
-    cork_unknown_error_set(swan_alloc(s), err);
+    cork_unknown_error_set(err);
     return -1;
 }
 
@@ -507,7 +507,6 @@ static int
 s0_parse_interface_entries(struct swan *s, struct s0_parser *sp,
                            struct s0_instruction *dest, struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     rii_check(s0_parse_require_token(s, sp, "{", 1, err));
     bool  first = true;
 
@@ -533,7 +532,7 @@ s0_parse_interface_entries(struct swan *s, struct s0_parser *sp,
         s0_tagged_id  id;
         const char  *key;
         rii_check(s0_parse_string(s, sp, err));
-        ri_check_alloc(key = cork_strdup(swan_alloc(s), sp->scratch.buf),
+        ri_check_alloc(key = cork_strdup(sp->scratch.buf),
                        "TINTERFACE entry key");
 
         rii_check(s0_parse_require_token(s, sp, ":", 1, err));
@@ -542,7 +541,7 @@ s0_parse_interface_entries(struct swan *s, struct s0_parser *sp,
     } while (true);
 
     /* Should be unreachable */
-    cork_unknown_error_set(swan_alloc(s), err);
+    cork_unknown_error_set(err);
     return -1;
 }
 
@@ -552,7 +551,6 @@ static int
 s0_parse_class_entries(struct swan *s, struct s0_parser *sp,
                        struct s0_instruction *dest, struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     rii_check(s0_parse_require_token(s, sp, "{", 1, err));
     bool  first = true;
 
@@ -578,7 +576,7 @@ s0_parse_class_entries(struct swan *s, struct s0_parser *sp,
         s0_tagged_id  id;
         const char  *key;
         rii_check(s0_parse_string(s, sp, err));
-        ri_check_alloc(key = cork_strdup(swan_alloc(s), sp->scratch.buf),
+        ri_check_alloc(key = cork_strdup(sp->scratch.buf),
                        "TCLASS entry key");
 
         rii_check(s0_parse_require_token(s, sp, ":", 1, err));
@@ -587,7 +585,7 @@ s0_parse_class_entries(struct swan *s, struct s0_parser *sp,
     } while (true);
 
     /* Should be unreachable */
-    cork_unknown_error_set(swan_alloc(s), err);
+    cork_unknown_error_set(err);
     return -1;
 }
 
@@ -610,7 +608,7 @@ s0_parse_TRECURSIVE(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_id(s, sp, S0_ID_TAG_TYPE, &dest, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_trecursive_new(s, dest, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(cork_array_append(sp->body, instr, err));
     return 0;
 }
 
@@ -623,7 +621,7 @@ s0_parse_TTYPE(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_id(s, sp, S0_ID_TAG_TYPE, &dest, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_ttype_new(s, dest, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(cork_array_append(sp->body, instr, err));
     return 0;
 }
 
@@ -636,7 +634,7 @@ s0_parse_TLITERAL(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_id(s, sp, S0_ID_TAG_TYPE, &dest, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_tliteral_new(s, dest, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(cork_array_append(sp->body, instr, err));
     return 0;
 }
 
@@ -649,7 +647,7 @@ s0_parse_TANY(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_id(s, sp, S0_ID_TAG_TYPE, &dest, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_tany_new(s, dest, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(cork_array_append(sp->body, instr, err));
     return 0;
 }
 
@@ -664,7 +662,7 @@ s0_parse_TPRODUCT(struct swan *s, struct s0_parser *sp,
     rip_check(instr = s0i_tproduct_new(s, dest, err));
     ei_check(s0_parse_any_id_list(s, sp, &instr->_.tproduct.elements, err));
     ei_check(s0_parse_require_token(s, sp, ";", 1, err));
-    ei_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    ei_check(cork_array_append(sp->body, instr, err));
     return 0;
 
 error:
@@ -687,7 +685,7 @@ s0_parse_TFUNCTION(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_any_id(s, sp, &output, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_tfunction_new(s, dest, input, output, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(cork_array_append(sp->body, instr, err));
     return 0;
 }
 
@@ -703,7 +701,7 @@ s0_parse_TLOCATION(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_any_id(s, sp, &referent, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_tlocation_new(s, dest, referent, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(cork_array_append(sp->body, instr, err));
     return 0;
 }
 
@@ -718,7 +716,7 @@ s0_parse_TINTERFACE(struct swan *s, struct s0_parser *sp,
     rip_check(instr = s0i_tinterface_new(s, dest, err));
     ei_check(s0_parse_interface_entries(s, sp, instr, err));
     ei_check(s0_parse_require_token(s, sp, ";", 1, err));
-    ei_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    ei_check(cork_array_append(sp->body, instr, err));
     return 0;
 
 error:
@@ -738,7 +736,7 @@ s0_parse_TCLASS(struct swan *s, struct s0_parser *sp,
     rip_check(instr = s0i_tclass_new(s, dest, sp->scratch.buf, err));
     ei_check(s0_parse_class_entries(s, sp, instr, err));
     ei_check(s0_parse_require_token(s, sp, ";", 1, err));
-    ei_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    ei_check(cork_array_append(sp->body, instr, err));
     return 0;
 
 error:
@@ -758,7 +756,7 @@ s0_parse_TBLOCK(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_any_id(s, sp, &result, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_tblock_new(s, dest, result, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(cork_array_append(sp->body, instr, err));
     return 0;
 }
 
@@ -773,7 +771,7 @@ s0_parse_LITERAL(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_string(s, sp, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_literal_new(s, dest, sp->scratch.buf, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(cork_array_append(sp->body, instr, err));
     return 0;
 }
 
@@ -788,7 +786,7 @@ s0_parse_TUPLE(struct swan *s, struct s0_parser *sp,
     rip_check(instr = s0i_tuple_new(s, dest, err));
     ei_check(s0_parse_any_id_list(s, sp, &instr->_.tuple.elements, err));
     ei_check(s0_parse_require_token(s, sp, ";", 1, err));
-    ei_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    ei_check(cork_array_append(sp->body, instr, err));
     return 0;
 
 error:
@@ -811,7 +809,7 @@ s0_parse_GETTUPLE(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_int(s, sp, &index, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_gettuple_new(s, dest, src, index, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(cork_array_append(sp->body, instr, err));
     return 0;
 }
 
@@ -828,7 +826,7 @@ s0_parse_GETCLASS(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_string(s, sp, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_getclass_new(s, dest, src, sp->scratch.buf, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(cork_array_append(sp->body, instr, err));
     return 0;
 }
 
@@ -882,7 +880,7 @@ s0_parse_MACRO(struct swan *s, struct s0_parser *sp,
 
     sp->body = saved_body;
     ei_check(s0_parse_require_token(s, sp, ";", 1, err));
-    ei_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    ei_check(cork_array_append(sp->body, instr, err));
     return 0;
 
 error:
@@ -906,7 +904,7 @@ s0_parse_CALL(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_require_token(s, sp, ")", 1, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_call_new(s, dest, callee, input, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(cork_array_append(sp->body, instr, err));
     return 0;
 }
 
@@ -919,7 +917,7 @@ s0_parse_RETURN(struct swan *s, struct s0_parser *sp,
     rii_check(s0_parse_any_id(s, sp, &result, err));
     rii_check(s0_parse_require_token(s, sp, ";", 1, err));
     rip_check(instr = s0i_return_new(s, result, err));
-    rii_check(cork_array_append(swan_alloc(s), sp->body, instr, err));
+    rii_check(cork_array_append(sp->body, instr, err));
     return 0;
 }
 
@@ -940,7 +938,7 @@ s0_parse_instruction(struct swan *s, struct s0_parser *sp,
 #undef PARSE_OPCODE
 
         default:
-            cork_unknown_error_set(swan_alloc(s), err);
+            cork_unknown_error_set(err);
             return -1;
     }
 }

@@ -19,9 +19,8 @@
 int
 main(int argc, char **argv)
 {
-    struct cork_alloc  *alloc = cork_allocator_new_debug();
     struct cork_error  err = CORK_ERROR_INIT();
-    struct swan  *s = lgv_new(alloc, &err);
+    struct swan  *s = lgv_new(&err);
 
     struct lgv_block  *binit = lgv_block_new_constant_int(s, 0);
 
@@ -52,8 +51,7 @@ main(int argc, char **argv)
 
     cork_gc_decref(swan_gc(s), b0);
     lgv_free(s);
-    cork_error_done(swan_alloc(s), &err);
-    cork_allocator_free(alloc);
+    cork_error_done(&err);
 
     return 0;
 }

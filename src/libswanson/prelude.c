@@ -38,7 +38,6 @@ static struct cork_gc_obj_iface  swan_prelude_wrapper_gc = {
 static struct swan_prelude *
 swan_prelude_wrapper_new(struct swan *s, struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct swan_prelude  *self;
     rp_check_gc_inew(swan_prelude, &swan_prelude_wrapper_gc, self, "prelude");
@@ -82,7 +81,6 @@ static struct s0_value *
 swan_bool_new(struct swan *s, struct s0_type *type,
               bool value, struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct swan_bool  *self = NULL;
     rp_check_gc_inew(swan_bool, &swan_prelude_obj_gc, self, "bool object");

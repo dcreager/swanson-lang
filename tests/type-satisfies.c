@@ -32,7 +32,7 @@ read_file(struct swan *s, const char *filename, struct cork_error *err)
     size_t  bytes_read;
     struct cork_buffer  *buf;
 
-    buf = cork_buffer_new(swan_alloc(s), err);
+    buf = cork_buffer_new(err);
 
     if (strcmp(filename, "-") == 0) {
         /* Read from stdin */
@@ -47,8 +47,7 @@ read_file(struct swan *s, const char *filename, struct cork_error *err)
     }
 
     while ((bytes_read = fread(BUF, 1, BUF_SIZE, in)) != 0) {
-        rpi_check(cork_buffer_append
-                  (swan_alloc(s), buf, BUF, bytes_read, err));
+        rpi_check(cork_buffer_append(buf, BUF, bytes_read, err));
     }
 
     if (should_close) {
@@ -89,10 +88,10 @@ check_types(struct swan *s, struct s0_value *value, struct cork_error *err)
     s0_buffer_array  dests;
     struct cork_buffer  givens = CORK_BUFFER_INIT();
 
-    cork_array_init(swan_alloc(s), &types);
-    cork_array_init(swan_alloc(s), &dests);
-    rii_check(cork_array_append(swan_alloc(s), &types, v0->_.type, err));
-    rii_check(cork_array_append(swan_alloc(s), &types, v1->_.type, err));
+    cork_array_init(&types);
+    cork_array_init(&dests);
+    rii_check(cork_array_append(&types, v0->_.type, err));
+    rii_check(cork_array_append(&types, v1->_.type, err));
 
     rii_check(s0_type_print_many(s, &types, &dests, &givens, err));
     struct cork_buffer  *b0 = cork_array_at(&dests, 0);
@@ -105,11 +104,11 @@ check_types(struct swan *s, struct s0_value *value, struct cork_error *err)
         printf("\n%s\n", (char *) givens.buf);
     }
 
-    cork_buffer_done(swan_alloc(s), &givens);
-    cork_buffer_free(swan_alloc(s), b0);
-    cork_buffer_free(swan_alloc(s), b1);
-    cork_array_done(swan_alloc(s), &types);
-    cork_array_done(swan_alloc(s), &dests);
+    cork_buffer_done(&givens);
+    cork_buffer_free(b0);
+    cork_buffer_free(b1);
+    cork_array_done(&types);
+    cork_array_done(&dests);
     return 0;
 }
 
@@ -117,7 +116,6 @@ check_types(struct swan *s, struct s0_value *value, struct cork_error *err)
 int
 main(int argc, char **argv)
 {
-    struct cork_alloc  *alloc = cork_allocator_new_debug();
     struct cork_error  err = CORK_ERROR_INIT();
     struct swan  s;
     struct cork_buffer  *buf;
@@ -130,13 +128,13 @@ main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    swan_init(&s, alloc, NULL);
+    swan_init(&s, NULL);
 
     /* Read in the S0 file */
     ep_check(buf = read_file(&s, argv[1], &err));
 
     /* Then parse it */
-    ei_check(cork_buffer_to_slice(alloc, buf, &slice, &err));
+    ei_check(cork_buffer_to_slice(buf, &slice, &err));
     ep_check(block = s0_parse(&s, &slice, &err));
 
     if (cork_array_is_empty(&block->body)) {
@@ -152,8 +150,7 @@ main(int argc, char **argv)
     ei_check(check_types(&s, result, &err));
 
     swan_done(&s);
-    cork_error_done(alloc, &err);
-    cork_allocator_free(alloc);
+    cork_error_done(&err);
 
     return 0;
 

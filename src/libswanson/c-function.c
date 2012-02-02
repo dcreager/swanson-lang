@@ -23,9 +23,7 @@ s0_c_function_init(struct swan *s, struct s0_c_function *self,
                    struct s0_type *input, struct s0_type *output,
                    struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
-    ri_check_alloc(self->name = cork_strdup(swan_alloc(s), name),
-                   "C function name");
+    ri_check_alloc(self->name = cork_strdup(name), "C function name");
     self->func = func;
     self->input = input;
     self->output = output;
@@ -35,7 +33,7 @@ s0_c_function_init(struct swan *s, struct s0_c_function *self,
 void
 s0_c_function_done(struct cork_gc *gc, struct s0_c_function *self)
 {
-    cork_strfree(gc->alloc, self->name);
+    cork_strfree(self->name);
 }
 
 void
@@ -69,7 +67,6 @@ s0_c_function_new(struct swan *s, const char *name, s0_c_func func,
                   struct s0_type *input, struct s0_type *output,
                   struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct s0_c_function  *self;
     rp_check_gc_new(s0_c_function, self, "C function");

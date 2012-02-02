@@ -46,11 +46,11 @@ s0_value_free(struct cork_gc *gc, void *vself)
     struct s0_value  *self = vself;
     switch (self->kind) {
         case S0_VALUE_LITERAL:
-            cork_strfree(gc->alloc, self->_.literal);
+            cork_strfree(self->_.literal);
             break;
 
         case S0_VALUE_TUPLE:
-            cork_array_done(gc->alloc, &self->_.tuple);
+            cork_array_done(&self->_.tuple);
             break;
 
         default:
@@ -104,7 +104,6 @@ struct s0_value *
 s0_type_value_new(struct swan *s, struct s0_type *type,
                   struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct s0_value  *self = NULL;
     rp_check_gc_new(s0_value, self, "type value");
@@ -119,13 +118,12 @@ struct s0_value *
 s0_literal_value_new(struct swan *s, const char *contents,
                      struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct s0_value  *self = NULL;
     rp_check_gc_new(s0_value, self, "type value");
     self->kind = S0_VALUE_LITERAL;
     self->type = NULL;
-    e_check_alloc(self->_.literal = cork_strdup(swan_alloc(s), contents),
+    e_check_alloc(self->_.literal = cork_strdup(contents),
                   "literal contents");
     return self;
 
@@ -139,7 +137,6 @@ struct s0_value *
 s0_macro_value_new(struct swan *s, struct s0_basic_block *macro,
                    struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct s0_value  *self = NULL;
     rp_check_gc_new(s0_value, self, "macro value");
@@ -153,13 +150,12 @@ s0_macro_value_new(struct swan *s, struct s0_basic_block *macro,
 struct s0_value *
 s0_tuple_value_new(struct swan *s, struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct s0_value  *self = NULL;
     rp_check_gc_new(s0_value, self, "macro value");
     self->kind = S0_VALUE_TUPLE;
     self->type = NULL;
-    cork_array_init(swan_alloc(s), &self->_.tuple);
+    cork_array_init(&self->_.tuple);
     return self;
 }
 
@@ -169,13 +165,13 @@ s0_tuple_value_add(struct swan *s, struct s0_value *self,
 {
     if (self->kind != S0_VALUE_TUPLE) {
         cork_error_set
-            (swan_alloc(s), err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
+            (err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
              "Can only add elements to tuples");
         return -1;
     }
 
     return cork_array_append
-        (swan_alloc(s), &self->_.tuple,
+        (&self->_.tuple,
          cork_gc_incref(swan_gc(s), value), err);
 }
 
@@ -185,14 +181,14 @@ s0_tuple_value_get(struct swan *s, struct s0_value *self,
 {
     if (self->kind != S0_VALUE_TUPLE) {
         cork_error_set
-            (swan_alloc(s), err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
+            (err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
              "Can only get elements from tuples");
         return NULL;
     }
 
     if (index >= cork_array_size(&self->_.tuple)) {
         cork_error_set
-            (swan_alloc(s), err, S0_ERROR, S0_UNDEFINED,
+            (err, S0_ERROR, S0_UNDEFINED,
              "Invalid tuple index: %zu", index);
         return NULL;
     }
@@ -205,7 +201,6 @@ struct s0_value *
 s0_c_value_new(struct swan *s, struct s0_c_function *func,
                struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct s0_value  *self = NULL;
     e_check_gc_new(s0_value, self, "C function value");
@@ -224,7 +219,6 @@ struct s0_value *
 s0_object_value_new(struct swan *s, struct s0_object *obj,
                     struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
     struct s0_value  *self = NULL;
     e_check_gc_new(s0_value, self, "object value");
@@ -294,7 +288,7 @@ s0_value_get_type(struct swan *s, struct s0_value *value,
                 return value->_.obj->type;
 
             default:
-                cork_unknown_error_set(swan_alloc(s), err);
+                cork_unknown_error_set(err);
                 return NULL;
         }
     }
@@ -316,7 +310,7 @@ s0_value_evaluate(struct swan *s, struct s0_value *value,
 
         default:
             cork_error_set
-                (swan_alloc(s), err, S0_ERROR, S0_EVALUATION_ERROR,
+                (err, S0_ERROR, S0_EVALUATION_ERROR,
                  "Cannot evaluate a %s", s0_value_kind_name(value->kind));
             return NULL;
     }

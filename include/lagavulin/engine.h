@@ -39,7 +39,7 @@ struct lgv_engine {
     (&(cork_container_of((seng), struct lgv_engine, parent)->root_state))
 
 struct swan *
-lgv_new(struct cork_alloc *alloc, struct cork_error *err);
+lgv_new(struct cork_error *err);
 
 void
 lgv_free(struct swan *s);

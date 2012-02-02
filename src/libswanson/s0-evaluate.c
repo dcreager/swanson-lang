@@ -45,7 +45,7 @@ s0_evaluate_expect_type(struct swan *s, struct s0_scope *scope,
         return value->_.type;
     } else {
         cork_error_set
-            (swan_alloc(s), err, S0_ERROR, S0_EVALUATION_ERROR,
+            (err, S0_ERROR, S0_EVALUATION_ERROR,
              "Expected type for %c%"PRIuPTR,
              s0_id_tag_name(s0_tagged_id_tag(id)),
              s0_tagged_id_id(id));
@@ -85,7 +85,7 @@ error:
     if (value->kind != S0_VALUE_TYPE) {
         /* id is already bound to something other than a type. */
         cork_error_set
-            (swan_alloc(s), err, S0_ERROR, S0_REDEFINED,
+            (err, S0_ERROR, S0_REDEFINED,
              "%c%"PRIuPTR" redefined in scope %s",
              s0_id_tag_name(s0_tagged_id_tag(id)),
              s0_tagged_id_id(id), scope->name);
@@ -96,7 +96,7 @@ error:
     if (old_type->kind != S0_TYPE_RECURSIVE) {
         /* id is already bound to a non-recursive type. */
         cork_error_set
-            (swan_alloc(s), err, S0_ERROR, S0_REDEFINED,
+            (err, S0_ERROR, S0_REDEFINED,
              "%c%"PRIuPTR" redefined in scope %s",
              s0_id_tag_name(s0_tagged_id_tag(id)),
              s0_tagged_id_id(id), scope->name);
@@ -509,7 +509,7 @@ s0_evaluate_instruction(struct swan *s, struct s0_scope *scope,
 #undef EVALUATE_OPCODE
 
         default:
-            cork_unknown_error_set(swan_alloc(s), err);
+            cork_unknown_error_set(err);
             return -1;
     }
 }
@@ -544,7 +544,7 @@ s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *self,
 
     if (output == NULL) {
         cork_error_set
-            (swan_alloc(s), err, S0_ERROR, S0_EVALUATION_ERROR,
+            (err, S0_ERROR, S0_EVALUATION_ERROR,
              "No result when calling %s", self->name);
         return NULL;
     }

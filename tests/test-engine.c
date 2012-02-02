@@ -86,7 +86,7 @@ START_TEST(test_add_int_01)
     struct swan_expression  *rhs;
     struct swan_expression  *expr;
 
-    fail_if_error(s = lgv_new(alloc, &err));
+    fail_if_error(s = lgv_new(&err));
     fail_if_error(kernel = swan_create_kernel(s, &err));
 
     fail_if_error(obj = swan_scope_get(s, kernel, "int:int-literal", &err));

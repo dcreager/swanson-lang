@@ -397,8 +397,7 @@ s0_basic_block_new(struct swan *s, const char *name,
 
 /* Steals reference to instr */
 #define s0_basic_block_add_instruction(s, self, instr, err) \
-    (cork_array_append(swan_alloc((s)), &(self)->body, \
-                       (instr), (err)))
+    (cork_array_append(&(self)->body, (instr), (err)))
 
 struct s0_value *
 s0_basic_block_evaluate(struct swan *s, struct s0_basic_block *basic_block,

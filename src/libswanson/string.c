@@ -8,6 +8,7 @@
  * ----------------------------------------------------------------------
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include <libcork/core.h>
@@ -19,10 +20,9 @@
 static void
 swan_string_free(struct cork_gc *gc, void *vself)
 {
-    struct swan  *s = cork_container_of(gc, struct swan, gc);
     struct swan_string  *self = vself;
     if (self->value != NULL) {
-        cork_free(swan_alloc(s), (void *) self->value, self->length);
+        free((void *) self->value);
     }
 }
 
@@ -34,14 +34,13 @@ struct swan_string *
 swan_string_new(struct swan *s, const char *value, size_t length,
                 struct cork_error *err)
 {
-    struct cork_alloc  *alloc = swan_alloc(s);
     struct cork_gc  *gc = swan_gc(s);
 
     struct swan_string  *self = NULL;
     e_check_gc_new(swan_string, self, "string");
     self->parent.cls = SWAN_STRING_CLASS;
 
-    ep_check(self->value = cork_malloc(swan_alloc(s), length));
+    ep_check(self->value = malloc(length));
     memcpy((void *) self->value, value, length);
     self->length = length;
 

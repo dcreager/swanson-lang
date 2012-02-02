@@ -28,22 +28,18 @@
     fprintf(stderr, "--- %s\n", __func__);
 
 #define DECLARE_SWAN \
-    struct cork_alloc  *alloc = cork_allocator_new_debug(); \
     struct swan  s; \
-    swan_init(&s, alloc, NULL);
+    swan_init(&s, NULL);
 
 #define CLEANUP_SWAN \
-    swan_done(&s); \
-    cork_allocator_free(alloc);
+    swan_done(&s);
 
 #define DECLARE_LGV \
-    struct cork_alloc  *alloc = cork_allocator_new_debug(); \
     struct swan  *s; \
-    fail_if_error(s = lgv_new(alloc, &err));
+    fail_if_error(s = lgv_new(&err));
 
 #define CLEANUP_LGV \
-    lgv_free(s); \
-    cork_allocator_free(alloc);
+    lgv_free(s);
 
 
 #define fail_if_error(call) \
@@ -53,7 +49,7 @@
         if (cork_error_occurred(&err)) { \
             fail("%s", cork_error_message(&err)); \
         } \
-        cork_error_done(alloc, &err); \
+        cork_error_done(&err); \
     } while (0)
 
 #define fail_unless_error(call, ...) \
@@ -65,7 +61,7 @@
         } else { \
             print_expected_failure(); \
         } \
-        cork_error_done(alloc, &err); \
+        cork_error_done(&err); \
     } while (0)
 
 
