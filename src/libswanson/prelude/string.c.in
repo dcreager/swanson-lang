@@ -21,12 +21,17 @@
 #include "swanson/prelude.h"
 #include "swanson/state.h"
 
-#include "prelude/string.h"
-
 
 /*-----------------------------------------------------------------------
  * swan_static_string
  */
+
+_class_(swan_static_string);
+_default_methods_(swan_static_string);
+_method_(swan_static_string__eq);
+_method_(swan_static_string__print);
+_method_(swan_static_string__unref);
+
 
 _free_(swan_static_string) {
     struct swan_static_string  *self = obj;
@@ -43,6 +48,7 @@ swan_static_string_new(struct swan *s, const char *contents)
     self->parent.c = &swan_static_string__class;
     return self;
 }
+
 
 _eval_(swan_static_string__eq) {
     struct swan_static_string  *lhs;

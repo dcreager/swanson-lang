@@ -20,12 +20,18 @@
 #include "swanson/prelude.h"
 #include "swanson/state.h"
 
-#include "prelude/bool.h"
-
 
 /*-----------------------------------------------------------------------
  * swan_bool
  */
+
+_class_(swan_bool);
+_method_(swan_bool__not);
+_method_(swan_bool__and);
+_method_(swan_bool__or);
+_method_(swan_bool__xor);
+_method_(swan_bool__tostring);
+
 
 static struct swan_bool  swan_bool__false = { { &swan_bool__class }, false };
 static struct swan_bool  swan_bool__true = { { &swan_bool__class }, true };
