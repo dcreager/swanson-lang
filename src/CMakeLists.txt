@@ -7,7 +7,7 @@
 # details.
 # ----------------------------------------------------------------------
 
-include_directories(../include)
+include_directories(../include libswanson)
 
 #-----------------------------------------------------------------------
 # Build the libraries

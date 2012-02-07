@@ -1,0 +1,82 @@
+/* -*- coding: utf-8 -*-
+ * ----------------------------------------------------------------------
+ * Copyright © 2012, RedJack, LLC.
+ * All rights reserved.
+ *
+ * Please see the LICENSE.txt file in this distribution for license
+ * details.
+ * ----------------------------------------------------------------------
+ */
+
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <libcork/core.h>
+#include <libcork/helpers/errors.h>
+#include <libcork/helpers/gc.h>
+
+#include "swanson/helpers.h"
+#include "swanson/metamodel.h"
+#include "swanson/prelude.h"
+#include "swanson/state.h"
+
+#include "prelude/string.h"
+
+
+/*-----------------------------------------------------------------------
+ * swan_static_string
+ */
+
+_free_(swan_static_string) {
+    struct swan_static_string  *self = obj;
+    cork_strfree(self->contents);
+}
+
+_gc_no_recurse_(swan_static_string);
+
+struct swan_static_string *
+swan_static_string_new(struct swan *s, const char *contents)
+{
+    struct swan_static_string  *self = cork_gc_new(swan_static_string);
+    self->contents = cork_strdup(contents);
+    self->parent.c = &swan_static_string__class;
+    return self;
+}
+
+_eval_(swan_static_string__eq) {
+    struct swan_static_string  *lhs;
+    struct swan_static_string  *rhs;
+    _ensure_param_count_(2);
+    _ensure_result_count_(0);
+    _ensure_class_(lhs, params[0], swan_static_string);
+    _ensure_class_(rhs, params[1], swan_static_string);
+    return swan_bool_new(strcmp(lhs->contents, rhs->contents) == 0);
+}
+
+_eval_(swan_static_string__print) {
+    struct swan_static_string  *self;
+    _ensure_param_count_(1);
+    _ensure_result_count_(0);
+    _ensure_class_(self, params[0], swan_static_string);
+    printf("%s\n", self->contents);
+    return NULL;
+}
+
+_eval_(swan_static_string__unref) {
+    struct swan_static_string  *self;
+    _ensure_param_count_(1);
+    _ensure_result_count_(0);
+    _ensure_class_(self, params[0], swan_static_string);
+    cork_gc_decref(self);
+    return NULL;
+}
+
+_get_method_(swan_static_string) {
+    _return_method_(swan_static_string, print);
+    _return_method_(swan_static_string, unref);
+    _return_default_methods_(swan_static_string);
+    _return_op_(swan_static_string, eq, "==");
+    swan_metamodel_undefined(vc->name, name);
+    return NULL;
+}

@@ -1,0 +1,269 @@
+/* -*- coding: utf-8 -*-
+ * ----------------------------------------------------------------------
+ * Copyright © 2012, RedJack, LLC.
+ * All rights reserved.
+ *
+ * Please see the LICENSE.txt file in this distribution for license
+ * details.
+ * ----------------------------------------------------------------------
+ */
+
+#include <assert.h>
+#include <stdlib.h>
+
+#include <libcork/core.h>
+#include <libcork/helpers/errors.h>
+#include <libcork/helpers/gc.h>
+#include <libcork/ds.h>
+
+#include "swanson/helpers.h"
+#include "swanson/metamodel.h"
+#include "swanson/prelude.h"
+#include "swanson/state.h"
+
+#include "prelude/string.h"
+
+
+/*-----------------------------------------------------------------------
+ * Error handling
+ */
+
+void
+swan_metamodel_redefined(const char *class_name, const char *method_name)
+{
+    cork_error_set
+        (SWAN_METAMODEL_ERROR, SWAN_METAMODEL_REDEFINED,
+         "Class \"%s\" already contains method \"%s\"",
+         class_name, method_name);
+}
+
+void
+swan_metamodel_undefined(const char *class_name, const char *method_name)
+{
+    cork_error_set
+        (SWAN_METAMODEL_ERROR, SWAN_METAMODEL_UNDEFINED,
+         "Class \"%s\" doesn't contain method \"%s\"",
+         class_name, method_name);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Metaclasses
+ */
+
+/* The metaclass of the metaclasses */
+
+#define swan_metaclass__class___class_id  0x35d00736
+#define swan_metaclass__class___class_name  "swan_metaclass__class"
+
+_get_method_(swan_metaclass__class);
+static struct swan_class  swan_metaclass__class = {
+    { &swan_static_metaclass },
+    swan_metaclass__class___class_id,
+    swan_metaclass__class___class_name,
+    swan_metaclass__class__get_method,
+};
+
+/* A metaclass for static swan_class structs */
+
+_default_methods_(swan_static_metaclass);
+_method_(swan_static_metaclass__name);
+_method_(swan_static_metaclass__unref);
+
+_eval_(swan_static_metaclass__name) {
+    struct swan_class  *c;
+    struct swan_static_string  *result;
+    _ensure_param_count_(1);
+    _ensure_result_count_(1);
+    c = cork_container_of(params[0], struct swan_class, parent);
+    rpp_check(result = swan_static_string_new(s, c->name));
+    return &result->parent;
+}
+
+_eval_(swan_static_metaclass__unref) {
+    _ensure_param_count_(1);
+    _ensure_result_count_(0);
+    return NULL;
+}
+
+_get_method_(swan_static_metaclass) {
+    _return_method_(swan_static_metaclass, name);
+    _return_method_(swan_static_metaclass, unref);
+    _return_default_methods_(swan_static_metaclass);
+    swan_metamodel_undefined(vc->name, name);
+    return NULL;
+}
+
+struct swan_class  swan_static_metaclass = {
+    { &swan_metaclass__class },
+    swan_static_metaclass___class_id,
+    swan_static_metaclass___class_name,
+    swan_static_metaclass__get_method,
+};
+
+/* A metaclass for garbage-collected swan_class structs */
+
+_default_methods_(swan_gc_metaclass);
+_method_(swan_gc_metaclass__name);
+_method_(swan_gc_metaclass__unref);
+
+_eval_(swan_gc_metaclass__name) {
+    struct swan_class  *c;
+    struct swan_static_string  *result;
+    _ensure_param_count_(1);
+    _ensure_result_count_(1);
+    c = cork_container_of(params[0], struct swan_class, parent);
+    rpp_check(result = swan_static_string_new(s, c->name));
+    return &result->parent;
+}
+
+_eval_(swan_gc_metaclass__unref) {
+    _ensure_param_count_(1);
+    _ensure_result_count_(0);
+    cork_gc_decref(params[0]);
+    return NULL;
+}
+
+_get_method_(swan_gc_metaclass) {
+    _return_method_(swan_gc_metaclass, name);
+    _return_method_(swan_gc_metaclass, unref);
+    _return_default_methods_(swan_gc_metaclass);
+    swan_metamodel_undefined(vc->name, name);
+    return NULL;
+}
+
+struct swan_class  swan_gc_metaclass = {
+    { &swan_metaclass__class },
+    swan_gc_metaclass___class_id,
+    swan_gc_metaclass___class_name,
+    swan_gc_metaclass__get_method,
+};
+
+/* A metaclass for metaclasses */
+
+_default_methods_(swan_metaclass__class);
+_method_(swan_metaclass__class__name);
+_method_(swan_metaclass__class__unref);
+
+_eval_(swan_metaclass__class__name) {
+    struct swan_class  *c;
+    struct swan_static_string  *result;
+    _ensure_param_count_(1);
+    _ensure_result_count_(1);
+    c = cork_container_of(params[0], struct swan_class, parent);
+    result = swan_static_string_new(s, c->name);
+    return &result->parent;
+}
+
+_eval_(swan_metaclass__class__unref) {
+    _ensure_param_count_(1);
+    _ensure_result_count_(0);
+    return NULL;
+}
+
+_get_method_(swan_metaclass__class) {
+    _return_method_(swan_metaclass__class, name);
+    _return_method_(swan_metaclass__class, unref);
+    _return_default_methods_(swan_metaclass__class);
+    swan_metamodel_undefined(vc->name, name);
+    return NULL;
+}
+
+
+/*-----------------------------------------------------------------------
+ * swan_default_class
+ */
+
+_free_(swan_default_class) {
+    struct cork_hash_table_iterator  iter;
+    struct cork_hash_table_entry  *entry;
+    struct swan_default_class  *self = obj;
+    cork_strfree(self->parent.name);
+    cork_hash_table_iterator_init(&self->methods, &iter);
+    while ((entry = cork_hash_table_iterator_next(&iter)) != NULL) {
+        if (entry->key != NULL) {
+            cork_strfree(entry->key);
+        }
+        if (entry->value != NULL) {
+            free(entry->value);
+        }
+    }
+    cork_hash_table_done(&self->methods);
+}
+
+_gc_no_recurse_(swan_default_class);
+
+
+static bool
+string_comparator(const void *vk1, const void *vk2)
+{
+    const char  *k1 = vk1;
+    const char  *k2 = vk2;
+    return strcmp(k1, k2) == 0;
+}
+
+static cork_hash
+string_hasher(const void *vk)
+{
+    const char  *k = vk;
+    size_t  len = strlen(k);
+    return cork_hash_buffer(0, k, len);
+}
+
+_default_methods_(swan_default_class);
+
+static struct swan_method *
+swan_default_class_get_method(struct swan *s, struct swan_class *vc,
+                              const char *name)
+{
+    struct swan_default_class  *c =
+        cork_container_of(vc, struct swan_default_class, parent);
+    struct swan_method  *result =
+        cork_hash_table_get(&c->methods, (char *) name);
+
+    if (CORK_LIKELY(result != NULL)) {
+        return result;
+    }
+
+    _return_default_methods_(swan_default_class);
+    swan_metamodel_undefined(vc->name, name);
+    return NULL;
+}
+
+struct swan_class *
+swan_default_class_new(struct swan *s, const char *name)
+{
+    struct swan_default_class  *c = cork_gc_new(swan_default_class);
+    cork_hash_table_init(&c->methods, 0, string_hasher, string_comparator);
+    c->parent.name = cork_strdup(name);
+    c->parent.id = swan_default_class___class_id;
+    c->parent.parent.c = &swan_gc_metaclass;
+    c->parent.get_method = swan_default_class_get_method;
+    return &c->parent;
+}
+
+
+int
+swan_default_class_add_method(struct swan *s, struct swan_class *vc,
+                              const char *name, swan_method_evaluate evaluate)
+{
+    struct swan_default_class  *c =
+        cork_container_of(vc, struct swan_default_class, parent);
+    struct cork_hash_table_entry  *entry;
+    bool  is_new;
+    entry = cork_hash_table_get_or_create(&c->methods, (char *) name, &is_new);
+
+    if (is_new) {
+        struct swan_default_method  *method =
+            cork_new(struct swan_default_method);
+        entry->key = (char *) cork_strdup(name);
+        method->parent.evaluate = evaluate;
+        method->c = c;
+        entry->value = method;
+        return 0;
+    }
+
+    /* Method already exists */
+    swan_metamodel_redefined(vc->name, name);
+    return -1;
+}

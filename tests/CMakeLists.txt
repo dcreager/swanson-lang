@@ -33,6 +33,7 @@ endmacro(make_test)
 
 make_test(test-blocks)
 make_test(test-engine)
+make_test(test-metamodel)
 make_test(test-s0-parser)
 make_test(test-scopes)
 make_test(test-types)
