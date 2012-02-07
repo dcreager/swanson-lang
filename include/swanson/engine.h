@@ -47,7 +47,7 @@ struct swan_engine {
 
 
 struct s0_value *
-swan_prelude_new(struct swan *s);
+swan_old_prelude_new(struct swan *s);
 
 
 #endif  /* SWANSON_ENGINE_H */

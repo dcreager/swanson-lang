@@ -16,7 +16,7 @@
 #include <swanson/s0.h>
 
 
-struct swan_prelude {
+struct swan_old_prelude {
     struct s0_type  *prelude;
 
     /* bool */

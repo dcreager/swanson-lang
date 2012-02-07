@@ -189,7 +189,7 @@ main(int argc, char **argv)
     }
 
     /* Create the prelude */
-    ep_check(block->upvalue = swan_prelude_new(&s));
+    ep_check(block->upvalue = swan_old_prelude_new(&s));
 
     /* Finally, evaluate it and print it */
     ep_check(result = s0_basic_block_evaluate(&s, block, NULL));
