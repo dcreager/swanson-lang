@@ -9,7 +9,8 @@
  */
 
 #include <libcork/core.h>
-#include <libcork/core/checkers.h>
+#include <libcork/helpers/errors.h>
+#include <libcork/helpers/gc.h>
 
 #include "swanson/engine.h"
 #include "swanson/state.h"
@@ -19,17 +20,12 @@
 #include "lagavulin/engine.h"
 
 
-static void
-lgv_expression_recurse(struct cork_gc *gc, void *vself,
-                       cork_gc_recurser recurse, void *ud)
-{
-    struct lgv_expression  *self = vself;
+_recurse_(lgv_expression) {
+    struct lgv_expression  *self = obj;
     recurse(gc, self->block, ud);
 }
 
-static struct cork_gc_obj_iface  lgv_expression_gc = {
-    NULL, lgv_expression_recurse
-};
+_gc_no_free_(lgv_expression);
 
 
 struct swan_expression *

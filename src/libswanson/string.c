@@ -12,23 +12,20 @@
 #include <string.h>
 
 #include <libcork/core.h>
-#include <libcork/core/checkers.h>
+#include <libcork/helpers/errors.h>
+#include <libcork/helpers/gc.h>
 
 #include "swanson/state.h"
 #include "swanson/swanson0.h"
 
-static void
-swan_string_free(struct cork_gc *gc, void *vself)
-{
-    struct swan_string  *self = vself;
+_free_(swan_string) {
+    struct swan_string  *self = obj;
     if (self->value != NULL) {
         free((void *) self->value);
     }
 }
 
-static struct cork_gc_obj_iface  swan_string_gc = {
-    swan_string_free, NULL
-};
+_gc_no_recurse_(swan_string);
 
 struct swan_string *
 swan_string_new(struct swan *s, const char *value, size_t length,

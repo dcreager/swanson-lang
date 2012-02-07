@@ -11,7 +11,8 @@
 #include <string.h>
 
 #include <libcork/core.h>
-#include <libcork/core/checkers.h>
+#include <libcork/helpers/errors.h>
+#include <libcork/helpers/gc.h>
 #include <libcork/ds.h>
 
 #include "swanson/state.h"
@@ -38,11 +39,8 @@ swan_scope_hasher(const void *vk)
     return cork_hash_buffer(0, k, len);
 }
 
-static void
-swan_scope_recurse(struct cork_gc *gc, void *vself,
-                   cork_gc_recurser recurse, void *ud)
-{
-    struct swan_scope  *self = vself;
+_recurse_(swan_scope) {
+    struct swan_scope  *self = obj;
     struct cork_hash_table_iterator  iter;
     struct cork_hash_table_entry  *entry;
 
@@ -63,10 +61,8 @@ swan_scope_free_entries(struct cork_hash_table_entry *entry, void *ud)
     return CORK_HASH_TABLE_MAP_DELETE;
 }
 
-static void
-swan_scope_free(struct cork_gc *gc, void *vself)
-{
-    struct swan_scope  *self = vself;
+_free_(swan_scope) {
+    struct swan_scope  *self = obj;
     cork_hash_table_map
         (&self->entries, swan_scope_free_entries, NULL);
     cork_hash_table_done(&self->entries);
@@ -75,9 +71,7 @@ swan_scope_free(struct cork_gc *gc, void *vself)
     }
 }
 
-static struct cork_gc_obj_iface  swan_scope_gc = {
-    swan_scope_free, swan_scope_recurse
-};
+_gc_(swan_scope);
 
 struct swan_scope *
 swan_scope_new(struct swan *s, const char *name, struct swan_scope *parent,

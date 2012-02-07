@@ -9,25 +9,21 @@
  */
 
 #include <libcork/core.h>
-#include <libcork/core/checkers.h>
+#include <libcork/helpers/errors.h>
+#include <libcork/helpers/gc.h>
 
 #include "swanson/s0.h"
 #include "swanson/state.h"
 
 
-static void
-s0_basic_block_free(struct cork_gc *gc, void *vself)
-{
-    struct s0_basic_block  *self = vself;
+_free_(s0_basic_block) {
+    struct s0_basic_block  *self = obj;
     cork_strfree(self->name);
 }
 
-static void
-s0_basic_block_recurse(struct cork_gc *gc, void *vself,
-                       cork_gc_recurser recurse, void *ud)
-{
+_recurse_(s0_basic_block) {
     size_t  i;
-    struct s0_basic_block  *self = vself;
+    struct s0_basic_block  *self = obj;
     recurse(gc, self->upvalue, ud);
     recurse(gc, self->input, ud);
     recurse(gc, self->output, ud);
@@ -36,9 +32,7 @@ s0_basic_block_recurse(struct cork_gc *gc, void *vself,
     }
 }
 
-static struct cork_gc_obj_iface  s0_basic_block_gc = {
-    s0_basic_block_free, s0_basic_block_recurse
-};
+_gc_(s0_basic_block);
 
 
 struct s0_basic_block *

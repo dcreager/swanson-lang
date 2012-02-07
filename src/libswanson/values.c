@@ -9,7 +9,8 @@
  */
 
 #include <libcork/core.h>
-#include <libcork/core/checkers.h>
+#include <libcork/helpers/errors.h>
+#include <libcork/helpers/gc.h>
 
 #include "swanson/s0.h"
 #include "swanson/state.h"
@@ -40,10 +41,8 @@ s0_value_kind_name(enum s0_value_kind kind)
     }
 }
 
-static void
-s0_value_free(struct cork_gc *gc, void *vself)
-{
-    struct s0_value  *self = vself;
+_free_(s0_value) {
+    struct s0_value  *self = obj;
     switch (self->kind) {
         case S0_VALUE_LITERAL:
             cork_strfree(self->_.literal);
@@ -58,11 +57,8 @@ s0_value_free(struct cork_gc *gc, void *vself)
     }
 }
 
-static void
-s0_value_recurse(struct cork_gc *gc, void *vself,
-                 cork_gc_recurser recurse, void *ud)
-{
-    struct s0_value  *self = vself;
+_recurse_(s0_value) {
+    struct s0_value  *self = obj;
     switch (self->kind) {
         case S0_VALUE_TYPE:
             recurse(gc, self->_.type, ud);
@@ -95,9 +91,7 @@ s0_value_recurse(struct cork_gc *gc, void *vself,
     recurse(gc, self->type, ud);
 }
 
-static struct cork_gc_obj_iface  s0_value_gc = {
-    s0_value_free, s0_value_recurse
-};
+_gc_(s0_value);
 
 
 struct s0_value *

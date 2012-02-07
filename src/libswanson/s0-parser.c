@@ -14,7 +14,7 @@
 #include <string.h>
 
 #include <libcork/core.h>
-#include <libcork/core/checkers.h>
+#include <libcork/helpers/errors.h>
 #include <libcork/ds.h>
 
 #include "swanson/s0.h"

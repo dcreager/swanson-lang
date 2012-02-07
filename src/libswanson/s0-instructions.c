@@ -9,7 +9,8 @@
  */
 
 #include <libcork/core.h>
-#include <libcork/core/checkers.h>
+#include <libcork/helpers/errors.h>
+#include <libcork/helpers/gc.h>
 #include <libcork/ds.h>
 
 #include "swanson/s0.h"
@@ -20,10 +21,8 @@
  * Instructions
  */
 
-static void
-s0_instruction_free(struct cork_gc *gc, void *vself)
-{
-    struct s0_instruction  *self = vself;
+_free_(s0_instruction) {
+    struct s0_instruction  *self = obj;
     size_t  i;
     switch (self->op) {
         case S0_TPRODUCT:
@@ -73,9 +72,7 @@ s0_instruction_free(struct cork_gc *gc, void *vself)
     }
 }
 
-static struct cork_gc_obj_iface  s0_instruction_gc = {
-    s0_instruction_free, NULL
-};
+_gc_no_recurse_(s0_instruction);
 
 
 struct s0_instruction *

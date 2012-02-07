@@ -11,7 +11,8 @@
 #include <string.h>
 
 #include <libcork/core.h>
-#include <libcork/core/checkers.h>
+#include <libcork/helpers/errors.h>
+#include <libcork/helpers/gc.h>
 
 #include "swanson/s0.h"
 #include "swanson/state.h"
@@ -30,37 +31,19 @@ s0_c_function_init(struct swan *s, struct s0_c_function *self,
     return 0;
 }
 
-void
-s0_c_function_done(struct cork_gc *gc, struct s0_c_function *self)
-{
+
+_free_(s0_c_function) {
+    struct s0_c_function  *self = obj;
     cork_strfree(self->name);
 }
 
-void
-s0_c_function_recurse(struct cork_gc *gc, struct s0_c_function *self,
-                      cork_gc_recurser recurse, void *ud)
-{
+_recurse_(s0_c_function) {
+    struct s0_c_function  *self = obj;
     recurse(gc, self->input, ud);
     recurse(gc, self->output, ud);
 }
 
-
-static void
-s0_c_function_gc_free(struct cork_gc *gc, void *vself)
-{
-    s0_c_function_done(gc, vself);
-}
-
-static void
-s0_c_function_gc_recurse(struct cork_gc *gc, void *vself,
-                         cork_gc_recurser recurse, void *ud)
-{
-    s0_c_function_recurse(gc, vself, recurse, ud);
-}
-
-static struct cork_gc_obj_iface  s0_c_function_gc = {
-    s0_c_function_gc_free, s0_c_function_gc_recurse
-};
+_gc_(s0_c_function);
 
 struct s0_c_function *
 s0_c_function_new(struct swan *s, const char *name, s0_c_func func,

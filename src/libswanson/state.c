@@ -9,7 +9,7 @@
  */
 
 #include <libcork/core.h>
-#include <libcork/core/checkers.h>
+#include <libcork/helpers/errors.h>
 
 #include "swanson/state.h"
 

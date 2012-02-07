@@ -11,7 +11,8 @@
 #include <string.h>
 
 #include <libcork/core.h>
-#include <libcork/core/checkers.h>
+#include <libcork/helpers/errors.h>
+#include <libcork/helpers/gc.h>
 #include <libcork/ds.h>
 
 #include "swanson/s0.h"
@@ -34,11 +35,8 @@ constant_comparator(const void *key1, const void *key2)
     return ((uintptr_t) key1) == ((uintptr_t) key2);
 }
 
-static void
-s0_scope_recurse(struct cork_gc *gc, void *vself,
-                 cork_gc_recurser recurse, void *ud)
-{
-    struct s0_scope  *self = vself;
+_recurse_(s0_scope) {
+    struct s0_scope  *self = obj;
     struct cork_hash_table_iterator  iter;
     struct cork_hash_table_entry  *entry;
 
@@ -49,19 +47,15 @@ s0_scope_recurse(struct cork_gc *gc, void *vself,
     }
 }
 
-static void
-s0_scope_free(struct cork_gc *gc, void *vself)
-{
-    struct s0_scope  *self = vself;
+_free_(s0_scope) {
+    struct s0_scope  *self = obj;
     cork_hash_table_done(&self->entries);
     if (self->name != NULL) {
         cork_strfree(self->name);
     }
 }
 
-static struct cork_gc_obj_iface  s0_scope_gc = {
-    s0_scope_free, s0_scope_recurse
-};
+_gc_(s0_scope);
 
 struct s0_scope *
 s0_scope_new(struct swan *s, const char *name, struct cork_error *err)

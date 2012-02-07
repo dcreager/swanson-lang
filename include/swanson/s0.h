@@ -428,13 +428,6 @@ s0_c_function_init(struct swan *s, struct s0_c_function *self,
                    struct s0_type *input, struct s0_type *output,
                    struct cork_error *err);
 
-void
-s0_c_function_done(struct cork_gc *gc, struct s0_c_function *self);
-
-void
-s0_c_function_recurse(struct cork_gc *gc, struct s0_c_function *self,
-                      cork_gc_recurser recurse, void *ud);
-
 #define s0_c_function_call(s, self, input, err) \
     ((self)->func((s), (self), (input), (err)))
 

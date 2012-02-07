@@ -11,7 +11,8 @@
 #include <string.h>
 
 #include <libcork/core.h>
-#include <libcork/core/checkers.h>
+#include <libcork/helpers/errors.h>
+#include <libcork/helpers/gc.h>
 #include <libcork/ds.h>
 
 #include "swanson/s0.h"
@@ -31,10 +32,8 @@ s0_type_free_keys(struct cork_hash_table_entry *entry, void *ud)
     return CORK_HASH_TABLE_MAP_DELETE;
 }
 
-static void
-s0_type_free(struct cork_gc *gc, void *vself)
-{
-    struct s0_type  *self = vself;
+_free_(s0_type) {
+    struct s0_type  *self = obj;
 
     switch (self->kind) {
         case S0_TYPE_PRODUCT:
@@ -65,11 +64,8 @@ s0_type_free(struct cork_gc *gc, void *vself)
     }
 }
 
-static void
-s0_type_recurse(struct cork_gc *gc, void *vself,
-                cork_gc_recurser recurse, void *ud)
-{
-    struct s0_type  *self = vself;
+_recurse_(s0_type) {
+    struct s0_type  *self = obj;
     switch (self->kind) {
         case S0_TYPE_PRODUCT:
         {
@@ -127,9 +123,7 @@ s0_type_recurse(struct cork_gc *gc, void *vself,
     }
 }
 
-static struct cork_gc_obj_iface  s0_type_gc = {
-    s0_type_free, s0_type_recurse
-};
+_gc_(s0_type);
 
 
 struct s0_type *
