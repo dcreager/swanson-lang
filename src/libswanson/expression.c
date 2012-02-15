@@ -12,8 +12,7 @@
 #include "swanson/swanson0.h"
 
 int
-swan_expression_init(struct swan *s, struct swan_expression *expr,
-                     struct cork_error *err)
+swan_expression_init(struct swan *s, struct swan_expression *expr)
 {
     expr->parent.cls = SWAN_EXPRESSION_CLASS;
     return 0;

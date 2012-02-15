@@ -19,18 +19,15 @@ struct swan_engine;
 struct swan_prelude;
 
 struct swan {
-    struct cork_gc  gc;
     struct swan_engine  *engine;
     struct swan_prelude  *prelude;
 };
 
 int
-swan_init(struct swan *state, struct cork_error *err);
+swan_init(struct swan *state);
 
 void
 swan_done(struct swan *state);
-
-#define swan_gc(s)  (&(s)->gc)
 
 
 /* Hash of "swanson.general" */

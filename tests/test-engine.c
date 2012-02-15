@@ -29,7 +29,7 @@
 #define test_expr(expr, typ, union_branch, expected, fmt) \
     do { \
         struct lgv_state  *state = lgv_engine_state(s->engine); \
-        fail_if_error(swan_execute(s, expr, &err)); \
+        fail_if_error(swan_execute(s, expr)); \
         typ  actual = \
             lgv_stack_get(&state->stack, state->stack.top, -1, union_branch); \
         fail_unless(actual == expected, \
@@ -52,17 +52,17 @@
         struct swan_obj  *obj; \
         struct swan_macro  *macro; \
         struct swan_expression  *expr; \
-        fail_if_error(kernel = swan_create_kernel(s, &err)); \
-        fail_if_error(str = swan_string_new(s, #value, sizeof(#value), &err)); \
-        fail_if_error(obj = swan_scope_get(s, kernel, #typ ":int-literal", &err)); \
+        fail_if_error(kernel = swan_create_kernel(s)); \
+        fail_if_error(str = swan_string_new(s, #value, sizeof(#value))); \
+        fail_if_error(obj = swan_scope_get(s, kernel, #typ ":int-literal")); \
         fail_unless(swan_is_macro(obj)); \
         macro = swan_obj_macro(obj); \
         fail_if_error(expr = swan_macro_execute \
-                      (s, macro, &err, 1, swan_string_obj(str))); \
+                      (s, macro, 1, swan_string_obj(str))); \
         test_expr(expr, typ, union_branch, value, fmt); \
-        cork_gc_decref(swan_gc(s), expr); \
-        cork_gc_decref(swan_gc(s), str); \
-        cork_gc_decref(swan_gc(s), kernel); \
+        cork_gc_decref(expr); \
+        cork_gc_decref(str); \
+        cork_gc_decref(kernel); \
         CLEANUP_LGV; \
     } \
     END_TEST
@@ -86,36 +86,36 @@ START_TEST(test_add_int_01)
     struct swan_expression  *rhs;
     struct swan_expression  *expr;
 
-    fail_if_error(s = lgv_new(&err));
-    fail_if_error(kernel = swan_create_kernel(s, &err));
+    fail_if_error(s = lgv_new());
+    fail_if_error(kernel = swan_create_kernel(s));
 
-    fail_if_error(obj = swan_scope_get(s, kernel, "int:int-literal", &err));
+    fail_if_error(obj = swan_scope_get(s, kernel, "int:int-literal"));
     fail_unless(swan_is_macro(obj));
     macro = swan_obj_macro(obj);
 
-    fail_if_error(str = swan_string_new(s, "42", sizeof("42"), &err));
+    fail_if_error(str = swan_string_new(s, "42", sizeof("42")));
     fail_if_error(lhs = swan_macro_execute
-                  (s, macro, &err, 1, swan_string_obj(str)));
-    cork_gc_decref(swan_gc(s), str);
+                  (s, macro, 1, swan_string_obj(str)));
+    cork_gc_decref(str);
 
-    fail_if_error(str = swan_string_new(s, "-10", sizeof("-10"), &err));
+    fail_if_error(str = swan_string_new(s, "-10", sizeof("-10")));
     fail_if_error(rhs = swan_macro_execute
-                  (s, macro, &err, 1, swan_string_obj(str)));
-    cork_gc_decref(swan_gc(s), str);
+                  (s, macro, 1, swan_string_obj(str)));
+    cork_gc_decref(str);
 
-    fail_if_error(obj = swan_scope_get(s, kernel, "int:add", &err));
+    fail_if_error(obj = swan_scope_get(s, kernel, "int:add"));
     fail_unless(swan_is_macro(obj));
     macro = swan_obj_macro(obj);
 
     fail_if_error(expr = swan_macro_execute
-                  (s, macro, &err, 2,
+                  (s, macro, 2,
                    swan_expression_obj(lhs),
                    swan_expression_obj(rhs)));
 
     test_expr(expr, int, si, 32, "%d");
 
-    cork_gc_decref(swan_gc(s), expr);
-    cork_gc_decref(swan_gc(s), kernel);
+    cork_gc_decref(expr);
+    cork_gc_decref(kernel);
     CLEANUP_LGV;
 }
 END_TEST

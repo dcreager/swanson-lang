@@ -19,8 +19,7 @@
 int
 main(int argc, char **argv)
 {
-    struct cork_error  err = CORK_ERROR_INIT();
-    struct swan  *s = lgv_new(&err);
+    struct swan  *s = lgv_new();
 
     struct lgv_block  *binit = lgv_block_new_constant_int(s, 0);
 
@@ -49,9 +48,8 @@ main(int argc, char **argv)
     printf("Got: %d\n", actual);
     lgv_state_done(s, &state);
 
-    cork_gc_decref(swan_gc(s), b0);
+    cork_gc_decref(b0);
     lgv_free(s);
-    cork_error_done(&err);
 
     return 0;
 }

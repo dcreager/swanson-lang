@@ -28,9 +28,9 @@
     do { \
         struct cork_buffer  actual = CORK_BUFFER_INIT(); \
         struct cork_buffer  givens = CORK_BUFFER_INIT(); \
-        fail_if_error(cork_buffer_set_string(&actual, "", &err)); \
-        fail_if_error(cork_buffer_set_string(&givens, "", &err)); \
-        fail_if_error(s0_type_print(&s, t, &actual, &givens, &err)); \
+        fail_if_error(cork_buffer_set_string(&actual, "")); \
+        fail_if_error(cork_buffer_set_string(&givens, "")); \
+        fail_if_error(s0_type_print(&s, t, &actual, &givens)); \
         if ((strcmp(actual.buf, expected) != 0) || \
             (strcmp(givens.buf, expected_givens) != 0)) { \
             fail("Unexpected type: %s\n\n%s", \
@@ -49,10 +49,10 @@ START_TEST(test_literal)
     DECLARE_SWAN;
 
     struct s0_type  *t0;
-    fail_if_error(t0 = s0_literal_type_new(&s, &err));
+    fail_if_error(t0 = s0_literal_type_new(&s));
     check_type(t0, "LITERAL", "");
 
-    cork_gc_decref(swan_gc(&s), t0);
+    cork_gc_decref(t0);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -69,12 +69,12 @@ START_TEST(test_location_01)
 
     struct s0_type  *t0;
     struct s0_type  *t1;
-    fail_if_error(t1 = s0_literal_type_new(&s, &err));
-    fail_if_error(t0 = s0_location_type_new(&s, t1, &err));
+    fail_if_error(t1 = s0_literal_type_new(&s));
+    fail_if_error(t0 = s0_location_type_new(&s, t1));
     check_type(t0, "*LITERAL", "");
 
-    cork_gc_decref(swan_gc(&s), t0);
-    cork_gc_decref(swan_gc(&s), t1);
+    cork_gc_decref(t0);
+    cork_gc_decref(t1);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -91,13 +91,13 @@ START_TEST(test_product_01)
 
     struct s0_type  *t0;
     struct s0_type  *t1;
-    fail_if_error(t0 = s0_product_type_new(&s, &err));
-    fail_if_error(t1 = s0_literal_type_new(&s, &err));
-    fail_if_error(s0_product_type_add(&s, t0, t1, &err));
+    fail_if_error(t0 = s0_product_type_new(&s));
+    fail_if_error(t1 = s0_literal_type_new(&s));
+    fail_if_error(s0_product_type_add(&s, t0, t1));
     check_type(t0, "LITERAL", "");
 
-    cork_gc_decref(swan_gc(&s), t0);
-    cork_gc_decref(swan_gc(&s), t1);
+    cork_gc_decref(t0);
+    cork_gc_decref(t1);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -109,14 +109,14 @@ START_TEST(test_product_02)
 
     struct s0_type  *t0;
     struct s0_type  *t1;
-    fail_if_error(t0 = s0_product_type_new(&s, &err));
-    fail_if_error(t1 = s0_literal_type_new(&s, &err));
-    fail_if_error(s0_product_type_add(&s, t0, t1, &err));
-    fail_if_error(s0_product_type_add(&s, t0, t1, &err));
+    fail_if_error(t0 = s0_product_type_new(&s));
+    fail_if_error(t1 = s0_literal_type_new(&s));
+    fail_if_error(s0_product_type_add(&s, t0, t1));
+    fail_if_error(s0_product_type_add(&s, t0, t1));
     check_type(t0, "LITERAL,LITERAL", "");
 
-    cork_gc_decref(swan_gc(&s), t0);
-    cork_gc_decref(swan_gc(&s), t1);
+    cork_gc_decref(t0);
+    cork_gc_decref(t1);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -133,17 +133,17 @@ START_TEST(test_interface_01)
 
     struct s0_type  *t0;
     struct s0_type  *t1;
-    fail_if_error(t1 = s0_literal_type_new(&s, &err));
-    fail_if_error(t0 = s0_interface_type_new(&s, &err));
-    fail_if_error(s0_interface_type_add(&s, t0, "lit", t1, &err));
-    cork_gc_decref(swan_gc(&s), t1);
+    fail_if_error(t1 = s0_literal_type_new(&s));
+    fail_if_error(t0 = s0_interface_type_new(&s));
+    fail_if_error(s0_interface_type_add(&s, t0, "lit", t1));
+    cork_gc_decref(t1);
     check_type(t0, "α",
         "interface α {\n"
         "  lit LITERAL\n"
         "}\n"
     );
 
-    cork_gc_decref(swan_gc(&s), t0);
+    cork_gc_decref(t0);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -157,16 +157,16 @@ START_TEST(test_interface_02)
     struct s0_type  *t0;
     struct s0_type  *t1;
 
-    fail_if_error(tr = s0_recursive_type_new(&s, &err));
-    fail_if_error(t0 = s0_interface_type_new(&s, &err));
+    fail_if_error(tr = s0_recursive_type_new(&s));
+    fail_if_error(t0 = s0_interface_type_new(&s));
 
-    fail_if_error(t1 = s0_product_type_new(&s, &err));
-    fail_if_error(s0_product_type_add(&s, t1, tr, &err));
-    fail_if_error(s0_product_type_add(&s, t1, tr, &err));
-    fail_if_error(s0_interface_type_add(&s, t0, "+", t1, &err));
-    cork_gc_decref(swan_gc(&s), t1);
+    fail_if_error(t1 = s0_product_type_new(&s));
+    fail_if_error(s0_product_type_add(&s, t1, tr));
+    fail_if_error(s0_product_type_add(&s, t1, tr));
+    fail_if_error(s0_interface_type_add(&s, t0, "+", t1));
+    cork_gc_decref(t1);
 
-    fail_if_error(s0_recursive_type_resolve(&s, tr, t0, &err));
+    fail_if_error(s0_recursive_type_resolve(&s, tr, t0));
 
     check_type(t0, "α",
         "interface α {\n"
@@ -174,8 +174,8 @@ START_TEST(test_interface_02)
         "}\n"
     );
 
-    cork_gc_decref(swan_gc(&s), t0);
-    cork_gc_decref(swan_gc(&s), tr);
+    cork_gc_decref(t0);
+    cork_gc_decref(tr);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -190,22 +190,22 @@ START_TEST(test_interface_03)
     struct s0_type  *t0;
     struct s0_type  *t1;
 
-    fail_if_error(tr = s0_recursive_type_new(&s, &err));
-    fail_if_error(tl = s0_location_type_new(&s, tr, &err));
-    fail_if_error(t0 = s0_interface_type_new(&s, &err));
+    fail_if_error(tr = s0_recursive_type_new(&s));
+    fail_if_error(tl = s0_location_type_new(&s, tr));
+    fail_if_error(t0 = s0_interface_type_new(&s));
 
-    fail_if_error(t1 = s0_product_type_new(&s, &err));
-    fail_if_error(s0_product_type_add(&s, t1, tl, &err));
-    fail_if_error(s0_product_type_add(&s, t1, tr, &err));
-    fail_if_error(s0_interface_type_add(&s, t0, "=", t1, &err));
-    cork_gc_decref(swan_gc(&s), t1);
+    fail_if_error(t1 = s0_product_type_new(&s));
+    fail_if_error(s0_product_type_add(&s, t1, tl));
+    fail_if_error(s0_product_type_add(&s, t1, tr));
+    fail_if_error(s0_interface_type_add(&s, t0, "=", t1));
+    cork_gc_decref(t1);
 
-    fail_if_error(t1 = s0_product_type_new(&s, &err));
-    fail_if_error(s0_product_type_add(&s, t1, tl, &err));
-    fail_if_error(s0_interface_type_add(&s, t0, "unary *", t1, &err));
-    cork_gc_decref(swan_gc(&s), t1);
+    fail_if_error(t1 = s0_product_type_new(&s));
+    fail_if_error(s0_product_type_add(&s, t1, tl));
+    fail_if_error(s0_interface_type_add(&s, t0, "unary *", t1));
+    cork_gc_decref(t1);
 
-    fail_if_error(s0_recursive_type_resolve(&s, tr, t0, &err));
+    fail_if_error(s0_recursive_type_resolve(&s, tr, t0));
 
     check_type(t0, "α",
         "interface α {\n"
@@ -214,8 +214,8 @@ START_TEST(test_interface_03)
         "}\n"
     );
 
-    cork_gc_decref(swan_gc(&s), t0);
-    cork_gc_decref(swan_gc(&s), tr);
+    cork_gc_decref(t0);
+    cork_gc_decref(tr);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -227,13 +227,13 @@ START_TEST(test_interface_no_duplicates)
 
     struct s0_type  *t0;
     struct s0_type  *t1;
-    fail_if_error(t1 = s0_literal_type_new(&s, &err));
-    fail_if_error(t0 = s0_interface_type_new(&s, &err));
-    fail_if_error(s0_interface_type_add(&s, t0, "lit", t1, &err));
-    fail_unless_error(s0_interface_type_add(&s, t0, "lit", t1, &err),
+    fail_if_error(t1 = s0_literal_type_new(&s));
+    fail_if_error(t0 = s0_interface_type_new(&s));
+    fail_if_error(s0_interface_type_add(&s, t0, "lit", t1));
+    fail_unless_error(s0_interface_type_add(&s, t0, "lit", t1),
                       "Shouldn't be able to add a duplicate entry");
-    cork_gc_decref(swan_gc(&s), t1);
-    cork_gc_decref(swan_gc(&s), t0);
+    cork_gc_decref(t1);
+    cork_gc_decref(t0);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -250,12 +250,12 @@ START_TEST(test_block_01)
 
     struct s0_type  *t0;
     struct s0_type  *t1;
-    fail_if_error(t1 = s0_literal_type_new(&s, &err));
-    fail_if_error(t0 = s0_block_type_new(&s, t1, &err));
+    fail_if_error(t1 = s0_literal_type_new(&s));
+    fail_if_error(t0 = s0_block_type_new(&s, t1));
     check_type(t0, "{LITERAL}", "");
 
-    cork_gc_decref(swan_gc(&s), t0);
-    cork_gc_decref(swan_gc(&s), t1);
+    cork_gc_decref(t0);
+    cork_gc_decref(t1);
     CLEANUP_SWAN;
 }
 END_TEST

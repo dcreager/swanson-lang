@@ -65,17 +65,15 @@ struct swan_scope {
 };
 
 struct swan_scope *
-swan_scope_new(struct swan *s, const char *name, struct swan_scope *parent,
-               struct cork_error *err);
+swan_scope_new(struct swan *s, const char *name, struct swan_scope *parent);
 
 int
 swan_scope_add(struct swan *s, struct swan_scope *scope,
-               const char *name, struct swan_obj *obj,
-               struct cork_error *err);
+               const char *name, struct swan_obj *obj);
 
 struct swan_obj *
 swan_scope_get(struct swan *s, struct swan_scope *scope,
-               const char *name, struct cork_error *err);
+               const char *name);
 
 
 /* Hash of "swanson.string" */
@@ -94,8 +92,7 @@ struct swan_string {
 };
 
 struct swan_string *
-swan_string_new(struct swan *s, const char *value, size_t length,
-                struct cork_error *err);
+swan_string_new(struct swan *s, const char *value, size_t length);
 
 bool
 swan_string_equal(struct swan_string *s1, struct swan_string *s2);
@@ -114,7 +111,7 @@ struct swan_macro;
 
 typedef struct swan_expression *
 (*swan_macro_execute_func)(struct swan *s, struct swan_macro *macro,
-                           struct cork_error *err, size_t num_args, ...);
+                           size_t num_args, ...);
 
 struct swan_macro {
     struct swan_obj  parent;
@@ -124,11 +121,10 @@ struct swan_macro {
 
 struct swan_macro *
 swan_macro_new(struct swan *s, const char *name,
-               swan_macro_execute_func execute,
-               struct cork_error *err);
+               swan_macro_execute_func execute);
 
-#define swan_macro_execute(s, macro, err, ...) \
-    ((macro)->execute((s), (macro), (err), __VA_ARGS__))
+#define swan_macro_execute(s, macro, ...) \
+    ((macro)->execute((s), (macro), __VA_ARGS__))
 
 /* Hash of "swanson.macro" */
 #define SWAN_MACRO_ERROR  0xc007f757
@@ -152,29 +148,24 @@ struct swan_expression {
 };
 
 int
-swan_expression_init(struct swan *s, struct swan_expression *expr,
-                     struct cork_error *err);
+swan_expression_init(struct swan *s, struct swan_expression *expr);
 
 
 struct swan_scope *
 swan_check_arg_scope(struct swan *s, va_list args,
-                     const char *context, size_t arg_num,
-                     struct cork_error *err);
+                     const char *context, size_t arg_num);
 
 struct swan_string *
 swan_check_arg_string(struct swan *s, va_list args,
-                      const char *context, size_t arg_num,
-                      struct cork_error *err);
+                      const char *context, size_t arg_num);
 
 struct swan_macro *
 swan_check_arg_macro(struct swan *s, va_list args,
-                     const char *context, size_t arg_num,
-                     struct cork_error *err);
+                     const char *context, size_t arg_num);
 
 struct swan_expression *
 swan_check_arg_expression(struct swan *s, va_list args,
-                          const char *context, size_t arg_num,
-                          struct cork_error *err);
+                          const char *context, size_t arg_num);
 
 
 #endif  /* SWANSON_SWANSON0_H */

@@ -29,17 +29,10 @@ _gc_no_free_(lgv_expression);
 
 
 struct swan_expression *
-lgv_expression_new(struct swan *s, struct lgv_block *b,
-                   struct cork_error *err)
+lgv_expression_new(struct swan *s, struct lgv_block *b)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct lgv_expression  *self = NULL;
-    e_check_gc_new(lgv_expression, self, "expression");
-    ei_check(swan_expression_init(s, &self->parent, err));
+    struct lgv_expression  *self = cork_gc_new(lgv_expression);
+    swan_expression_init(s, &self->parent);
     self->block = b;
     return &self->parent;
-
-error:
-    cork_gc_decref(swan_gc(s), b);
-    return NULL;
 }

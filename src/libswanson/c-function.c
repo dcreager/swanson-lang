@@ -18,17 +18,15 @@
 #include "swanson/state.h"
 
 
-int
+void
 s0_c_function_init(struct swan *s, struct s0_c_function *self,
                    const char *name, s0_c_func func,
-                   struct s0_type *input, struct s0_type *output,
-                   struct cork_error *err)
+                   struct s0_type *input, struct s0_type *output)
 {
-    ri_check_alloc(self->name = cork_strdup(name), "C function name");
+    self->name = cork_strdup(name);
     self->func = func;
     self->input = input;
     self->output = output;
-    return 0;
 }
 
 
@@ -47,17 +45,9 @@ _gc_(s0_c_function);
 
 struct s0_c_function *
 s0_c_function_new(struct swan *s, const char *name, s0_c_func func,
-                  struct s0_type *input, struct s0_type *output,
-                  struct cork_error *err)
+                  struct s0_type *input, struct s0_type *output)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_c_function  *self;
-    rp_check_gc_new(s0_c_function, self, "C function");
-    memset(self, 0, sizeof(struct s0_c_function));
-    ei_check(s0_c_function_init(s, self, name, func, input, output, err));
+    struct s0_c_function  *self = cork_gc_new(s0_c_function);
+    s0_c_function_init(s, self, name, func, input, output);
     return self;
-
-error:
-    cork_gc_decref(swan_gc(s), self);
-    return NULL;
 }

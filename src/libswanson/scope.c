@@ -58,39 +58,31 @@ _free_(s0_scope) {
 _gc_(s0_scope);
 
 struct s0_scope *
-s0_scope_new(struct swan *s, const char *name, struct cork_error *err)
+s0_scope_new(struct swan *s, const char *name)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_scope  *self = NULL;
-    rp_check_gc_new(s0_scope, self, "scope");
-
+    struct s0_scope  *self = cork_gc_new(s0_scope);
     cork_hash_table_init
         (&self->entries, 0, constant_hasher, constant_comparator);
-    e_check_alloc(self->name = cork_strdup(name), "scope name");
+    self->name = cork_strdup(name);
     return self;
-
-error:
-    cork_gc_decref(swan_gc(s), self);
-    return NULL;
 }
 
 int
 s0_scope_add(struct swan *s, struct s0_scope *self,
-             s0_tagged_id id, struct s0_value *value,
-             struct cork_error *err)
+             s0_tagged_id id, struct s0_value *value)
 {
     bool  is_new;
     struct cork_hash_table_entry  *entry =
         cork_hash_table_get_or_create
-        (&self->entries, (void *) id, &is_new, err);
+        (&self->entries, (void *) id, &is_new);
 
     if (!is_new) {
         cork_error_set
-            (err, S0_ERROR, S0_REDEFINED,
+            (S0_ERROR, S0_REDEFINED,
              "%c%"PRIuPTR" redefined in scope %s",
              s0_id_tag_name(s0_tagged_id_tag(id)),
              s0_tagged_id_id(id), self->name);
-        cork_gc_decref(swan_gc(s), value);
+        cork_gc_decref(value);
         return -1;
     }
 
@@ -101,13 +93,13 @@ s0_scope_add(struct swan *s, struct s0_scope *self,
 
 struct s0_value *
 s0_scope_get(struct swan *s, struct s0_scope *self,
-             s0_tagged_id id, struct cork_error *err)
+             s0_tagged_id id)
 {
     struct s0_value  *result =
         cork_hash_table_get(&self->entries, (void *) id);
     if (result == NULL) {
         cork_error_set
-            (err, S0_ERROR, S0_UNDEFINED,
+            (S0_ERROR, S0_UNDEFINED,
              "No entry named %c%"PRIuPTR" in scope %s",
              s0_id_tag_name(s0_tagged_id_tag(id)),
              s0_tagged_id_id(id), self->name);
@@ -118,8 +110,8 @@ s0_scope_get(struct swan *s, struct s0_scope *self,
 }
 
 struct s0_scope *
-s0_scope_new_top_level(struct swan *s, struct cork_error *err)
+s0_scope_new_top_level(struct swan *s)
 {
     /* Eventually we'll add the prelude and kernel to the scope here */
-    return s0_scope_new(s, "<top-level>", err);
+    return s0_scope_new(s, "<top-level>");
 }

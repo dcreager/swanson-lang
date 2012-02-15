@@ -76,55 +76,45 @@ _gc_no_recurse_(s0_instruction);
 
 
 struct s0_instruction *
-s0i_trecursive_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_trecursive_new(struct swan *s, s0_id dest)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "TRECURSIVE instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_TRECURSIVE;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     return self;
 }
 
 struct s0_instruction *
-s0i_ttype_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_ttype_new(struct swan *s, s0_id dest)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "TTYPE instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_TTYPE;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     return self;
 }
 
 struct s0_instruction *
-s0i_tliteral_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_tliteral_new(struct swan *s, s0_id dest)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "TLITERAL instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_TLITERAL;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     return self;
 }
 
 struct s0_instruction *
-s0i_tany_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_tany_new(struct swan *s, s0_id dest)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "TANY instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_TANY;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     return self;
 }
 
 struct s0_instruction *
-s0i_tproduct_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_tproduct_new(struct swan *s, s0_id dest)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "TPRODUCT instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_TPRODUCT;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     cork_array_init(&self->_.tproduct.elements);
@@ -133,11 +123,9 @@ s0i_tproduct_new(struct swan *s, s0_id dest, struct cork_error *err)
 
 struct s0_instruction *
 s0i_tfunction_new(struct swan *s, s0_id dest, s0_tagged_id input,
-                  s0_tagged_id output, struct cork_error *err)
+                  s0_tagged_id output)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "TFUNCTION instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_TFUNCTION;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     self->_.tfunction.input = input;
@@ -146,12 +134,9 @@ s0i_tfunction_new(struct swan *s, s0_id dest, s0_tagged_id input,
 }
 
 struct s0_instruction *
-s0i_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
-                  struct cork_error *err)
+s0i_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "TLOCATION instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_TLOCATION;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     self->_.tlocation.referent = referent;
@@ -159,11 +144,9 @@ s0i_tlocation_new(struct swan *s, s0_id dest, s0_tagged_id referent,
 }
 
 struct s0_instruction *
-s0i_tinterface_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_tinterface_new(struct swan *s, s0_id dest)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "TINTERFACE instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_TINTERFACE;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     cork_array_init(&self->_.tinterface.entries);
@@ -172,12 +155,11 @@ s0i_tinterface_new(struct swan *s, s0_id dest, struct cork_error *err)
 
 int
 s0i_tinterface_add_entry(struct swan *s, struct s0_instruction *self,
-                         const char *key, s0_tagged_id entry,
-                         struct cork_error *err)
+                         const char *key, s0_tagged_id entry)
 {
     struct s0_tinterface_entry  new_entry = { key, entry };
     ei_check(cork_array_append
-             (&self->_.tinterface.entries, new_entry, err));
+             (&self->_.tinterface.entries, new_entry));
     return 0;
 
 error:
@@ -186,32 +168,23 @@ error:
 }
 
 struct s0_instruction *
-s0i_tclass_new(struct swan *s, s0_id dest, const char *name,
-               struct cork_error *err)
+s0i_tclass_new(struct swan *s, s0_id dest, const char *name)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "TCLASS instruction");
-    e_check_alloc(self->_.tclass.name = cork_strdup(name),
-                  "TCLASS name");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
+    self->_.tclass.name = cork_strdup(name);
     self->op = S0_TCLASS;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     cork_array_init(&self->_.tclass.entries);
     return self;
-
-error:
-    cork_gc_decref(swan_gc(s), self);
-    return NULL;
 }
 
 int
 s0i_tclass_add_entry(struct swan *s, struct s0_instruction *self,
-                     const char *key, s0_tagged_id entry,
-                     struct cork_error *err)
+                     const char *key, s0_tagged_id entry)
 {
     struct s0_tinterface_entry  new_entry = { key, entry };
     ei_check(cork_array_append
-             (&self->_.tclass.entries, new_entry, err));
+             (&self->_.tclass.entries, new_entry));
     return 0;
 
 error:
@@ -220,12 +193,9 @@ error:
 }
 
 struct s0_instruction *
-s0i_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
-               struct cork_error *err)
+s0i_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "TBLOCK instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_TBLOCK;
     self->dest = s0_tagged_id(S0_ID_TAG_TYPE, dest);
     self->_.tblock.result = result;
@@ -233,30 +203,19 @@ s0i_tblock_new(struct swan *s, s0_id dest, s0_tagged_id result,
 }
 
 struct s0_instruction *
-s0i_literal_new(struct swan *s, s0_id dest, const char *contents,
-                struct cork_error *err)
+s0i_literal_new(struct swan *s, s0_id dest, const char *contents)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "LITERAL instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_LITERAL;
     self->dest = s0_tagged_id(S0_ID_TAG_LOCAL, dest);
-    e_check_alloc(self->_.literal.contents =
-                      cork_strdup(contents),
-                  "LITERAL contents");
+    self->_.literal.contents = cork_strdup(contents);
     return self;
-
-error:
-    cork_gc_decref(swan_gc(s), self);
-    return NULL;
 }
 
 struct s0_instruction *
-s0i_tuple_new(struct swan *s, s0_id dest, struct cork_error *err)
+s0i_tuple_new(struct swan *s, s0_id dest)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "TUPLE instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_TUPLE;
     self->dest = s0_tagged_id(S0_ID_TAG_LOCAL, dest);
     cork_array_init(&self->_.tuple.elements);
@@ -264,12 +223,9 @@ s0i_tuple_new(struct swan *s, s0_id dest, struct cork_error *err)
 }
 
 struct s0_instruction *
-s0i_gettuple_new(struct swan *s, s0_id dest, s0_tagged_id src, size_t index,
-                 struct cork_error *err)
+s0i_gettuple_new(struct swan *s, s0_id dest, s0_tagged_id src, size_t index)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "GETTUPLE instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_GETTUPLE;
     self->dest = s0_tagged_id(S0_ID_TAG_LOCAL, dest);
     self->_.gettuple.src = src;
@@ -279,52 +235,35 @@ s0i_gettuple_new(struct swan *s, s0_id dest, s0_tagged_id src, size_t index,
 
 struct s0_instruction *
 s0i_getclass_new(struct swan *s, s0_id dest, s0_tagged_id src,
-                 const char *index, struct cork_error *err)
+                 const char *index)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "GETCLASS instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_GETCLASS;
     self->dest = s0_tagged_id(S0_ID_TAG_LOCAL, dest);
     self->_.gettuple.src = src;
-    e_check_alloc(self->_.getclass.index = cork_strdup(index),
-                  "GETCLASS index");
+    self->_.getclass.index = cork_strdup(index);
     return self;
-
-error:
-    cork_gc_decref(swan_gc(s), self);
-    return NULL;
 }
 
 struct s0_instruction *
-s0i_macro_new(struct swan *s, s0_id dest, const char *name,
-              struct cork_error *err)
+s0i_macro_new(struct swan *s, s0_id dest, const char *name)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "MACRO instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_MACRO;
     self->dest = s0_tagged_id(S0_ID_TAG_LOCAL, dest);
-    e_check_alloc(self->_.macro.name = cork_strdup(name),
-                  "macro name");
+    self->_.macro.name = cork_strdup(name);
     self->_.macro.upvalue = S0_ID_NULL;
     self->_.macro.input = S0_ID_NULL;
     self->_.macro.output = S0_ID_NULL;
     cork_array_init(&self->_.macro.body);
     return self;
-
-error:
-    cork_gc_decref(swan_gc(s), self);
-    return NULL;
 }
 
 struct s0_instruction *
 s0i_call_new(struct swan *s, s0_id dest, s0_tagged_id callee,
-             s0_tagged_id input, struct cork_error *err)
+             s0_tagged_id input)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "CALL instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_CALL;
     self->dest = s0_tagged_id(S0_ID_TAG_LOCAL, dest);
     self->_.call.callee = callee;
@@ -333,11 +272,9 @@ s0i_call_new(struct swan *s, s0_id dest, s0_tagged_id callee,
 }
 
 struct s0_instruction *
-s0i_return_new(struct swan *s, s0_tagged_id result, struct cork_error *err)
+s0i_return_new(struct swan *s, s0_tagged_id result)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_instruction  *self = NULL;
-    rp_check_gc_new(s0_instruction, self, "RETURN instruction");
+    struct s0_instruction  *self = cork_gc_new(s0_instruction);
     self->op = S0_RETURN;
     self->_.ret.result = result;
     return self;

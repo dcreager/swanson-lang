@@ -31,24 +31,23 @@
 struct swan_engine {
     /* Executes the given top-level expression */
     int
-    (*execute)(struct swan *s, struct swan_expression *expr,
-               struct cork_error *err);
+    (*execute)(struct swan *s, struct swan_expression *expr);
 
     /* Creates a Swanson0 kernel */
     struct swan_scope *
-    (*create_kernel)(struct swan *s, struct cork_error *err);
+    (*create_kernel)(struct swan *s);
 };
 
 
-#define swan_execute(s, expr, err) \
-    ((s)->engine->execute((s), (expr), (err)))
+#define swan_execute(s, expr) \
+    ((s)->engine->execute((s), (expr)))
 
-#define swan_create_kernel(s, err) \
-    ((s)->engine->create_kernel((s), (err)))
+#define swan_create_kernel(s) \
+    ((s)->engine->create_kernel((s)))
 
 
 struct s0_value *
-swan_prelude_new(struct swan *s, struct cork_error *err);
+swan_prelude_new(struct swan *s);
 
 
 #endif  /* SWANSON_ENGINE_H */

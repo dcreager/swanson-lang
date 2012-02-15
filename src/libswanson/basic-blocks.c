@@ -38,19 +38,13 @@ _gc_(s0_basic_block);
 struct s0_basic_block *
 s0_basic_block_new(struct swan *s, const char *name,
                    struct s0_value *upvalue, struct s0_type *input,
-                   struct s0_type *output, struct cork_error *err)
+                   struct s0_type *output)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_basic_block  *self = NULL;
-    rp_check_gc_new(s0_basic_block, self, "basic block");
-    e_check_alloc(self->name = cork_strdup(name), "basic block name");
-    self->upvalue = cork_gc_incref(swan_gc(s), upvalue);
-    self->input = cork_gc_incref(swan_gc(s), input);
-    self->output = cork_gc_incref(swan_gc(s), output);
+    struct s0_basic_block  *self = cork_gc_new(s0_basic_block);
+    self->name = cork_strdup(name);
+    self->upvalue = cork_gc_incref(upvalue);
+    self->input = cork_gc_incref(input);
+    self->output = cork_gc_incref(output);
     cork_array_init(&self->body);
     return self;
-
-error:
-    cork_gc_decref(swan_gc(s), self);
-    return NULL;
 }

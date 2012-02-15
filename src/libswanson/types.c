@@ -127,41 +127,33 @@ _gc_(s0_type);
 
 
 struct s0_type *
-s0_type_type_new(struct swan *s, struct cork_error *err)
+s0_type_type_new(struct swan *s)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_type  *self;
-    rp_check_gc_new(s0_type, self, "type type");
+    struct s0_type  *self = cork_gc_new(s0_type);
     self->kind = S0_TYPE_TYPE;
     return self;
 }
 
 struct s0_type *
-s0_literal_type_new(struct swan *s, struct cork_error *err)
+s0_literal_type_new(struct swan *s)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_type  *self;
-    rp_check_gc_new(s0_type, self, "literal type");
+    struct s0_type  *self = cork_gc_new(s0_type);
     self->kind = S0_TYPE_LITERAL;
     return self;
 }
 
 struct s0_type *
-s0_any_type_new(struct swan *s, struct cork_error *err)
+s0_any_type_new(struct swan *s)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_type  *self;
-    rp_check_gc_new(s0_type, self, "any type");
+    struct s0_type  *self = cork_gc_new(s0_type);
     self->kind = S0_TYPE_ANY;
     return self;
 }
 
 struct s0_type *
-s0_product_type_new(struct swan *s, struct cork_error *err)
+s0_product_type_new(struct swan *s)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_type  *self;
-    rp_check_gc_new(s0_type, self, "product type");
+    struct s0_type  *self = cork_gc_new(s0_type);
     self->kind = S0_TYPE_PRODUCT;
     cork_array_init(&self->_.product);
     return self;
@@ -169,42 +161,37 @@ s0_product_type_new(struct swan *s, struct cork_error *err)
 
 int
 s0_product_type_add(struct swan *s, struct s0_type *self,
-                    struct s0_type *type, struct cork_error *err)
+                    struct s0_type *type)
 {
     if (self->kind != S0_TYPE_PRODUCT) {
         cork_error_set
-            (err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
+            (SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
              "Can only add elements to product types");
         return -1;
     }
 
     return cork_array_append
         (&self->_.product,
-         cork_gc_incref(swan_gc(s), type), err);
+         cork_gc_incref(type));
 }
 
 struct s0_type *
 s0_function_type_new(struct swan *s, struct s0_type *input,
-                     struct s0_type *output, struct cork_error *err)
+                     struct s0_type *output)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_type  *self;
-    rp_check_gc_new(s0_type, self, "function type");
+    struct s0_type  *self = cork_gc_new(s0_type);
     self->kind = S0_TYPE_FUNCTION;
-    self->_.function.input = cork_gc_incref(swan_gc(s), input);
-    self->_.function.output = cork_gc_incref(swan_gc(s), output);
+    self->_.function.input = cork_gc_incref(input);
+    self->_.function.output = cork_gc_incref(output);
     return self;
 }
 
 struct s0_type *
-s0_location_type_new(struct swan *s, struct s0_type *referent,
-                     struct cork_error *err)
+s0_location_type_new(struct swan *s, struct s0_type *referent)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_type  *self;
-    rp_check_gc_new(s0_type, self, "location type");
+    struct s0_type  *self = cork_gc_new(s0_type);
     self->kind = S0_TYPE_LOCATION;
-    self->_.location.referent = cork_gc_incref(swan_gc(s), referent);
+    self->_.location.referent = cork_gc_incref(referent);
     return self;
 }
 
@@ -225,11 +212,9 @@ string_hasher(const void *vk)
 }
 
 struct s0_type *
-s0_interface_type_new(struct swan *s, struct cork_error *err)
+s0_interface_type_new(struct swan *s)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_type  *self;
-    rp_check_gc_new(s0_type, self, "interface type");
+    struct s0_type  *self = cork_gc_new(s0_type);
     self->kind = S0_TYPE_INTERFACE;
     cork_hash_table_init
         (&self->_.interface.entries, 0, string_hasher, string_comparator);
@@ -238,96 +223,85 @@ s0_interface_type_new(struct swan *s, struct cork_error *err)
 
 int
 s0_interface_type_add(struct swan *s, struct s0_type *self,
-                      const char *name, struct s0_type *type,
-                      struct cork_error *err)
+                      const char *name, struct s0_type *type)
 {
     bool  is_new;
     struct cork_hash_table_entry  *entry = NULL;
 
     if (self->kind != S0_TYPE_INTERFACE) {
         cork_error_set
-            (err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
+            (SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
              "Can only add entries to interface types");
         return -1;
     }
 
     rip_check(entry = cork_hash_table_get_or_create
               (&self->_.interface.entries,
-               (char *) name, &is_new, err));
+               (char *) name, &is_new));
 
     if (!is_new) {
         cork_error_set
-            (err, S0_ERROR, S0_REDEFINED,
+            (S0_ERROR, S0_REDEFINED,
              "Interface already has an entry named \"%s\"", name);
         return -1;
     }
 
-    ri_check_alloc(entry->key = (char *) cork_strdup(name),
-                   "interface entry name");
-    entry->value = cork_gc_incref(swan_gc(s), type);
+    entry->key = (char *) cork_strdup(name);
+    entry->value = cork_gc_incref(type);
     return 0;
 }
 
 struct s0_type *
-s0_class_type_new(struct swan *s, const char *name, struct cork_error *err)
+s0_class_type_new(struct swan *s, const char *name)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_type  *self;
-    rp_check_gc_new(s0_type, self, "class type");
+    struct s0_type  *self = cork_gc_new(s0_type);
     memset(self, 0, sizeof(struct s0_type));
     self->kind = S0_TYPE_CLASS;
-    e_check_alloc(self->_.cls.name = cork_strdup(name),
-                  "class type name");
+    self->_.cls.name = cork_strdup(name);
     cork_hash_table_init
         (&self->_.cls.entries, 0, string_hasher, string_comparator);
     return self;
-
-error:
-    cork_gc_decref(swan_gc(s), self);
-    return NULL;
 }
 
 int
 s0_class_type_add(struct swan *s, struct s0_type *self,
-                  const char *name, struct s0_value *value,
-                  struct cork_error *err)
+                  const char *name, struct s0_value *value)
 {
     bool  is_new;
     struct cork_hash_table_entry  *entry = NULL;
 
     if (self->kind != S0_TYPE_CLASS) {
         cork_error_set
-            (err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
+            (SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
              "Can only add entries to class types");
         return -1;
     }
 
     rip_check(entry = cork_hash_table_get_or_create
               (&self->_.cls.entries,
-               (char *) name, &is_new, err));
+               (char *) name, &is_new));
 
     if (!is_new) {
         cork_error_set
-            (err, S0_ERROR, S0_REDEFINED,
+            (S0_ERROR, S0_REDEFINED,
              "Class already has an entry named \"%s\"", name);
         return -1;
     }
 
-    ri_check_alloc(entry->key = (char *) cork_strdup(name),
-                   "class entry name");
-    entry->value = cork_gc_incref(swan_gc(s), value);
+    entry->key = (char *) cork_strdup(name);
+    entry->value = cork_gc_incref(value);
     return 0;
 }
 
 struct s0_value *
 s0_class_type_get(struct swan *s, struct s0_type *self,
-                  const char *name, struct cork_error *err)
+                  const char *name)
 {
     struct cork_hash_table_entry  *entry;
 
     if (self->kind != S0_TYPE_CLASS) {
         cork_error_set
-            (err, SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
+            (SWAN_GENERAL_ERROR, SWAN_GENERAL_BAD_TYPE,
              "Can only get entries from class types");
         return NULL;
     }
@@ -336,7 +310,7 @@ s0_class_type_get(struct swan *s, struct s0_type *self,
         (&self->_.cls.entries, name);
     if (entry == NULL) {
         cork_error_set
-            (err, S0_ERROR, S0_UNDEFINED,
+            (S0_ERROR, S0_UNDEFINED,
              "No entry named \"%s\" in class \"%s\"",
              name, self->_.cls.name);
         return NULL;
@@ -346,23 +320,18 @@ s0_class_type_get(struct swan *s, struct s0_type *self,
 }
 
 struct s0_type *
-s0_block_type_new(struct swan *s, struct s0_type *result,
-                  struct cork_error *err)
+s0_block_type_new(struct swan *s, struct s0_type *result)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_type  *self;
-    rp_check_gc_new(s0_type, self, "block type");
+    struct s0_type  *self = cork_gc_new(s0_type);
     self->kind = S0_TYPE_BLOCK;
-    self->_.block.result = cork_gc_incref(swan_gc(s), result);
+    self->_.block.result = cork_gc_incref(result);
     return self;
 }
 
 struct s0_type *
-s0_recursive_type_new(struct swan *s, struct cork_error *err)
+s0_recursive_type_new(struct swan *s)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct s0_type  *self;
-    rp_check_gc_new(s0_type, self, "recursive type");
+    struct s0_type  *self = cork_gc_new(s0_type);
     self->kind = S0_TYPE_RECURSIVE;
     self->_.recursive.resolved = NULL;
     return self;
@@ -370,22 +339,22 @@ s0_recursive_type_new(struct swan *s, struct cork_error *err)
 
 int
 s0_recursive_type_resolve(struct swan *s, struct s0_type *self,
-                          struct s0_type *resolved, struct cork_error *err)
+                          struct s0_type *resolved)
 {
     if (self->kind != S0_TYPE_RECURSIVE) {
         cork_error_set
-            (err, S0_ERROR, S0_REDEFINED,
+            (S0_ERROR, S0_REDEFINED,
              "Recursive type redefined");
         return -1;
     }
 
     if (self->_.recursive.resolved != NULL) {
         cork_error_set
-            (err, S0_ERROR, S0_REDEFINED,
+            (S0_ERROR, S0_REDEFINED,
              "Recursive type redefined");
         return -1;
     }
 
-    self->_.recursive.resolved = cork_gc_incref(swan_gc(s), resolved);
+    self->_.recursive.resolved = cork_gc_incref(resolved);
     return 0;
 }

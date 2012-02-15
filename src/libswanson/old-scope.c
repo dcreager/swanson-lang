@@ -74,42 +74,32 @@ _free_(swan_scope) {
 _gc_(swan_scope);
 
 struct swan_scope *
-swan_scope_new(struct swan *s, const char *name, struct swan_scope *parent,
-               struct cork_error *err)
+swan_scope_new(struct swan *s, const char *name, struct swan_scope *parent)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct swan_scope  *self = NULL;
-    e_check_gc_new(swan_scope, self, "scope");
+    struct swan_scope  *self = cork_gc_new(swan_scope);
     self->parent.cls = SWAN_SCOPE_CLASS;
-    self->parent_scope = cork_gc_incref(swan_gc(s), parent);
+    self->parent_scope = cork_gc_incref(parent);
 
     cork_hash_table_init
         (&self->entries, 0, swan_scope_hasher, swan_scope_comparator);
-    e_check_alloc(self->name = cork_strdup(name), "scope name");
+    self->name = cork_strdup(name);
     return self;
-
-error:
-    if (self != NULL) {
-        cork_gc_decref(swan_gc(s), self);
-    }
-    return NULL;
 }
 
 int
 swan_scope_add(struct swan *s, struct swan_scope *self,
-               const char *name, struct swan_obj *obj,
-               struct cork_error *err)
+               const char *name, struct swan_obj *obj)
 {
     bool  is_new;
     struct cork_hash_table_entry  *entry =
         cork_hash_table_get_or_create
-        (&self->entries, (void *) name, &is_new, err);
+        (&self->entries, (void *) name, &is_new);
 
     if (!is_new) {
         cork_error_set
-            (err, SWAN_SCOPE_ERROR, SWAN_SCOPE_REDEFINED,
+            (SWAN_SCOPE_ERROR, SWAN_SCOPE_REDEFINED,
              "%s redefined in scope %s", name, self->name);
-        cork_gc_decref(swan_gc(s), obj);
+        cork_gc_decref(obj);
         return -1;
     }
 
@@ -120,17 +110,17 @@ swan_scope_add(struct swan *s, struct swan_scope *self,
 
 static struct swan_obj *
 swan_scope_get_(struct swan *s, const char *scope_name, struct swan_scope *self,
-                const char *name, struct cork_error *err)
+                const char *name)
 {
     struct swan_obj  *result =
         cork_hash_table_get(&self->entries, name);
     if (result == NULL) {
         if (self->parent_scope == NULL) {
             cork_error_set
-                (err, SWAN_SCOPE_ERROR, SWAN_SCOPE_REDEFINED,
+                (SWAN_SCOPE_ERROR, SWAN_SCOPE_REDEFINED,
                  "No entry named %s in scope %s", name, self->name);
         } else {
-            return swan_scope_get_(s, scope_name, self->parent_scope, name, err);
+            return swan_scope_get_(s, scope_name, self->parent_scope, name);
         }
     }
     return result;
@@ -138,7 +128,7 @@ swan_scope_get_(struct swan *s, const char *scope_name, struct swan_scope *self,
 
 struct swan_obj *
 swan_scope_get(struct swan *s, struct swan_scope *self,
-               const char *name, struct cork_error *err)
+               const char *name)
 {
-    return swan_scope_get_(s, self->name, self, name, err);
+    return swan_scope_get_(s, self->name, self, name);
 }

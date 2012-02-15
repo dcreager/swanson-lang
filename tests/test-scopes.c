@@ -34,29 +34,29 @@ START_TEST(test_scope_01)
     struct swan_string  *str1;
     struct swan_obj  *out;
 
-    fail_if_error(s0 = swan_scope_new(&s, "root", NULL, &err));
-    fail_if_error(s1 = swan_scope_new(&s, "kernel", s0, &err));
-    fail_if_error(str1 = swan_string_new(&s, "hiya", 4, &err));
-    fail_if_error(swan_scope_add(&s, s0, "kernel", swan_scope_obj(s1), &err));
-    fail_if_error(swan_scope_add(&s, s1, "name", swan_string_obj(str1), &err));
+    fail_if_error(s0 = swan_scope_new(&s, "root", NULL));
+    fail_if_error(s1 = swan_scope_new(&s, "kernel", s0));
+    fail_if_error(str1 = swan_string_new(&s, "hiya", 4));
+    fail_if_error(swan_scope_add(&s, s0, "kernel", swan_scope_obj(s1)));
+    fail_if_error(swan_scope_add(&s, s1, "name", swan_string_obj(str1)));
 
-    fail_if_error(out = swan_scope_get(&s, s0, "kernel", &err));
+    fail_if_error(out = swan_scope_get(&s, s0, "kernel"));
     fail_unless(out == swan_scope_obj(s1),
                 "Unexpected root.kernel scope");
-    fail_unless_error(out = swan_scope_get(&s, s0, "undefined", &err),
+    fail_unless_error(out = swan_scope_get(&s, s0, "undefined"),
                       "Unexpected root.undefined scope");
 
-    fail_if_error(out = swan_scope_get(&s, s1, "kernel", &err));
+    fail_if_error(out = swan_scope_get(&s, s1, "kernel"));
     fail_unless(out == swan_scope_obj(s1),
                 "Unexpected kernel.kernel scope");
-    fail_unless_error(out = swan_scope_get(&s, s1, "undefined", &err),
+    fail_unless_error(out = swan_scope_get(&s, s1, "undefined"),
                       "Unexpected kernel.undefined scope");
 
-    fail_if_error(out = swan_scope_get(&s, s1, "name", &err));
+    fail_if_error(out = swan_scope_get(&s, s1, "name"));
     fail_unless(out == swan_string_obj(str1),
                 "Unexpected kernel.name string");
 
-    cork_gc_decref(swan_gc(&s), s0);
+    cork_gc_decref(s0);
 
     CLEANUP_SWAN;
 }

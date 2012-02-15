@@ -14,19 +14,15 @@
 #include "swanson/state.h"
 
 int
-swan_init(struct swan *self, struct cork_error *err)
+swan_init(struct swan *self)
 {
-    ei_check(cork_gc_init(&self->gc));
+    cork_gc_init();
     self->prelude = NULL;
     return 0;
-
-error:
-    cork_cannot_allocate_set(err, "Swanson state");
-    return -1;
 }
 
 void
 swan_done(struct swan *self)
 {
-    cork_gc_done(&self->gc);
+    cork_gc_done();
 }

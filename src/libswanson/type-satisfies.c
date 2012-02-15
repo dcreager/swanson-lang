@@ -18,7 +18,7 @@
 
 static bool
 s0_product_type_satisfies(struct swan *s, struct s0_type *self,
-                          struct s0_type *other, struct cork_error *err)
+                          struct s0_type *other)
 {
     /* Check each element of the tuple recursively. */
     size_t  i;
@@ -31,7 +31,7 @@ s0_product_type_satisfies(struct swan *s, struct s0_type *self,
     for (i = 0; i < self_size; i++) {
         struct s0_type  *self_child = cork_array_at(&self->_.product, i);
         struct s0_type  *other_child = cork_array_at(&other->_.product, i);
-        if (!s0_type_satisfies(s, self_child, other_child, err)) {
+        if (!s0_type_satisfies(s, self_child, other_child)) {
             return false;
         }
     }
@@ -42,8 +42,7 @@ s0_product_type_satisfies(struct swan *s, struct s0_type *self,
 /* self :: INTERFACE, other :: INTERFACE */
 static bool
 s0_interface_entries_satisfy(struct swan *s, struct cork_hash_table *self,
-                             struct cork_hash_table *other,
-                             struct cork_error *err)
+                             struct cork_hash_table *other)
 {
     /* Every entry in other must have a corresponding entry in self, and
      * the type of self's entry must satisfy the type of other's entry. */
@@ -62,7 +61,7 @@ s0_interface_entries_satisfy(struct swan *s, struct cork_hash_table *self,
         }
 
         self_child = self_entry->value;
-        if (!s0_type_satisfies(s, self_child, other_child, err)) {
+        if (!s0_type_satisfies(s, self_child, other_child)) {
             return false;
         }
     }
@@ -74,7 +73,7 @@ s0_interface_entries_satisfy(struct swan *s, struct cork_hash_table *self,
 /* self :: CLASS, other :: INTERFACE */
 static bool
 s0_class_entries_satisfy(struct swan *s, struct cork_hash_table *self,
-                         struct cork_hash_table *other, struct cork_error *err)
+                         struct cork_hash_table *other)
 {
     /* Every entry in other must have a corresponding entry in self, and
      * the type of self's entry must satisfy the type of other's entry. */
@@ -93,8 +92,8 @@ s0_class_entries_satisfy(struct swan *s, struct cork_hash_table *self,
         }
 
         xp_check(false, self_child = s0_value_get_type
-                 (s, self_entry->value, err));
-        if (!s0_type_satisfies(s, self_child, other_child, err)) {
+                 (s, self_entry->value));
+        if (!s0_type_satisfies(s, self_child, other_child)) {
             return false;
         }
     }
@@ -105,7 +104,7 @@ s0_class_entries_satisfy(struct swan *s, struct cork_hash_table *self,
 
 bool
 s0_type_satisfies(struct swan *s, struct s0_type *self,
-                  struct s0_type *other, struct cork_error *err)
+                  struct s0_type *other)
 {
     /* x <: x */
     if (self == other) {
@@ -157,37 +156,37 @@ s0_type_satisfies(struct swan *s, struct s0_type *self,
         case S0_TYPE_PRODUCT:
             /* x1 <: y1, ... => (x1, ...) <: (y1, ...) */
             return (self->kind == S0_TYPE_PRODUCT) &&
-                s0_product_type_satisfies(s, self, other, err);
+                s0_product_type_satisfies(s, self, other);
 
         case S0_TYPE_FUNCTION:
             /* xp :> yp, xr <: yp => xp -> xr <: yp -> yr */
             return (self->kind == S0_TYPE_FUNCTION) &&
                 s0_type_satisfies
                     (s, other->_.function.input,
-                     self->_.function.input, err) &&
+                     self->_.function.input) &&
                 s0_type_satisfies
                     (s, self->_.function.output,
-                     other->_.function.output, err);
+                     other->_.function.output);
 
         case S0_TYPE_LOCATION:
             /* x <: y => *x <: *y */
             return (self->kind == S0_TYPE_LOCATION) &&
                 s0_type_satisfies
                     (s, self->_.location.referent,
-                     other->_.location.referent, err);
+                     other->_.location.referent);
 
         case S0_TYPE_INTERFACE:
             /* Any class or interface can satisfy an interface */
             if (self->kind == S0_TYPE_INTERFACE) {
                 return s0_interface_entries_satisfy
                     (s, &self->_.interface.entries,
-                     &other->_.interface.entries, err);
+                     &other->_.interface.entries);
             }
 
             if (self->kind == S0_TYPE_CLASS) {
                 return s0_class_entries_satisfy
                     (s, &self->_.cls.entries,
-                     &other->_.interface.entries, err);
+                     &other->_.interface.entries);
             }
 
             return false;
@@ -201,7 +200,7 @@ s0_type_satisfies(struct swan *s, struct s0_type *self,
             /* x <: y => {x} <: {y} */
             return (self->kind == S0_TYPE_BLOCK) &&
                 s0_type_satisfies
-                    (s, self->_.block.result, other->_.block.result, err);
+                    (s, self->_.block.result, other->_.block.result);
 
         default:
             return false;

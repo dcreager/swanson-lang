@@ -20,7 +20,7 @@
  */
 
 static void
-swan_macro_free(struct cork_gc *gc, void *vself)
+swan_macro_free(void *vself)
 {
     struct swan_macro  *self = vself;
     if (self->name != NULL) {
@@ -34,35 +34,25 @@ static struct cork_gc_obj_iface  swan_macro_gc = {
 
 struct swan_macro *
 swan_macro_new(struct swan *s, const char *name,
-               swan_macro_execute_func execute,
-               struct cork_error *err)
+               swan_macro_execute_func execute)
 {
-    struct cork_gc  *gc = swan_gc(s);
-    struct swan_macro  *self = NULL;
-    e_check_gc_inew(swan_macro, &swan_macro_gc, self, "macro");
-    e_check_alloc(self->name = cork_strdup(name), "macro name");
+    struct swan_macro  *self =
+        cork_gc_new_iface(struct swan_macro, &swan_macro_gc);
+    self->name = cork_strdup(name);
     self->parent.cls = SWAN_MACRO_CLASS;
     self->execute = execute;
     return self;
-
-error:
-    if (self != NULL) {
-        cork_gc_decref(swan_gc(s), self);
-    }
-
-    return NULL;
 }
 
 
 struct swan_scope *
 swan_check_arg_scope(struct swan *s, va_list args,
-                     const char *context, size_t arg_num,
-                     struct cork_error *err)
+                     const char *context, size_t arg_num)
 {
     struct swan_obj  *arg = va_arg(args, struct swan_obj *);
     if (!swan_is_scope(arg)) {
         cork_error_set
-            (err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+            (SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
              "Expected scope object for argument %zu in %s",
              arg_num, context);
         return NULL;
@@ -72,13 +62,12 @@ swan_check_arg_scope(struct swan *s, va_list args,
 
 struct swan_string *
 swan_check_arg_string(struct swan *s, va_list args,
-                      const char *context, size_t arg_num,
-                      struct cork_error *err)
+                      const char *context, size_t arg_num)
 {
     struct swan_obj  *arg = va_arg(args, struct swan_obj *);
     if (!swan_is_string(arg)) {
         cork_error_set
-            (err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+            (SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
              "Expected string constant for argument %zu in %s",
              arg_num, context);
         return NULL;
@@ -88,13 +77,12 @@ swan_check_arg_string(struct swan *s, va_list args,
 
 struct swan_macro *
 swan_check_arg_macro(struct swan *s, va_list args,
-                     const char *context, size_t arg_num,
-                     struct cork_error *err)
+                     const char *context, size_t arg_num)
 {
     struct swan_obj  *arg = va_arg(args, struct swan_obj *);
     if (!swan_is_macro(arg)) {
         cork_error_set
-            (err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+            (SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
              "Expected macro for argument %zu in %s",
              arg_num, context);
         return NULL;
@@ -104,13 +92,12 @@ swan_check_arg_macro(struct swan *s, va_list args,
 
 struct swan_expression *
 swan_check_arg_expression(struct swan *s, va_list args,
-                          const char *context, size_t arg_num,
-                          struct cork_error *err)
+                          const char *context, size_t arg_num)
 {
     struct swan_obj  *arg = va_arg(args, struct swan_obj *);
     if (!swan_is_expression(arg)) {
         cork_error_set
-            (err, SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
+            (SWAN_MACRO_ERROR, SWAN_MACRO_INVALID_ARGUMENT,
              "Expected expression for argument %zu in %s",
              arg_num, context);
         return NULL;

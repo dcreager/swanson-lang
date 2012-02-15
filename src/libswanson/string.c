@@ -28,27 +28,14 @@ _free_(swan_string) {
 _gc_no_recurse_(swan_string);
 
 struct swan_string *
-swan_string_new(struct swan *s, const char *value, size_t length,
-                struct cork_error *err)
+swan_string_new(struct swan *s, const char *value, size_t length)
 {
-    struct cork_gc  *gc = swan_gc(s);
-
-    struct swan_string  *self = NULL;
-    e_check_gc_new(swan_string, self, "string");
+    struct swan_string  *self = cork_gc_new(swan_string);
     self->parent.cls = SWAN_STRING_CLASS;
-
-    ep_check(self->value = malloc(length));
+    self->value = cork_malloc(length);
     memcpy((void *) self->value, value, length);
     self->length = length;
-
     return self;
-
-error:
-    if (self != NULL) {
-        cork_gc_decref(swan_gc(s), self);
-    }
-
-    return NULL;
 }
 
 bool

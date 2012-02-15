@@ -58,7 +58,7 @@
         DECLARE_SWAN; \
         struct lgv_block  *b0 = lgv_block_new_constant_##typ_id(&s, value); \
         test_expr(b0, typ, union_branch, value, fmt); \
-        cork_gc_decref(swan_gc(&s), b0); \
+        cork_gc_decref(b0); \
         CLEANUP_SWAN; \
     } \
     END_TEST
@@ -90,7 +90,7 @@ START_TEST(test_if_true)
     struct lgv_block  *b0 = lgv_block_new_if(&s, bc, bt, bf);
     test_expr(b0, int, si, 12, "%d");
 
-    cork_gc_decref(swan_gc(&s), b0);
+    cork_gc_decref(b0);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -106,7 +106,7 @@ START_TEST(test_if_false)
     struct lgv_block  *b0 = lgv_block_new_if(&s, bc, bt, bf);
     test_expr(b0, int, si, 43, "%d");
 
-    cork_gc_decref(swan_gc(&s), b0);
+    cork_gc_decref(b0);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -130,7 +130,7 @@ START_TEST(test_seq_01)
     struct lgv_block  *b0 = bseq3;
     test_expr(b0, int, si, 30, "%d");
 
-    cork_gc_decref(swan_gc(&s), b0);
+    cork_gc_decref(b0);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -154,7 +154,7 @@ START_TEST(test_seq_02)
     struct lgv_block  *b0 = bseq3;
     test_expr(b0, int, si, 30, "%d");
 
-    cork_gc_decref(swan_gc(&s), b0);
+    cork_gc_decref(b0);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -178,7 +178,7 @@ START_TEST(test_seq_03)
     struct lgv_block  *b0 = bseq3;
     test_expr(b0, int, si, 30, "%d");
 
-    cork_gc_decref(swan_gc(&s), b0);
+    cork_gc_decref(b0);
     CLEANUP_SWAN;
 }
 END_TEST
@@ -206,7 +206,7 @@ START_TEST(test_while_01)
     struct lgv_block  *b0 = lgv_block_new_seq(&s, binit, bwhile);
     test_expr(b0, int, si, 5, "%d");
 
-    cork_gc_decref(swan_gc(&s), b0);
+    cork_gc_decref(b0);
     CLEANUP_SWAN;
 }
 END_TEST

@@ -39,7 +39,7 @@ struct lgv_engine {
     (&(cork_container_of((seng), struct lgv_engine, parent)->root_state))
 
 struct swan *
-lgv_new(struct cork_error *err);
+lgv_new(void);
 
 void
 lgv_free(struct swan *s);
@@ -54,8 +54,7 @@ struct lgv_expression {
     (cork_container_of((sexpr), struct lgv_expression, parent)->block)
 
 struct swan_expression *
-lgv_expression_new(struct swan *s, struct lgv_block *b,
-                   struct cork_error *err);
+lgv_expression_new(struct swan *s, struct lgv_block *b);
 
 
 #endif  /* LAGAVULIN_ENGINE_H */
