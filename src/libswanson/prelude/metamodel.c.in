@@ -27,155 +27,155 @@
  */
 
 void
-swan_metamodel_redefined(const char *class_name, const char *method_name)
+swan_metamodel_redefined(const char *breed_name, const char *method_name)
 {
     cork_error_set
         (SWAN_METAMODEL_ERROR, SWAN_METAMODEL_REDEFINED,
-         "Class \"%s\" already contains method \"%s\"",
-         class_name, method_name);
+         "Breed \"%s\" already contains method \"%s\"",
+         breed_name, method_name);
 }
 
 void
-swan_metamodel_undefined(const char *class_name, const char *method_name)
+swan_metamodel_undefined(const char *breed_name, const char *method_name)
 {
     cork_error_set
         (SWAN_METAMODEL_ERROR, SWAN_METAMODEL_UNDEFINED,
-         "Class \"%s\" doesn't contain method \"%s\"",
-         class_name, method_name);
+         "Breed \"%s\" doesn't contain method \"%s\"",
+         breed_name, method_name);
 }
 
 
 /*-----------------------------------------------------------------------
- * Metaclasses
+ * Metabreedes
  */
 
-/* The metaclass of the metaclasses */
+/* The metabreed of the metabreedes */
 
-#define swan_metaclass__class___class_id  0x35d00736
-#define swan_metaclass__class___class_name  "swan_metaclass__class"
+#define swan_metabreed__breed___breed_id  0x35d00736
+#define swan_metabreed__breed___breed_name  "swan_metabreed__breed"
 
-_get_method_(swan_metaclass__class);
-static struct swan_class  swan_metaclass__class = {
-    { &swan_static_metaclass },
-    swan_metaclass__class___class_id,
-    swan_metaclass__class___class_name,
-    swan_metaclass__class__get_method,
+_get_method_(swan_metabreed__breed);
+static struct swan_breed  swan_metabreed__breed = {
+    { &swan_static_metabreed },
+    swan_metabreed__breed___breed_id,
+    swan_metabreed__breed___breed_name,
+    swan_metabreed__breed__get_method,
 };
 
-/* A metaclass for static swan_class structs */
+/* A metabreed for static swan_breed structs */
 
-_default_methods_(swan_static_metaclass);
-_method_(swan_static_metaclass__name);
-_method_(swan_static_metaclass__unref);
+_default_methods_(swan_static_metabreed);
+_method_(swan_static_metabreed__name);
+_method_(swan_static_metabreed__unref);
 
-_eval_(swan_static_metaclass__name) {
-    struct swan_class  *c;
+_eval_(swan_static_metabreed__name) {
+    struct swan_breed  *b;
     struct swan_static_string  *result;
     _ensure_param_count_(1);
     _ensure_result_count_(1);
-    c = cork_container_of(params[0], struct swan_class, parent);
-    rpp_check(result = swan_static_string_new(s, c->name));
+    b = cork_container_of(params[0], struct swan_breed, parent);
+    rpp_check(result = swan_static_string_new(s, b->name));
     return &result->parent;
 }
 
-_eval_(swan_static_metaclass__unref) {
+_eval_(swan_static_metabreed__unref) {
     _ensure_param_count_(1);
     _ensure_result_count_(0);
     return NULL;
 }
 
-_get_method_(swan_static_metaclass) {
-    _return_method_(swan_static_metaclass, name);
-    _return_method_(swan_static_metaclass, unref);
-    _return_default_methods_(swan_static_metaclass);
-    swan_metamodel_undefined(vc->name, name);
+_get_method_(swan_static_metabreed) {
+    _return_method_(swan_static_metabreed, name);
+    _return_method_(swan_static_metabreed, unref);
+    _return_default_methods_(swan_static_metabreed);
+    swan_metamodel_undefined(vb->name, name);
     return NULL;
 }
 
-struct swan_class  swan_static_metaclass = {
-    { &swan_metaclass__class },
-    swan_static_metaclass___class_id,
-    swan_static_metaclass___class_name,
-    swan_static_metaclass__get_method,
+struct swan_breed  swan_static_metabreed = {
+    { &swan_metabreed__breed },
+    swan_static_metabreed___breed_id,
+    swan_static_metabreed___breed_name,
+    swan_static_metabreed__get_method,
 };
 
-/* A metaclass for garbage-collected swan_class structs */
+/* A metabreed for garbage-collected swan_breed structs */
 
-_default_methods_(swan_gc_metaclass);
-_method_(swan_gc_metaclass__name);
-_method_(swan_gc_metaclass__unref);
+_default_methods_(swan_gc_metabreed);
+_method_(swan_gc_metabreed__name);
+_method_(swan_gc_metabreed__unref);
 
-_eval_(swan_gc_metaclass__name) {
-    struct swan_class  *c;
+_eval_(swan_gc_metabreed__name) {
+    struct swan_breed  *b;
     struct swan_static_string  *result;
     _ensure_param_count_(1);
     _ensure_result_count_(1);
-    c = cork_container_of(params[0], struct swan_class, parent);
-    rpp_check(result = swan_static_string_new(s, c->name));
+    b = cork_container_of(params[0], struct swan_breed, parent);
+    rpp_check(result = swan_static_string_new(s, b->name));
     return &result->parent;
 }
 
-_eval_(swan_gc_metaclass__unref) {
+_eval_(swan_gc_metabreed__unref) {
     _ensure_param_count_(1);
     _ensure_result_count_(0);
     cork_gc_decref(params[0]);
     return NULL;
 }
 
-_get_method_(swan_gc_metaclass) {
-    _return_method_(swan_gc_metaclass, name);
-    _return_method_(swan_gc_metaclass, unref);
-    _return_default_methods_(swan_gc_metaclass);
-    swan_metamodel_undefined(vc->name, name);
+_get_method_(swan_gc_metabreed) {
+    _return_method_(swan_gc_metabreed, name);
+    _return_method_(swan_gc_metabreed, unref);
+    _return_default_methods_(swan_gc_metabreed);
+    swan_metamodel_undefined(vb->name, name);
     return NULL;
 }
 
-struct swan_class  swan_gc_metaclass = {
-    { &swan_metaclass__class },
-    swan_gc_metaclass___class_id,
-    swan_gc_metaclass___class_name,
-    swan_gc_metaclass__get_method,
+struct swan_breed  swan_gc_metabreed = {
+    { &swan_metabreed__breed },
+    swan_gc_metabreed___breed_id,
+    swan_gc_metabreed___breed_name,
+    swan_gc_metabreed__get_method,
 };
 
-/* A metaclass for metaclasses */
+/* A metabreed for metabreedes */
 
-_default_methods_(swan_metaclass__class);
-_method_(swan_metaclass__class__name);
-_method_(swan_metaclass__class__unref);
+_default_methods_(swan_metabreed__breed);
+_method_(swan_metabreed__breed__name);
+_method_(swan_metabreed__breed__unref);
 
-_eval_(swan_metaclass__class__name) {
-    struct swan_class  *c;
+_eval_(swan_metabreed__breed__name) {
+    struct swan_breed  *b;
     struct swan_static_string  *result;
     _ensure_param_count_(1);
     _ensure_result_count_(1);
-    c = cork_container_of(params[0], struct swan_class, parent);
-    result = swan_static_string_new(s, c->name);
+    b = cork_container_of(params[0], struct swan_breed, parent);
+    result = swan_static_string_new(s, b->name);
     return &result->parent;
 }
 
-_eval_(swan_metaclass__class__unref) {
+_eval_(swan_metabreed__breed__unref) {
     _ensure_param_count_(1);
     _ensure_result_count_(0);
     return NULL;
 }
 
-_get_method_(swan_metaclass__class) {
-    _return_method_(swan_metaclass__class, name);
-    _return_method_(swan_metaclass__class, unref);
-    _return_default_methods_(swan_metaclass__class);
-    swan_metamodel_undefined(vc->name, name);
+_get_method_(swan_metabreed__breed) {
+    _return_method_(swan_metabreed__breed, name);
+    _return_method_(swan_metabreed__breed, unref);
+    _return_default_methods_(swan_metabreed__breed);
+    swan_metamodel_undefined(vb->name, name);
     return NULL;
 }
 
 
 /*-----------------------------------------------------------------------
- * swan_default_class
+ * swan_default_breed
  */
 
-_free_(swan_default_class) {
+_free_(swan_default_breed) {
     struct cork_hash_table_iterator  iter;
     struct cork_hash_table_entry  *entry;
-    struct swan_default_class  *self = obj;
+    struct swan_default_breed  *self = obj;
     cork_strfree(self->parent.name);
     cork_hash_table_iterator_init(&self->methods, &iter);
     while ((entry = cork_hash_table_iterator_next(&iter)) != NULL) {
@@ -189,7 +189,7 @@ _free_(swan_default_class) {
     cork_hash_table_done(&self->methods);
 }
 
-_gc_no_recurse_(swan_default_class);
+_gc_no_recurse_(swan_default_breed);
 
 
 static bool
@@ -208,60 +208,60 @@ string_hasher(const void *vk)
     return cork_hash_buffer(0, k, len);
 }
 
-_default_methods_(swan_default_class);
+_default_methods_(swan_default_breed);
 
 static struct swan_method *
-swan_default_class_get_method(struct swan *s, struct swan_class *vc,
+swan_default_breed_get_method(struct swan *s, struct swan_breed *vb,
                               const char *name)
 {
-    struct swan_default_class  *c =
-        cork_container_of(vc, struct swan_default_class, parent);
+    struct swan_default_breed  *b =
+        cork_container_of(vb, struct swan_default_breed, parent);
     struct swan_method  *result =
-        cork_hash_table_get(&c->methods, (char *) name);
+        cork_hash_table_get(&b->methods, (char *) name);
 
     if (CORK_LIKELY(result != NULL)) {
         return result;
     }
 
-    _return_default_methods_(swan_default_class);
-    swan_metamodel_undefined(vc->name, name);
+    _return_default_methods_(swan_default_breed);
+    swan_metamodel_undefined(vb->name, name);
     return NULL;
 }
 
-struct swan_class *
-swan_default_class_new(struct swan *s, const char *name)
+struct swan_breed *
+swan_default_breed_new(struct swan *s, const char *name)
 {
-    struct swan_default_class  *c = cork_gc_new(swan_default_class);
-    cork_hash_table_init(&c->methods, 0, string_hasher, string_comparator);
-    c->parent.name = cork_strdup(name);
-    c->parent.id = swan_default_class___class_id;
-    c->parent.parent.c = &swan_gc_metaclass;
-    c->parent.get_method = swan_default_class_get_method;
-    return &c->parent;
+    struct swan_default_breed  *b = cork_gc_new(swan_default_breed);
+    cork_hash_table_init(&b->methods, 0, string_hasher, string_comparator);
+    b->parent.name = cork_strdup(name);
+    b->parent.id = swan_default_breed___breed_id;
+    b->parent.parent.b = &swan_gc_metabreed;
+    b->parent.get_method = swan_default_breed_get_method;
+    return &b->parent;
 }
 
 
 int
-swan_default_class_add_method(struct swan *s, struct swan_class *vc,
+swan_default_breed_add_method(struct swan *s, struct swan_breed *vb,
                               const char *name, swan_method_evaluate evaluate)
 {
-    struct swan_default_class  *c =
-        cork_container_of(vc, struct swan_default_class, parent);
+    struct swan_default_breed  *b =
+        cork_container_of(vb, struct swan_default_breed, parent);
     struct cork_hash_table_entry  *entry;
     bool  is_new;
-    entry = cork_hash_table_get_or_create(&c->methods, (char *) name, &is_new);
+    entry = cork_hash_table_get_or_create(&b->methods, (char *) name, &is_new);
 
     if (is_new) {
         struct swan_default_method  *method =
             cork_new(struct swan_default_method);
         entry->key = (char *) cork_strdup(name);
         method->parent.evaluate = evaluate;
-        method->c = c;
+        method->b = b;
         entry->value = method;
         return 0;
     }
 
     /* Method already exists */
-    swan_metamodel_redefined(vc->name, name);
+    swan_metamodel_redefined(vb->name, name);
     return -1;
 }

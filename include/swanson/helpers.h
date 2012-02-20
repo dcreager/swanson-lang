@@ -20,7 +20,7 @@
 
 
 /*-----------------------------------------------------------------------
- * Classes and methods
+ * Breeds and methods
  */
 
 #if defined(NDEBUG)
@@ -39,10 +39,10 @@
 
 
 #define _eval_(name) \
-struct swan_object * \
+struct swan_thing * \
 name##__eval(struct swan *s, struct swan_method *method, \
-             size_t param_count, struct swan_object **params, \
-             size_t result_count, struct swan_object **results)
+             size_t param_count, struct swan_thing **params, \
+             size_t result_count, struct swan_thing **results)
 
 
 #define _ensure_param_count_(expected) \
@@ -57,13 +57,13 @@ name##__eval(struct swan *s, struct swan_method *method, \
                        (size_t) (expected), result_count); \
     }
 
-#define _ensure_class_(dest, src, prefix) \
+#define _ensure_breed_(dest, src, prefix) \
     do { \
-        if (CORK_UNLIKELY(!swan_object_instance_of(src, prefix))) { \
+        if (CORK_UNLIKELY(!swan_thing_instance_of(src, prefix))) { \
             _abort_method_("expected " #src " to be instance of %s, got %s", \
-                           prefix##___class_name, (src)->c->name); \
+                           prefix##___breed_name, (src)->b->name); \
         } \
-        dest = swan_object_to_##prefix(src); \
+        dest = swan_thing_to_##prefix(src); \
     } while (0)
 
 
@@ -72,11 +72,11 @@ _eval_(name); \
 static struct swan_method  name##__method = { name##__eval };
 
 #define _default_methods_(name) \
-_method_(name##__class); \
-_eval_(name##__class) { \
+_method_(name##__breed); \
+_eval_(name##__breed) { \
     _ensure_param_count_(1); \
     _ensure_result_count_(1); \
-    return &params[0]->c->parent; \
+    return &params[0]->b->parent; \
 }
 
 
@@ -90,41 +90,41 @@ _eval_(name) { \
 #define _eval_obj_(name, value)  _eval_const_(name, &(value).parent)
 
 
-#define _get_method_(class_name) \
+#define _get_method_(breed_name) \
 static struct swan_method * \
-class_name##__get_method(struct swan *s, struct swan_class *vc, \
+breed_name##__get_method(struct swan *s, struct swan_breed *vb, \
                          const char *name)
 
-#define _return_op_(class_name, method_name, op) \
+#define _return_op_(breed_name, method_name, op) \
     do { \
         if (strcmp(name, op) == 0) { \
-            return &class_name##__##method_name##__method; \
+            return &breed_name##__##method_name##__method; \
         } \
     } while (0)
 
-#define _return_method_(class_name, method_name) \
-    _return_op_(class_name, method_name, #method_name)
+#define _return_method_(breed_name, method_name) \
+    _return_op_(breed_name, method_name, #method_name)
 
-#define _return_default_methods_(class_name) \
-    _return_method_(class_name, class)
+#define _return_default_methods_(breed_name) \
+    _return_method_(breed_name, breed)
 
-#define _class_with_meta_(name, meta_name) \
+#define _breed_with_meta_(name, meta_name) \
 _get_method_(name); \
-static struct swan_class  name##__class = { \
+static struct swan_breed  name##__breed = { \
     { &meta_name }, \
-    name##___class_id, name##___class_name, name##__get_method \
+    name##___breed_id, name##___breed_name, name##__get_method \
 };
 
-#define _class_(name) \
-_class_with_meta_(name, swan_static_metaclass);
+#define _breed_(name) \
+_breed_with_meta_(name, swan_static_metabreed);
 
 
 CORK_ATTR_UNUSED
-static struct swan_object *
-swan_object_new_basic(struct swan *s, struct swan_class *c)
+static struct swan_thing *
+swan_thing_new_basic(struct swan *s, struct swan_breed *b)
 {
-    struct swan_object  *self = cork_new(struct swan_object);
-    self->c = c;
+    struct swan_thing  *self = cork_new(struct swan_thing);
+    self->b = b;
     return self;
 }
 

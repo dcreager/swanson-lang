@@ -27,45 +27,45 @@ struct swan_old_prelude {
 };
 
 
-struct swan_object *
+struct swan_thing *
 swan_prelude_new(struct swan *s);
 
 
 /*-----------------------------------------------------------------------
- * Default class and metaclass
+ * Default breed and metabreed
  */
 
-#define swan_static_metaclass___class_id  0x706fd91e
-#define swan_static_metaclass___class_name  "swan_static_metaclass"
-#define swan_gc_metaclass___class_id  0x52740682
-#define swan_gc_metaclass___class_name  "swan_gc_metaclass"
+#define swan_static_metabreed___breed_id  0x706fd91e
+#define swan_static_metabreed___breed_name  "swan_static_metabreed"
+#define swan_gc_metabreed___breed_id  0x52740682
+#define swan_gc_metabreed___breed_name  "swan_gc_metabreed"
 
-#define swan_default_class___class_id  0xbabb8e19
-#define swan_default_class___class_name  "swan_default_class"
-#define swan_default_method___class_id  0x149cc9ac
-#define swan_default_method___class_name  "swan_default_method"
+#define swan_default_breed___breed_id  0xbabb8e19
+#define swan_default_breed___breed_name  "swan_default_breed"
+#define swan_default_method___breed_id  0x149cc9ac
+#define swan_default_method___breed_name  "swan_default_method"
 
-struct swan_default_class {
-    struct swan_class  parent;
+struct swan_default_breed {
+    struct swan_breed  parent;
     struct cork_hash_table  methods;
 };
 
-#define swan_object_to_swan_default_class(obj) \
-    (cork_container_of((obj), struct swan_default_class, parent.parent))
+#define swan_thing_to_swan_default_breed(t) \
+    (cork_container_of((t), struct swan_default_breed, parent.parent))
 
 struct swan_default_method {
     struct swan_method  parent;
-    struct swan_default_class  *c;
+    struct swan_default_breed  *b;
 };
 
-extern struct swan_class  swan_static_metaclass;
-extern struct swan_class  swan_gc_metaclass;
+extern struct swan_breed  swan_static_metabreed;
+extern struct swan_breed  swan_gc_metabreed;
 
-struct swan_class *
-swan_default_class_new(struct swan *s, const char *name);
+struct swan_breed *
+swan_default_breed_new(struct swan *s, const char *name);
 
 int
-swan_default_class_add_method(struct swan *s, struct swan_class *c,
+swan_default_breed_add_method(struct swan *s, struct swan_breed *b,
                               const char *name, swan_method_evaluate evaluate);
 
 
@@ -73,21 +73,21 @@ swan_default_class_add_method(struct swan *s, struct swan_class *c,
  * Boolean
  */
 
-#define swan_bool___class_id  0x9043bf18
-#define swan_bool___class_name  "swan_bool"
+#define swan_bool___breed_id  0x9043bf18
+#define swan_bool___breed_name  "swan_bool"
 
 struct swan_bool {
-    struct swan_object  parent;
+    struct swan_thing  parent;
     bool  value;
 };
 
-#define swan_object_to_swan_bool(obj) \
-    (cork_container_of((obj), struct swan_bool, parent))
+#define swan_thing_to_swan_bool(t) \
+    (cork_container_of((t), struct swan_bool, parent))
 
-struct swan_object *
+struct swan_thing *
 swan_bool_false(void);
 
-struct swan_object *
+struct swan_thing *
 swan_bool_true(void);
 
 #define swan_bool_new(val) \
@@ -98,16 +98,16 @@ swan_bool_true(void);
  * swan_static_string
  */
 
-#define swan_static_string___class_id  0xb5eaf926
-#define swan_static_string___class_name  "swan_static_string"
+#define swan_static_string___breed_id  0xb5eaf926
+#define swan_static_string___breed_name  "swan_static_string"
 
 struct swan_static_string {
-    struct swan_object  parent;
+    struct swan_thing  parent;
     const char  *contents;
 };
 
-#define swan_object_to_swan_static_string(obj) \
-    (cork_container_of((obj), struct swan_static_string, parent))
+#define swan_thing_to_swan_static_string(t) \
+    (cork_container_of((t), struct swan_static_string, parent))
 
 struct swan_static_string *
 swan_static_string_new(struct swan *s, const char *contents);

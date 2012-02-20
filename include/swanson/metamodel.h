@@ -34,50 +34,50 @@ enum swan_metamodel_error {
 };
 
 void
-swan_metamodel_redefined(const char *class_name, const char *method_name);
+swan_metamodel_redefined(const char *breed_name, const char *method_name);
 
 void
-swan_metamodel_undefined(const char *class_name, const char *method_name);
+swan_metamodel_undefined(const char *breed_name, const char *method_name);
 
 
 /*-----------------------------------------------------------------------
- * Objects, classes, and metaclasses
+ * Things, breedes, and metabreedes
  */
 
 /* Forward-declared in swanson/state.h */
-/* struct swan_class; */
+/* struct swan_breed; */
 
-struct swan_object {
-    struct swan_class  *c;
+struct swan_thing {
+    struct swan_breed  *b;
 };
 
 struct swan_method;
 
-typedef cork_hash  swan_class_id;
+typedef cork_hash  swan_breed_id;
 
-struct swan_class {
-    struct swan_object  parent;
-    swan_class_id  id;
+struct swan_breed {
+    struct swan_thing  parent;
+    swan_breed_id  id;
     const char  *name;
 
     struct swan_method *
-    (*get_method)(struct swan *s, struct swan_class *c, const char *name);
+    (*get_method)(struct swan *s, struct swan_breed *c, const char *name);
 };
 
-#define swan_class_get_method(s, c, name) \
-    ((c)->get_method((s), (c), (name)))
+#define swan_breed_get_method(s, b, name) \
+    ((b)->get_method((s), (b), (name)))
 
-#define swan_object_instance_of(obj, class_prefix) \
-    ((obj)->c->id == class_prefix##___class_id)
+#define swan_thing_instance_of(t, breed_prefix) \
+    ((t)->b->id == breed_prefix##___breed_id)
 
 
 /* First result returned as C function's return value.  Others are
  * placed into results.  results must have room for (result_count-1)
  * pointers. */
-typedef struct swan_object *
+typedef struct swan_thing *
 (*swan_method_evaluate)(struct swan *s, struct swan_method *method,
-                        size_t param_count, struct swan_object **params,
-                        size_t result_count, struct swan_object **results);
+                        size_t param_count, struct swan_thing **params,
+                        size_t result_count, struct swan_thing **results);
 
 struct swan_method {
     swan_method_evaluate  evaluate;
@@ -88,12 +88,12 @@ struct swan_method {
 
 
 CORK_ATTR_UNUSED
-static struct swan_object *
-swan_object_call_method(struct swan *s, struct swan_class *c, const char *name,
-                        size_t param_count, struct swan_object **params,
-                        size_t result_count, struct swan_object **results)
+static struct swan_thing *
+swan_thing_call_method(struct swan *s, struct swan_breed *b, const char *name,
+                       size_t param_count, struct swan_thing **params,
+                       size_t result_count, struct swan_thing **results)
 {
-    struct swan_method  *method = swan_class_get_method(s, c, name);
+    struct swan_method  *method = swan_breed_get_method(s, b, name);
     if (method == NULL) {
         return NULL;
     }

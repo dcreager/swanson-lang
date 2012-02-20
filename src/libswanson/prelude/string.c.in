@@ -26,7 +26,7 @@
  * swan_static_string
  */
 
-_class_(swan_static_string);
+_breed_(swan_static_string);
 _default_methods_(swan_static_string);
 _method_(swan_static_string__eq);
 _method_(swan_static_string__print);
@@ -45,7 +45,7 @@ swan_static_string_new(struct swan *s, const char *contents)
 {
     struct swan_static_string  *self = cork_gc_new(swan_static_string);
     self->contents = cork_strdup(contents);
-    self->parent.c = &swan_static_string__class;
+    self->parent.b = &swan_static_string__breed;
     return self;
 }
 
@@ -55,8 +55,8 @@ _eval_(swan_static_string__eq) {
     struct swan_static_string  *rhs;
     _ensure_param_count_(2);
     _ensure_result_count_(0);
-    _ensure_class_(lhs, params[0], swan_static_string);
-    _ensure_class_(rhs, params[1], swan_static_string);
+    _ensure_breed_(lhs, params[0], swan_static_string);
+    _ensure_breed_(rhs, params[1], swan_static_string);
     return swan_bool_new(strcmp(lhs->contents, rhs->contents) == 0);
 }
 
@@ -64,7 +64,7 @@ _eval_(swan_static_string__print) {
     struct swan_static_string  *self;
     _ensure_param_count_(1);
     _ensure_result_count_(0);
-    _ensure_class_(self, params[0], swan_static_string);
+    _ensure_breed_(self, params[0], swan_static_string);
     printf("%s\n", self->contents);
     return NULL;
 }
@@ -73,7 +73,7 @@ _eval_(swan_static_string__unref) {
     struct swan_static_string  *self;
     _ensure_param_count_(1);
     _ensure_result_count_(0);
-    _ensure_class_(self, params[0], swan_static_string);
+    _ensure_breed_(self, params[0], swan_static_string);
     cork_gc_decref(self);
     return NULL;
 }
@@ -83,6 +83,6 @@ _get_method_(swan_static_string) {
     _return_method_(swan_static_string, unref);
     _return_default_methods_(swan_static_string);
     _return_op_(swan_static_string, eq, "==");
-    swan_metamodel_undefined(vc->name, name);
+    swan_metamodel_undefined(vb->name, name);
     return NULL;
 }
