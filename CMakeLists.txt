@@ -29,13 +29,18 @@ endif(VERSION_RESULT)
 string(REGEX REPLACE "-dev.*" "-dev" BASE_VERSION "${VERSION}")
 
 #-----------------------------------------------------------------------
-# Check for prerequisite libraries
+# Check for prerequisite libraries and programs
 
 find_package(PkgConfig)
 
 pkg_check_modules(CORK REQUIRED libcork)
 include_directories(${CORK_INCLUDE_DIRS})
 link_directories(${CORK_LIBRARY_DIRS})
+
+find_program(RAGEL ragel)
+if(NOT RAGEL)
+    message(WARNING "ragel not installed; cannot rebuild .rl files")
+endif(NOT RAGEL)
 
 #-----------------------------------------------------------------------
 # Set some options

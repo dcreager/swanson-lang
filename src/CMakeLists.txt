@@ -12,15 +12,23 @@ include_directories(../include libswanson)
 #-----------------------------------------------------------------------
 # Build the libraries
 
+macro(ragel ragel_output)
+    set(_output ${CMAKE_CURRENT_SOURCE_DIR}/${ragel_output})
+    set(_src ${ragel_output}.rl)
+    add_custom_command(
+        OUTPUT ${_output}
+        COMMAND ${RAGEL} -C -G1 -o ${_output} ${_src}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS ${_src}
+        COMMENT "Ragel ${ragel_output}"
+    )
+    list(APPEND RAGEL_SRC ${_output})
+endmacro(ragel)
 
 file(GLOB_RECURSE LIBSWANSON_SRC libswanson/*.c)
+ragel(libswanson/s0-parser.c)
 
-set_property(
-    SOURCE libswanson/blocks.c
-    PROPERTY COMPILE_FLAGS -fomit-frame-pointer
-)
-
-add_library(libswanson SHARED ${LIBSWANSON_SRC})
+add_library(libswanson SHARED ${LIBSWANSON_SRC} ${RAGEL_SRC})
 set_target_properties(libswanson PROPERTIES
     OUTPUT_NAME swanson
     SOVERSION 0.0.0)
