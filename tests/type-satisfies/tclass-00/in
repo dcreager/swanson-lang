@@ -1,5 +1,0 @@
-# bool <: α
-getclass $0 = ^0 "bool";
-tinterface %0 = {};
-tuple $1 = ($0,%0);
-return $1;

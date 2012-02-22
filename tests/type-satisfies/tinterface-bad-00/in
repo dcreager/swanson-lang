@@ -1,8 +1,0 @@
-# α !<: β
-tliteral %0;
-tinterface %2 = {};
-tinterface %3 = {
-  "foo": %0
-};
-tuple $0 = (%2,%3);
-return $0;

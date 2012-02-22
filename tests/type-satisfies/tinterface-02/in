@@ -1,9 +1,0 @@
-# α <: α
-tliteral %0;
-tlocation %1 = %0;
-tinterface %2 = {
-  "foo": %0,
-  "bar": %1
-};
-tuple $0 = (%2,%2);
-return $0;

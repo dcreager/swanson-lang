@@ -1,3 +1,0 @@
-# Shouldn't be able to do trecursive twice
-trecursive %0;
-trecursive %0;

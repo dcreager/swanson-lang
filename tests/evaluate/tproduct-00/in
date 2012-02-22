@@ -1,3 +1,0 @@
-# Expected type: void
-tproduct %0 = ();
-return %0;

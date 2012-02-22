@@ -83,13 +83,13 @@ id_list = null %{ id_list = NULL; }
         | identifier
           %{
               id_list = swan_sllist_new(s, &id->parent, NULL);
-              list_tail = id_list;
+              id_tail = id_list;
           }
           (ws "," identifier
           %{
               list_build = swan_sllist_new(s, &id->parent, NULL);
-              list_tail->tail = list_build;
-              list_tail = list_build;
+              id_tail->tail = list_build;
+              id_tail = list_build;
           })*;
 
 nonvoid_call = id_list %{ result_list = id_list; }
@@ -112,22 +112,22 @@ call = void_call | nonvoid_call;
 call_list = (call
             %{
                 list_build = swan_sllist_new(s, &call->parent, ast_list);
-                if (list_tail == NULL) {
+                if (ast_tail == NULL) {
                     ast_list = list_build;
                 } else {
-                    list_tail->tail = list_build;
+                    ast_tail->tail = list_build;
                 }
-                list_tail = list_build;
+                ast_tail = list_build;
             })+
             ws;
 
-main := call_list >{ list_tail = NULL; };
+main := call_list >{ ast_tail = NULL; };
 }%%
 
 %% write data;
 
 struct swan_sllist *
-swan_ast_call_parse(struct swan *s, const char *buf, size_t size)
+swan_ast_parse(struct swan *s, const char *buf, size_t size)
 {
     const char  *p = buf;
     const char  *pe = buf + size;
@@ -146,17 +146,19 @@ swan_ast_call_parse(struct swan *s, const char *buf, size_t size)
     struct swan_static_string  *method;
     struct swan_static_string  *id;
     struct swan_sllist  *list_build;
-    struct swan_sllist  *list_tail;
     struct swan_sllist  *id_list;
+    struct swan_sllist  *id_tail;
     struct swan_sllist  *param_list;
     struct swan_sllist  *result_list;
     struct swan_ast_call  *call = NULL;
-    struct swan_sllist  *ast_list = NULL;
+    struct swan_sllist  *ast_list;
+    struct swan_sllist  *ast_tail;
 
     %% write init;
     %% write exec;
 
     if (cs < %%{ write first_final; }%%) {
+        printf("error at line %zu\n", curline);
         cork_error_set
             (SWAN_METAMODEL_ERROR, SWAN_METAMODEL_PARSE_ERROR,
              "Parse error");

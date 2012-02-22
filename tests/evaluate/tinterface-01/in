@@ -1,8 +1,0 @@
-# Expected type: interface α
-tliteral %0;
-tproduct %3 = ();
-tfunction %1 = %0 -> %3;
-tinterface %2 = {
-  "print_literal": %1
-};
-return %2;

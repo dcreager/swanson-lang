@@ -1,5 +1,0 @@
-# Expected type: *LITERAL,LITERAL
-tliteral %0;
-tlocation %1 = %0;
-tproduct %2 = (%1, %0);
-return %2;

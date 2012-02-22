@@ -1,5 +1,0 @@
-# LITERAL -> LITERAL <: LITERAL -> LITERAL
-tliteral %0;
-tfunction %1 = %0 -> %0;
-tuple $0 = (%1,%1);
-return $0;

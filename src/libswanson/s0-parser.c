@@ -79,7 +79,7 @@ static const int s0_en_main = 1;
 #line 128 "libswanson/s0-parser.c.rl"
 
 struct swan_sllist *
-swan_ast_call_parse(struct swan *s, const char *buf, size_t size)
+swan_ast_parse(struct swan *s, const char *buf, size_t size)
 {
     const char  *p = buf;
     const char  *pe = buf + size;
@@ -98,22 +98,23 @@ swan_ast_call_parse(struct swan *s, const char *buf, size_t size)
     struct swan_static_string  *method;
     struct swan_static_string  *id;
     struct swan_sllist  *list_build;
-    struct swan_sllist  *list_tail;
     struct swan_sllist  *id_list;
+    struct swan_sllist  *id_tail;
     struct swan_sllist  *param_list;
     struct swan_sllist  *result_list;
     struct swan_ast_call  *call = NULL;
-    struct swan_sllist  *ast_list = NULL;
+    struct swan_sllist  *ast_list;
+    struct swan_sllist  *ast_tail;
 
     
-#line 110 "/Users/dcreager/git/swanson/src/libswanson/s0-parser.c"
+#line 111 "/Users/dcreager/git/swanson/src/libswanson/s0-parser.c"
 	{
 	cs = s0_start;
 	}
 
-#line 157 "libswanson/s0-parser.c.rl"
+#line 158 "libswanson/s0-parser.c.rl"
     
-#line 117 "/Users/dcreager/git/swanson/src/libswanson/s0-parser.c"
+#line 118 "/Users/dcreager/git/swanson/src/libswanson/s0-parser.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
@@ -2631,7 +2632,7 @@ f34:
 	goto _again;
 f2:
 #line 124 "libswanson/s0-parser.c.rl"
-	{ list_tail = NULL; }
+	{ ast_tail = NULL; }
 	goto _again;
 f41:
 #line 52 "libswanson/s0-parser.c.rl"
@@ -2723,7 +2724,7 @@ f12:
 #line 84 "libswanson/s0-parser.c.rl"
 	{
               id_list = swan_sllist_new(s, &id->parent, NULL);
-              list_tail = id_list;
+              id_tail = id_list;
           }
 	goto _again;
 f17:
@@ -2732,8 +2733,8 @@ f17:
 #line 89 "libswanson/s0-parser.c.rl"
 	{
               list_build = swan_sllist_new(s, &id->parent, NULL);
-              list_tail->tail = list_build;
-              list_tail = list_build;
+              id_tail->tail = list_build;
+              id_tail = list_build;
           }
 	goto _again;
 f18:
@@ -2773,12 +2774,12 @@ f72:
 #line 113 "libswanson/s0-parser.c.rl"
 	{
                 list_build = swan_sllist_new(s, &call->parent, ast_list);
-                if (list_tail == NULL) {
+                if (ast_tail == NULL) {
                     ast_list = list_build;
                 } else {
-                    list_tail->tail = list_build;
+                    ast_tail->tail = list_build;
                 }
-                list_tail = list_build;
+                ast_tail = list_build;
             }
 	goto _again;
 f35:
@@ -2794,17 +2795,17 @@ f76:
 #line 113 "libswanson/s0-parser.c.rl"
 	{
                 list_build = swan_sllist_new(s, &call->parent, ast_list);
-                if (list_tail == NULL) {
+                if (ast_tail == NULL) {
                     ast_list = list_build;
                 } else {
-                    list_tail->tail = list_build;
+                    ast_tail->tail = list_build;
                 }
-                list_tail = list_build;
+                ast_tail = list_build;
             }
 	goto _again;
 f3:
 #line 124 "libswanson/s0-parser.c.rl"
-	{ list_tail = NULL; }
+	{ ast_tail = NULL; }
 #line 41 "libswanson/s0-parser.c.rl"
 	{ xs = p; }
 	goto _again;
@@ -2816,7 +2817,7 @@ f29:
 #line 84 "libswanson/s0-parser.c.rl"
 	{
               id_list = swan_sllist_new(s, &id->parent, NULL);
-              list_tail = id_list;
+              id_tail = id_list;
           }
 	goto _again;
 f61:
@@ -2827,8 +2828,8 @@ f61:
 #line 89 "libswanson/s0-parser.c.rl"
 	{
               list_build = swan_sllist_new(s, &id->parent, NULL);
-              list_tail->tail = list_build;
-              list_tail = list_build;
+              id_tail->tail = list_build;
+              id_tail = list_build;
           }
 	goto _again;
 f68:
@@ -2869,7 +2870,7 @@ f23:
 #line 84 "libswanson/s0-parser.c.rl"
 	{
               id_list = swan_sllist_new(s, &id->parent, NULL);
-              list_tail = id_list;
+              id_tail = id_list;
           }
 #line 44 "libswanson/s0-parser.c.rl"
 	{curline += 1;}
@@ -2880,7 +2881,7 @@ f14:
 #line 84 "libswanson/s0-parser.c.rl"
 	{
               id_list = swan_sllist_new(s, &id->parent, NULL);
-              list_tail = id_list;
+              id_tail = id_list;
           }
 #line 95 "libswanson/s0-parser.c.rl"
 	{ result_list = id_list; }
@@ -2891,8 +2892,8 @@ f24:
 #line 89 "libswanson/s0-parser.c.rl"
 	{
               list_build = swan_sllist_new(s, &id->parent, NULL);
-              list_tail->tail = list_build;
-              list_tail = list_build;
+              id_tail->tail = list_build;
+              id_tail = list_build;
           }
 #line 44 "libswanson/s0-parser.c.rl"
 	{curline += 1;}
@@ -2903,8 +2904,8 @@ f15:
 #line 89 "libswanson/s0-parser.c.rl"
 	{
               list_build = swan_sllist_new(s, &id->parent, NULL);
-              list_tail->tail = list_build;
-              list_tail = list_build;
+              id_tail->tail = list_build;
+              id_tail = list_build;
           }
 #line 95 "libswanson/s0-parser.c.rl"
 	{ result_list = id_list; }
@@ -2940,12 +2941,12 @@ f75:
 #line 113 "libswanson/s0-parser.c.rl"
 	{
                 list_build = swan_sllist_new(s, &call->parent, ast_list);
-                if (list_tail == NULL) {
+                if (ast_tail == NULL) {
                     ast_list = list_build;
                 } else {
-                    list_tail->tail = list_build;
+                    ast_tail->tail = list_build;
                 }
-                list_tail = list_build;
+                ast_tail = list_build;
             }
 #line 41 "libswanson/s0-parser.c.rl"
 	{ xs = p; }
@@ -2957,19 +2958,19 @@ f79:
 #line 113 "libswanson/s0-parser.c.rl"
 	{
                 list_build = swan_sllist_new(s, &call->parent, ast_list);
-                if (list_tail == NULL) {
+                if (ast_tail == NULL) {
                     ast_list = list_build;
                 } else {
-                    list_tail->tail = list_build;
+                    ast_tail->tail = list_build;
                 }
-                list_tail = list_build;
+                ast_tail = list_build;
             }
 #line 41 "libswanson/s0-parser.c.rl"
 	{ xs = p; }
 	goto _again;
 f0:
 #line 124 "libswanson/s0-parser.c.rl"
-	{ list_tail = NULL; }
+	{ ast_tail = NULL; }
 #line 82 "libswanson/s0-parser.c.rl"
 	{ id_list = NULL; }
 #line 95 "libswanson/s0-parser.c.rl"
@@ -2983,7 +2984,7 @@ f63:
 #line 84 "libswanson/s0-parser.c.rl"
 	{
               id_list = swan_sllist_new(s, &id->parent, NULL);
-              list_tail = id_list;
+              id_tail = id_list;
           }
 #line 44 "libswanson/s0-parser.c.rl"
 	{curline += 1;}
@@ -2996,7 +2997,7 @@ f31:
 #line 84 "libswanson/s0-parser.c.rl"
 	{
               id_list = swan_sllist_new(s, &id->parent, NULL);
-              list_tail = id_list;
+              id_tail = id_list;
           }
 #line 95 "libswanson/s0-parser.c.rl"
 	{ result_list = id_list; }
@@ -3009,8 +3010,8 @@ f62:
 #line 89 "libswanson/s0-parser.c.rl"
 	{
               list_build = swan_sllist_new(s, &id->parent, NULL);
-              list_tail->tail = list_build;
-              list_tail = list_build;
+              id_tail->tail = list_build;
+              id_tail = list_build;
           }
 #line 44 "libswanson/s0-parser.c.rl"
 	{curline += 1;}
@@ -3023,8 +3024,8 @@ f70:
 #line 89 "libswanson/s0-parser.c.rl"
 	{
               list_build = swan_sllist_new(s, &id->parent, NULL);
-              list_tail->tail = list_build;
-              list_tail = list_build;
+              id_tail->tail = list_build;
+              id_tail = list_build;
           }
 #line 95 "libswanson/s0-parser.c.rl"
 	{ result_list = id_list; }
@@ -3065,8 +3066,8 @@ f16:
 #line 89 "libswanson/s0-parser.c.rl"
 	{
               list_build = swan_sllist_new(s, &id->parent, NULL);
-              list_tail->tail = list_build;
-              list_tail = list_build;
+              id_tail->tail = list_build;
+              id_tail = list_build;
           }
 #line 44 "libswanson/s0-parser.c.rl"
 	{curline += 1;}
@@ -3081,7 +3082,7 @@ f10:
 #line 84 "libswanson/s0-parser.c.rl"
 	{
               id_list = swan_sllist_new(s, &id->parent, NULL);
-              list_tail = id_list;
+              id_tail = id_list;
           }
 #line 95 "libswanson/s0-parser.c.rl"
 	{ result_list = id_list; }
@@ -3093,12 +3094,12 @@ f73:
 #line 113 "libswanson/s0-parser.c.rl"
 	{
                 list_build = swan_sllist_new(s, &call->parent, ast_list);
-                if (list_tail == NULL) {
+                if (ast_tail == NULL) {
                     ast_list = list_build;
                 } else {
-                    list_tail->tail = list_build;
+                    ast_tail->tail = list_build;
                 }
-                list_tail = list_build;
+                ast_tail = list_build;
             }
 #line 82 "libswanson/s0-parser.c.rl"
 	{ id_list = NULL; }
@@ -3112,12 +3113,12 @@ f77:
 #line 113 "libswanson/s0-parser.c.rl"
 	{
                 list_build = swan_sllist_new(s, &call->parent, ast_list);
-                if (list_tail == NULL) {
+                if (ast_tail == NULL) {
                     ast_list = list_build;
                 } else {
-                    list_tail->tail = list_build;
+                    ast_tail->tail = list_build;
                 }
-                list_tail = list_build;
+                ast_tail = list_build;
             }
 #line 82 "libswanson/s0-parser.c.rl"
 	{ id_list = NULL; }
@@ -3126,7 +3127,7 @@ f77:
 	goto _again;
 f1:
 #line 124 "libswanson/s0-parser.c.rl"
-	{ list_tail = NULL; }
+	{ ast_tail = NULL; }
 #line 44 "libswanson/s0-parser.c.rl"
 	{curline += 1;}
 #line 82 "libswanson/s0-parser.c.rl"
@@ -3142,8 +3143,8 @@ f71:
 #line 89 "libswanson/s0-parser.c.rl"
 	{
               list_build = swan_sllist_new(s, &id->parent, NULL);
-              list_tail->tail = list_build;
-              list_tail = list_build;
+              id_tail->tail = list_build;
+              id_tail = list_build;
           }
 #line 44 "libswanson/s0-parser.c.rl"
 	{curline += 1;}
@@ -3160,7 +3161,7 @@ f27:
 #line 84 "libswanson/s0-parser.c.rl"
 	{
               id_list = swan_sllist_new(s, &id->parent, NULL);
-              list_tail = id_list;
+              id_tail = id_list;
           }
 #line 95 "libswanson/s0-parser.c.rl"
 	{ result_list = id_list; }
@@ -3175,7 +3176,7 @@ f11:
 #line 84 "libswanson/s0-parser.c.rl"
 	{
               id_list = swan_sllist_new(s, &id->parent, NULL);
-              list_tail = id_list;
+              id_tail = id_list;
           }
 #line 95 "libswanson/s0-parser.c.rl"
 	{ result_list = id_list; }
@@ -3187,12 +3188,12 @@ f74:
 #line 113 "libswanson/s0-parser.c.rl"
 	{
                 list_build = swan_sllist_new(s, &call->parent, ast_list);
-                if (list_tail == NULL) {
+                if (ast_tail == NULL) {
                     ast_list = list_build;
                 } else {
-                    list_tail->tail = list_build;
+                    ast_tail->tail = list_build;
                 }
-                list_tail = list_build;
+                ast_tail = list_build;
             }
 #line 44 "libswanson/s0-parser.c.rl"
 	{curline += 1;}
@@ -3208,12 +3209,12 @@ f78:
 #line 113 "libswanson/s0-parser.c.rl"
 	{
                 list_build = swan_sllist_new(s, &call->parent, ast_list);
-                if (list_tail == NULL) {
+                if (ast_tail == NULL) {
                     ast_list = list_build;
                 } else {
-                    list_tail->tail = list_build;
+                    ast_tail->tail = list_build;
                 }
-                list_tail = list_build;
+                ast_tail = list_build;
             }
 #line 44 "libswanson/s0-parser.c.rl"
 	{curline += 1;}
@@ -3234,7 +3235,7 @@ f28:
 #line 84 "libswanson/s0-parser.c.rl"
 	{
               id_list = swan_sllist_new(s, &id->parent, NULL);
-              list_tail = id_list;
+              id_tail = id_list;
           }
 #line 95 "libswanson/s0-parser.c.rl"
 	{ result_list = id_list; }
@@ -3256,12 +3257,12 @@ _again:
 #line 113 "libswanson/s0-parser.c.rl"
 	{
                 list_build = swan_sllist_new(s, &call->parent, ast_list);
-                if (list_tail == NULL) {
+                if (ast_tail == NULL) {
                     ast_list = list_build;
                 } else {
-                    list_tail->tail = list_build;
+                    ast_tail->tail = list_build;
                 }
-                list_tail = list_build;
+                ast_tail = list_build;
             }
 	break;
 	case 77:
@@ -3271,28 +3272,29 @@ _again:
 #line 113 "libswanson/s0-parser.c.rl"
 	{
                 list_build = swan_sllist_new(s, &call->parent, ast_list);
-                if (list_tail == NULL) {
+                if (ast_tail == NULL) {
                     ast_list = list_build;
                 } else {
-                    list_tail->tail = list_build;
+                    ast_tail->tail = list_build;
                 }
-                list_tail = list_build;
+                ast_tail = list_build;
             }
 	break;
-#line 3283 "/Users/dcreager/git/swanson/src/libswanson/s0-parser.c"
+#line 3284 "/Users/dcreager/git/swanson/src/libswanson/s0-parser.c"
 	}
 	}
 
 	_out: {}
 	}
 
-#line 158 "libswanson/s0-parser.c.rl"
+#line 159 "libswanson/s0-parser.c.rl"
 
     if (cs < 
-#line 3293 "/Users/dcreager/git/swanson/src/libswanson/s0-parser.c"
+#line 3294 "/Users/dcreager/git/swanson/src/libswanson/s0-parser.c"
 205
-#line 159 "libswanson/s0-parser.c.rl"
+#line 160 "libswanson/s0-parser.c.rl"
 ) {
+        printf("error at line %zu\n", curline);
         cork_error_set
             (SWAN_METAMODEL_ERROR, SWAN_METAMODEL_PARSE_ERROR,
              "Parse error");

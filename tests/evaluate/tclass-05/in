@@ -1,7 +1,0 @@
-# Expected result: LITERAL "hello world"
-literal $0 = "hello world";
-tclass %0 = "test" {
-  "foo": $0
-};
-getclass $1 = %0 "foo";
-return $1;

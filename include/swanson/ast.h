@@ -43,7 +43,7 @@ swan_ast_call_new(struct swan *s, struct swan_sllist *results,
                   struct swan_sllist *params);
 
 struct swan_sllist *
-swan_ast_call_parse(struct swan *s, const char *buf, size_t size);
+swan_ast_parse(struct swan *s, const char *buf, size_t size);
 
 
 #endif  /* SWANSON_AST_H */

@@ -1,8 +1,0 @@
-# Expected type: int
-trecursive %0;
-tliteral %1;
-tfunction %2 = %1 -> %0;
-tclass %0 = "int" {
-  "intlit": %2
-};
-return %0;

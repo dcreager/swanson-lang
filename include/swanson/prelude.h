@@ -14,17 +14,6 @@
 #include <libcork/core.h>
 
 #include <swanson/metamodel.h>
-#include <swanson/s0.h>
-
-
-struct swan_old_prelude {
-    struct s0_type  *prelude;
-
-    /* bool */
-    struct s0_type  *t_bool;
-    struct s0_value  *v_false;
-    struct s0_value  *v_true;
-};
 
 
 struct swan_thing *
