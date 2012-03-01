@@ -74,14 +74,15 @@ _eval_(swan_static_metabreed__name) {
     _ensure_param_count_(1);
     _ensure_result_count_(1);
     b = cork_container_of(params[0], struct swan_breed, parent);
-    rpp_check(result = swan_static_string_new(s, b->name));
-    return &result->parent;
+    rip_check(result = swan_static_string_new(s, b->name));
+    results[0] = &result->parent;
+    return 0;
 }
 
 _eval_(swan_static_metabreed__unref) {
     _ensure_param_count_(1);
     _ensure_result_count_(0);
-    return NULL;
+    return 0;
 }
 
 _get_method_(swan_static_metabreed) {
@@ -111,15 +112,16 @@ _eval_(swan_gc_metabreed__name) {
     _ensure_param_count_(1);
     _ensure_result_count_(1);
     b = cork_container_of(params[0], struct swan_breed, parent);
-    rpp_check(result = swan_static_string_new(s, b->name));
-    return &result->parent;
+    rip_check(result = swan_static_string_new(s, b->name));
+    results[0] = &result->parent;
+    return 0;
 }
 
 _eval_(swan_gc_metabreed__unref) {
     _ensure_param_count_(1);
     _ensure_result_count_(0);
     cork_gc_decref(params[0]);
-    return NULL;
+    return 0;
 }
 
 _get_method_(swan_gc_metabreed) {
@@ -150,13 +152,14 @@ _eval_(swan_metabreed__breed__name) {
     _ensure_result_count_(1);
     b = cork_container_of(params[0], struct swan_breed, parent);
     result = swan_static_string_new(s, b->name);
-    return &result->parent;
+    results[0] = &result->parent;
+    return 0;
 }
 
 _eval_(swan_metabreed__breed__unref) {
     _ensure_param_count_(1);
     _ensure_result_count_(0);
-    return NULL;
+    return 0;
 }
 
 _get_method_(swan_metabreed__breed) {

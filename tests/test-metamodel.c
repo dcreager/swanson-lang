@@ -31,8 +31,8 @@ test_breed_name(struct swan *s, struct swan_thing *t, const char *expected)
 {
     struct swan_thing  *breed_name;
     struct swan_static_string  *str;
-    fail_if_error(breed_name = swan_thing_call_method
-                  (s, t->b, "name", 1, &t, 1, NULL));
+    fail_if_error(swan_thing_call_method
+                  (s, t->b, "name", 1, &t, 1, &breed_name));
     _ensure_breed_(str, breed_name, swan_static_string);
     fail_unless(strcmp(str->contents, expected) == 0,
                 "Unexpected breed name: got %s, expected %s",
@@ -51,18 +51,18 @@ START_TEST(test_breed_name_01)
     struct swan_thing  *prelude_mmbreed;
     struct swan_thing  *prelude_mmmbreed;
     prelude = swan_prelude_new(&s);
-    fail_if_error(prelude_breed = swan_thing_call_method
+    fail_if_error(swan_thing_call_method
                   (&s, prelude->b, "breed",
-                   1, &prelude, 1, NULL));
-    fail_if_error(prelude_mbreed = swan_thing_call_method
+                   1, &prelude, 1, &prelude_breed));
+    fail_if_error(swan_thing_call_method
                   (&s, prelude_breed->b, "breed",
-                   1, &prelude_breed, 1, NULL));
-    fail_if_error(prelude_mmbreed = swan_thing_call_method
+                   1, &prelude_breed, 1, &prelude_mbreed));
+    fail_if_error(swan_thing_call_method
                   (&s, prelude_mbreed->b, "breed",
-                   1, &prelude_mbreed, 1, NULL));
-    fail_if_error(prelude_mmmbreed = swan_thing_call_method
+                   1, &prelude_mbreed, 1, &prelude_mmbreed));
+    fail_if_error(swan_thing_call_method
                   (&s, prelude_mmbreed->b, "breed",
-                   1, &prelude_mmbreed, 1, NULL));
+                   1, &prelude_mmbreed, 1, &prelude_mmmbreed));
     test_breed_name(&s, prelude_breed, "prelude");
     test_breed_name(&s, prelude_mbreed, "swan_gc_metabreed");
     test_breed_name(&s, prelude_mmbreed, "swan_metabreed__breed");
@@ -85,17 +85,17 @@ START_TEST(test_breed_name_02)
     struct swan_thing  *string_mmbreed;
     struct swan_thing  *string_mmmbreed;
     prelude = swan_prelude_new(&s);
-    fail_if_error(string_breed = swan_thing_call_method
-                  (&s, prelude->b, "string", 0, NULL, 1, NULL));
-    fail_if_error(string_mbreed = swan_thing_call_method
+    fail_if_error(swan_thing_call_method
+                  (&s, prelude->b, "string", 0, NULL, 1, &string_breed));
+    fail_if_error(swan_thing_call_method
                   (&s, string_breed->b, "breed",
-                   1, &string_breed, 1, NULL));
-    fail_if_error(string_mmbreed = swan_thing_call_method
+                   1, &string_breed, 1, &string_mbreed));
+    fail_if_error(swan_thing_call_method
                   (&s, string_mbreed->b, "breed",
-                   1, &string_mbreed, 1, NULL));
-    fail_if_error(string_mmmbreed = swan_thing_call_method
+                   1, &string_mbreed, 1, &string_mmbreed));
+    fail_if_error(swan_thing_call_method
                   (&s, string_mmbreed->b, "breed",
-                   1, &string_mmbreed, 1, NULL));
+                   1, &string_mmbreed, 1, &string_mmmbreed));
     test_breed_name(&s, string_breed, "swan_static_string");
     test_breed_name(&s, string_mbreed, "swan_static_metabreed");
     test_breed_name(&s, string_mmbreed, "swan_metabreed__breed");

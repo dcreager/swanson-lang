@@ -53,7 +53,8 @@ _eval_(swan_bool__not) {
     _ensure_param_count_(1);
     _ensure_result_count_(1);
     _ensure_breed_(self, params[0], swan_bool);
-    return swan_bool_new(!self->value);
+    results[0] = swan_bool_new(!self->value);
+    return 0;
 }
 
 _eval_(swan_bool__and) {
@@ -63,7 +64,8 @@ _eval_(swan_bool__and) {
     _ensure_result_count_(1);
     _ensure_breed_(lhs, params[0], swan_bool);
     _ensure_breed_(rhs, params[1], swan_bool);
-    return swan_bool_new(lhs->value && rhs->value);
+    results[0] = swan_bool_new(lhs->value && rhs->value);
+    return 0;
 }
 
 _eval_(swan_bool__or) {
@@ -73,7 +75,8 @@ _eval_(swan_bool__or) {
     _ensure_result_count_(1);
     _ensure_breed_(lhs, params[0], swan_bool);
     _ensure_breed_(rhs, params[1], swan_bool);
-    return swan_bool_new(lhs->value || rhs->value);
+    results[0] = swan_bool_new(lhs->value || rhs->value);
+    return 0;
 }
 
 _eval_(swan_bool__xor) {
@@ -83,17 +86,19 @@ _eval_(swan_bool__xor) {
     _ensure_result_count_(1);
     _ensure_breed_(lhs, params[0], swan_bool);
     _ensure_breed_(rhs, params[1], swan_bool);
-    return swan_bool_new(lhs->value ^ rhs->value);
+    results[0] = swan_bool_new(lhs->value ^ rhs->value);
+    return 0;
 }
 
 _eval_(swan_bool__tostring) {
     struct swan_bool  *self;
     struct swan_static_string  *result;
     _ensure_param_count_(1);
-    _ensure_result_count_(0);
+    _ensure_result_count_(1);
     _ensure_breed_(self, params[0], swan_bool);
     result = swan_static_string_new(s, self->value? "true": "false");
-    return &result->parent;
+    results[0] = &result->parent;
+    return 0;
 }
 
 _get_method_(swan_bool) {

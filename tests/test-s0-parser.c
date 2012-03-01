@@ -31,9 +31,9 @@
 static void
 check_good_parse_(struct swan *s, const char *buf)
 {
-    struct swan_sllist  *call;
-    fail_if_error(call = swan_ast_parse(s, buf, strlen(buf)));
-    cork_gc_decref(call);
+    struct swan_ast  *ast;
+    fail_if_error(ast = swan_ast_parse(s, buf, strlen(buf)));
+    cork_gc_decref(ast);
 }
 
 #define check_good_parse(buf)  check_good_parse_(&s, buf)

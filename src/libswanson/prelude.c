@@ -18,6 +18,11 @@
 #include "prelude/bool.c.in"
 #include "prelude/string.c.in"
 
+/* booleans */
+_eval_obj_(swan_prelude__false, swan_bool__false);
+_eval_obj_(swan_prelude__true, swan_bool__true);
+
+/* static strings */
 _eval_obj_(swan_prelude__string, swan_static_string__breed);
 
 struct swan_thing *
@@ -31,6 +36,10 @@ swan_prelude_new(struct swan *s)
         (s, prelude_breed, #name, &swan_prelude__##name##__eval);
 
     prelude_breed = swan_default_breed_new(s, "prelude");
+    /* booleans */
+    _add_method_(false);
+    _add_method_(true);
+    /* static strings */
     _add_method_(string);
 
     prelude = swan_thing_new_basic(s, prelude_breed);

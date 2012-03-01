@@ -71,7 +71,7 @@ main(int argc, char **argv)
     struct swan  s;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
     struct swan_thing  *prelude;
-    struct swan_sllist  *call_list;
+    struct swan_ast  *ast;
 
     if (argc != 2) {
         fprintf(stderr, "Usage: s0-evaluate [s0 file]\n");
@@ -84,29 +84,27 @@ main(int argc, char **argv)
     read_file(&s, argv[1], &buf);
 
     /* Then parse it */
-    call_list = swan_ast_parse(&s, buf.buf, buf.size);
+    ast = swan_ast_parse(&s, buf.buf, buf.size);
     if (cork_error_occurred()) {
         goto error;
     }
 
-    if (call_list == NULL) {
+    if (cork_dllist_is_empty(&ast->calls)) {
         printf("File is empty\n");
         exit(EXIT_FAILURE);
     }
 
     /* Create the prelude */
-    ep_check(prelude = swan_prelude_new(&s));
+    prelude = swan_prelude_new(&s);
+    swan_ast_add_upvalue(&s, ast, "prelude", prelude);
 
-#if 0
     /* Finally, evaluate it and print it */
-    ep_check(result = s0_basic_block_evaluate(&s, block, NULL));
-    ei_check(print_result(&s, block, result));
-#endif
+    ei_check(swan_ast_evaluate(&s, ast));
 
     swan_done(&s);
     return 0;
 
 error:
-    fprintf(stderr, "%s\n", cork_error_message());
+    fprintf(stderr, "Error: %s\n", cork_error_message());
     exit(EXIT_FAILURE);
 }

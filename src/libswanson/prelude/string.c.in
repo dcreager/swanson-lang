@@ -57,7 +57,8 @@ _eval_(swan_static_string__eq) {
     _ensure_result_count_(0);
     _ensure_breed_(lhs, params[0], swan_static_string);
     _ensure_breed_(rhs, params[1], swan_static_string);
-    return swan_bool_new(strcmp(lhs->contents, rhs->contents) == 0);
+    results[0] = swan_bool_new(strcmp(lhs->contents, rhs->contents) == 0);
+    return 0;
 }
 
 _eval_(swan_static_string__print) {
@@ -66,7 +67,7 @@ _eval_(swan_static_string__print) {
     _ensure_result_count_(0);
     _ensure_breed_(self, params[0], swan_static_string);
     printf("%s\n", self->contents);
-    return NULL;
+    return 0;
 }
 
 _eval_(swan_static_string__unref) {
@@ -75,7 +76,7 @@ _eval_(swan_static_string__unref) {
     _ensure_result_count_(0);
     _ensure_breed_(self, params[0], swan_static_string);
     cork_gc_decref(self);
-    return NULL;
+    return 0;
 }
 
 _get_method_(swan_static_string) {

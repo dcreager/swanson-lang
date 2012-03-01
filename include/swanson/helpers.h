@@ -39,7 +39,7 @@
 
 
 #define _eval_(name) \
-struct swan_thing * \
+static int \
 name##__eval(struct swan *s, struct swan_method *method, \
              size_t param_count, struct swan_thing **params, \
              size_t result_count, struct swan_thing **results)
@@ -76,7 +76,8 @@ _method_(name##__breed); \
 _eval_(name##__breed) { \
     _ensure_param_count_(1); \
     _ensure_result_count_(1); \
-    return &params[0]->b->parent; \
+    results[0] = &params[0]->b->parent; \
+    return 0; \
 }
 
 
@@ -84,7 +85,8 @@ _eval_(name##__breed) { \
 _eval_(name) { \
     _ensure_param_count_(0); \
     _ensure_result_count_(1); \
-    return (value); \
+    results[0] = (value); \
+    return 0; \
 }
 
 #define _eval_obj_(name, value)  _eval_const_(name, &(value).parent)

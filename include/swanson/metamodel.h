@@ -72,10 +72,7 @@ struct swan_breed {
     ((t)->b->id == breed_prefix##___breed_id)
 
 
-/* First result returned as C function's return value.  Others are
- * placed into results.  results must have room for (result_count-1)
- * pointers. */
-typedef struct swan_thing *
+typedef int
 (*swan_method_evaluate)(struct swan *s, struct swan_method *method,
                         size_t param_count, struct swan_thing **params,
                         size_t result_count, struct swan_thing **results);
@@ -89,14 +86,14 @@ struct swan_method {
 
 
 CORK_ATTR_UNUSED
-static struct swan_thing *
+static int
 swan_thing_call_method(struct swan *s, struct swan_breed *b, const char *name,
                        size_t param_count, struct swan_thing **params,
                        size_t result_count, struct swan_thing **results)
 {
     struct swan_method  *method = swan_breed_get_method(s, b, name);
     if (method == NULL) {
-        return NULL;
+        return -1;
     }
     return swan_method_evaluate
         (s, method, param_count, params, result_count, results);

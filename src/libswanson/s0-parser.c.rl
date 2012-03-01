@@ -79,54 +79,37 @@ string = ('"' %{ cork_buffer_clear(&scratch); })
 identifier = ws (bare_identifier | string)
              %{ id = swan_static_string_new(s, scratch.buf); };
 
-id_list = null %{ id_list = NULL; }
-        | identifier
-          %{
-              id_list = swan_sllist_new(s, &id->parent, NULL);
-              id_tail = id_list;
-          }
-          (ws "," identifier
-          %{
-              list_build = swan_sllist_new(s, &id->parent, NULL);
-              id_tail->tail = list_build;
-              id_tail = list_build;
-          })*;
+no_result = ws "." %{ swan_ast_call_set_thing(s, call, id); };
 
-nonvoid_call = id_list %{ result_list = id_list; }
-               ws "=" identifier %{ thing = id; }
-               ws "." identifier %{ method = id; }
-               ws "(" id_list ")" %{ param_list = id_list; }
-               ws ";"
-               %{ call = swan_ast_call_new
-                      (s, result_list, thing, method, param_list); };
+single_result = ws "=" %{ swan_ast_call_add_result(s, call, id); }
+                identifier no_result;
 
-void_call = identifier %{ result_list = NULL; thing = id; }
-            ws "." identifier %{ method = id; }
-            ws "(" id_list ")" %{ param_list = id_list; }
-            ws ";"
-            %{ call = swan_ast_call_new
-                   (s, result_list, thing, method, param_list); };
+many_results = (ws "," %{ swan_ast_call_add_result(s, call, id); }
+                identifier)+
+                single_result;
 
-call = void_call | nonvoid_call;
+no_params = ws ";";
 
-call_list = (call
-            %{
-                list_build = swan_sllist_new(s, &call->parent, ast_list);
-                if (ast_tail == NULL) {
-                    ast_list = list_build;
-                } else {
-                    ast_tail->tail = list_build;
-                }
-                ast_tail = list_build;
-            })+
-            ws;
+many_params = ws "("
+              (identifier %{ swan_ast_call_add_param(s, call, id); }
+               (ws "," identifier
+                %{ swan_ast_call_add_param(s, call, id); })*)?
+              ws ")"
+              no_params;
 
-main := call_list >{ ast_tail = NULL; };
+call = identifier %{ call = swan_ast_call_new(s); }
+       (no_result | single_result | many_results)
+       identifier %{ swan_ast_call_set_method(s, call, id); }
+       (no_params | many_params);
+
+call_list = (call %{ swan_ast_add_call(s, ast, call); })* ws;
+
+main := call_list;
 }%%
 
 %% write data;
 
-struct swan_sllist *
+struct swan_ast *
 swan_ast_parse(struct swan *s, const char *buf, size_t size)
 {
     const char  *p = buf;
@@ -138,21 +121,13 @@ swan_ast_parse(struct swan *s, const char *buf, size_t size)
     CORK_ATTR_UNUSED int  act;
 
     size_t  curline = 0;
-    const char  *xs;
+    const char  *xs = NULL;
     struct cork_buffer  scratch = CORK_BUFFER_INIT();
     char  hex_char;
 
-    struct swan_static_string  *thing;
-    struct swan_static_string  *method;
-    struct swan_static_string  *id;
-    struct swan_sllist  *list_build;
-    struct swan_sllist  *id_list;
-    struct swan_sllist  *id_tail;
-    struct swan_sllist  *param_list;
-    struct swan_sllist  *result_list;
+    struct swan_static_string  *id = NULL;
     struct swan_ast_call  *call = NULL;
-    struct swan_sllist  *ast_list;
-    struct swan_sllist  *ast_tail;
+    struct swan_ast  *ast = swan_ast_new(s);
 
     %% write init;
     %% write exec;
@@ -166,5 +141,5 @@ swan_ast_parse(struct swan *s, const char *buf, size_t size)
     }
 
     cork_buffer_done(&scratch);
-    return ast_list;
+    return ast;
 }
