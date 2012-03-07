@@ -102,7 +102,7 @@ call = identifier %{ call = swan_ast_call_new(s); }
        identifier %{ swan_ast_call_set_method(s, call, id); }
        (no_params | many_params);
 
-call_list = (call %{ swan_ast_add_call(s, ast, call); })* ws;
+call_list = (call %{ swan_ast_add_element(s, ast, &call->parent); })* ws;
 
 main := call_list;
 }%%

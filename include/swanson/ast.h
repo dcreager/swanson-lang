@@ -23,22 +23,27 @@
  * S0 abstract syntax tree
  */
 
+struct swan_ast_element {
+    struct swan_thing  parent;
+    struct cork_dllist_item  list;
+};
+
+
 #define swan_ast_call___breed_id  0x5c1ee7c9
 #define swan_ast_call___breed_name  "swan_ast_call"
 
 typedef cork_array(struct swan_static_string *)  swan_static_string_array;
 
 struct swan_ast_call {
-    struct swan_thing  parent;
+    struct swan_ast_element  parent;
     struct swan_static_string  *thing;
     struct swan_static_string  *method;
     swan_static_string_array  params;
     swan_static_string_array  results;
-    struct cork_dllist_item  list;
 };
 
 #define swan_thing_to_swan_ast_call(t) \
-    (cork_container_of((t), struct swan_ast_call, parent))
+    (cork_container_of((t), struct swan_ast_call, parent.parent))
 
 /* Steals references to all params */
 struct swan_ast_call *
@@ -71,7 +76,7 @@ struct swan_ast_upvalue {
 
 struct swan_ast {
     struct swan_thing  parent;
-    struct cork_dllist  calls;
+    struct cork_dllist  elements;
     struct cork_dllist  upvalues;
 };
 
@@ -81,8 +86,8 @@ swan_ast_new(struct swan *s);
 
 /* Steals reference to call */
 void
-swan_ast_add_call(struct swan *s, struct swan_ast *ast,
-                  struct swan_ast_call *call);
+swan_ast_add_element(struct swan *s, struct swan_ast *ast,
+                     struct swan_ast_element *element);
 
 /* Creates new reference to value */
 void

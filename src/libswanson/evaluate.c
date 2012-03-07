@@ -133,14 +133,14 @@ swan_ast_evaluate(struct swan *s, struct swan_ast *self)
     }
 
     /* Make each method call */
-    for (curr = cork_dllist_start(&self->calls);
-         !cork_dllist_is_end(&self->calls, curr); curr = curr->next) {
+    for (curr = cork_dllist_start(&self->elements);
+         !cork_dllist_is_end(&self->elements, curr); curr = curr->next) {
         size_t  i;
         size_t  param_count;
         size_t  result_count;
         struct swan_thing  *target;
         struct swan_ast_call  *call =
-            cork_container_of(curr, struct swan_ast_call, list);
+            cork_container_of(curr, struct swan_ast_call, parent.list);
 
         DEBUG("Call %zu", call_index++);
         DEBUG("  Target: %s", call->thing->contents);

@@ -13,7 +13,7 @@ include_directories(../include libswanson)
 # Build the libraries
 
 macro(ragel ragel_output)
-    set(_output ${CMAKE_CURRENT_SOURCE_DIR}/${ragel_output})
+    set(_output ${ragel_output})
     set(_src ${ragel_output}.rl)
     add_custom_command(
         OUTPUT ${_output}

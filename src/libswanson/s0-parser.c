@@ -39,7 +39,7 @@ static const char  digit_values[256] = {
 
 
 
-#line 43 "/home/dcreager/git/swanson/src/libswanson/s0-parser.c"
+#line 43 "libswanson/s0-parser.c"
 static const unsigned char _s0_eof_actions[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
@@ -91,14 +91,14 @@ swan_ast_parse(struct swan *s, const char *buf, size_t size)
     struct swan_ast  *ast = swan_ast_new(s);
 
     
-#line 95 "/home/dcreager/git/swanson/src/libswanson/s0-parser.c"
+#line 95 "libswanson/s0-parser.c"
 	{
 	cs = s0_start;
 	}
 
 #line 133 "libswanson/s0-parser.c.rl"
     
-#line 102 "/home/dcreager/git/swanson/src/libswanson/s0-parser.c"
+#line 102 "libswanson/s0-parser.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
@@ -1802,7 +1802,7 @@ f7:
 	goto _again;
 f60:
 #line 105 "libswanson/s0-parser.c.rl"
-	{ swan_ast_add_call(s, ast, call); }
+	{ swan_ast_add_element(s, ast, &call->parent); }
 	goto _again;
 f58:
 #line 50 "libswanson/s0-parser.c.rl"
@@ -1962,13 +1962,13 @@ f8:
 	goto _again;
 f62:
 #line 105 "libswanson/s0-parser.c.rl"
-	{ swan_ast_add_call(s, ast, call); }
+	{ swan_ast_add_element(s, ast, &call->parent); }
 #line 41 "libswanson/s0-parser.c.rl"
 	{ xs = p; }
 	goto _again;
 f61:
 #line 105 "libswanson/s0-parser.c.rl"
-	{ swan_ast_add_call(s, ast, call); }
+	{ swan_ast_add_element(s, ast, &call->parent); }
 #line 44 "libswanson/s0-parser.c.rl"
 	{curline += 1;}
 	goto _again;
@@ -2096,9 +2096,9 @@ _again:
 	switch ( _s0_eof_actions[cs] ) {
 	case 61:
 #line 105 "libswanson/s0-parser.c.rl"
-	{ swan_ast_add_call(s, ast, call); }
+	{ swan_ast_add_element(s, ast, &call->parent); }
 	break;
-#line 2102 "/home/dcreager/git/swanson/src/libswanson/s0-parser.c"
+#line 2102 "libswanson/s0-parser.c"
 	}
 	}
 
@@ -2108,7 +2108,7 @@ _again:
 #line 134 "libswanson/s0-parser.c.rl"
 
     if (cs < 
-#line 2112 "/home/dcreager/git/swanson/src/libswanson/s0-parser.c"
+#line 2112 "libswanson/s0-parser.c"
 135
 #line 135 "libswanson/s0-parser.c.rl"
 ) {

@@ -89,7 +89,7 @@ main(int argc, char **argv)
         goto error;
     }
 
-    if (cork_dllist_is_empty(&ast->calls)) {
+    if (cork_dllist_is_empty(&ast->elements)) {
         printf("File is empty\n");
         exit(EXIT_FAILURE);
     }

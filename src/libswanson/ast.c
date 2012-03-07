@@ -73,12 +73,12 @@ _recurse_(swan_ast) {
     struct cork_dllist_item  *curr;
     struct cork_dllist_item  *next;
 
-    for (curr = cork_dllist_start(&self->calls);
-         !cork_dllist_is_end(&self->calls, curr); curr = next) {
-        struct swan_ast_call  *call =
-            cork_container_of(curr, struct swan_ast_call, list);
+    for (curr = cork_dllist_start(&self->elements);
+         !cork_dllist_is_end(&self->elements, curr); curr = next) {
+        struct swan_ast_element  *element =
+            cork_container_of(curr, struct swan_ast_element, list);
         next = curr->next;
-        recurse(gc, call, ud);
+        recurse(gc, element, ud);
     }
 
 #if 0
@@ -113,16 +113,16 @@ struct swan_ast *
 swan_ast_new(struct swan *s)
 {
     struct swan_ast  *self = cork_gc_new(swan_ast);
-    cork_dllist_init(&self->calls);
+    cork_dllist_init(&self->elements);
     cork_dllist_init(&self->upvalues);
     return self;
 }
 
 void
-swan_ast_add_call(struct swan *s, struct swan_ast *self,
-                  struct swan_ast_call *call)
+swan_ast_add_element(struct swan *s, struct swan_ast *self,
+                     struct swan_ast_element *element)
 {
-    cork_dllist_add(&self->calls, &call->list);
+    cork_dllist_add(&self->elements, &element->list);
 }
 
 void
