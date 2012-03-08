@@ -110,14 +110,70 @@ swan_stable_get(struct cork_hash_table *stable, const char *name)
 }
 
 
+typedef cork_array(struct swan_thing *)  swan_thing_array;
+
+static int
+swan_ast_evaluate_call(struct swan *s, struct swan_ast_call *call,
+                       swan_thing_array *params, swan_thing_array *results,
+                       struct cork_hash_table *stable)
+{
+    size_t  i;
+    size_t  param_count;
+    size_t  result_count;
+    struct swan_thing  *target;
+
+    DEBUG("  Call");
+    DEBUG("    Target: %s", call->thing->contents);
+    DEBUG("    Method: %s", call->method->contents);
+    rip_check(target = swan_stable_get(stable, call->thing->contents));
+
+    param_count = cork_array_size(&call->params);
+    result_count = cork_array_size(&call->results);
+
+    cork_array_ensure_size(params, param_count);
+    cork_array_ensure_size(results, result_count);
+
+    for (i = 0; i < param_count; i++) {
+        const char  *id =
+            cork_array_at(&call->params, i)->contents;
+        rip_check(cork_array_at(params, i) = swan_stable_get(stable, id));
+    }
+
+    rii_check(swan_thing_call_method
+              (s, target->b, call->method->contents,
+               param_count, &cork_array_at(params, 0),
+               result_count, &cork_array_at(results, 0)));
+
+    for (i = 0; i < result_count; i++) {
+        const char  *id =
+            cork_array_at(&call->results, i)->contents;
+        rii_check(swan_stable_add(stable, id, cork_array_at(results, i)));
+    }
+
+    return 0;
+}
+
+static int
+swan_ast_evaluate_string(struct swan *s, struct swan_ast_string *string,
+                         struct cork_hash_table *stable)
+{
+    DEBUG("  String");
+    DEBUG("    Dest:     %s", string->result->contents);
+    DEBUG("    Contents: %s", string->contents->contents);
+
+    return swan_stable_add
+        (stable, string->result->contents, &string->contents->parent);
+}
+
+
 int
 swan_ast_evaluate(struct swan *s, struct swan_ast *self)
 {
     CORK_ATTR_UNUSED size_t  call_index = 0;
     struct cork_hash_table  stable;
     struct cork_dllist_item  *curr;
-    cork_array(struct swan_thing *)  params;
-    cork_array(struct swan_thing *)  results;
+    swan_thing_array  params;
+    swan_thing_array  results;
 
     /* Set up things for all of the method calls */
     cork_array_init(&params);
@@ -135,39 +191,31 @@ swan_ast_evaluate(struct swan *s, struct swan_ast *self)
     /* Make each method call */
     for (curr = cork_dllist_start(&self->elements);
          !cork_dllist_is_end(&self->elements, curr); curr = curr->next) {
-        size_t  i;
-        size_t  param_count;
-        size_t  result_count;
-        struct swan_thing  *target;
-        struct swan_ast_call  *call =
-            cork_container_of(curr, struct swan_ast_call, parent.list);
+        DEBUG("Element %zu", call_index++);
+        struct swan_ast_element  *element =
+            cork_container_of(curr, struct swan_ast_element, list);
 
-        DEBUG("Call %zu", call_index++);
-        DEBUG("  Target: %s", call->thing->contents);
-        DEBUG("  Method: %s", call->method->contents);
-        ep_check(target = swan_stable_get(&stable, call->thing->contents));
+        switch (element->element_type) {
+            case swan_ast_call___breed_id:
+            {
+                struct swan_ast_call  *call =
+                    cork_container_of(element, struct swan_ast_call, parent);
+                ei_check(swan_ast_evaluate_call
+                         (s, call, &params, &results, &stable));
+                break;
+            }
 
-        param_count = cork_array_size(&call->params);
-        result_count = cork_array_size(&call->results);
+            case swan_ast_string___breed_id:
+            {
+                struct swan_ast_string  *string =
+                    cork_container_of(element, struct swan_ast_string, parent);
+                ei_check(swan_ast_evaluate_string(s, string, &stable));
+                break;
+            }
 
-        cork_array_ensure_size(&params, param_count);
-        cork_array_ensure_size(&results, result_count);
-
-        for (i = 0; i < param_count; i++) {
-            const char  *id =
-                cork_array_at(&call->params, i)->contents;
-            ep_check(cork_array_at(&params, i) = swan_stable_get(&stable, id));
-        }
-
-        ei_check(swan_thing_call_method
-                 (s, target->b, call->method->contents,
-                  param_count, &cork_array_at(&params, 0),
-                  result_count, &cork_array_at(&results, 0)));
-
-        for (i = 0; i < result_count; i++) {
-            const char  *id =
-                cork_array_at(&call->results, i)->contents;
-            ei_check(swan_stable_add(&stable, id, cork_array_at(&results, i)));
+            default:
+                cork_unknown_error();
+                abort();
         }
     }
 

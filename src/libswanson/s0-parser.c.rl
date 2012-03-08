@@ -97,14 +97,22 @@ many_params = ws "("
               ws ")"
               no_params;
 
-call = identifier %{ call = swan_ast_call_new(s); }
-       (no_result | single_result | many_results)
-       identifier %{ swan_ast_call_set_method(s, call, id); }
-       (no_params | many_params);
+call = (
+        identifier %{ call = swan_ast_call_new(s); }
+        (no_result | single_result | many_results)
+        identifier %{ swan_ast_call_set_method(s, call, id); }
+        (no_params | many_params)
+       ) %{ swan_ast_add_element(s, ast, &call->parent); };
 
-call_list = (call %{ swan_ast_add_element(s, ast, &call->parent); })* ws;
+ast_string = (ws "$" identifier ws "=" ws string ws ";")
+             %{
+                 contents = swan_static_string_new(s, scratch.buf);
+                 ast_string = swan_ast_string_new(s, id, contents);
+                 swan_ast_add_element(s, ast, &ast_string->parent);
+             };
 
-main := call_list;
+statement = call | ast_string;
+main := statement* ws;
 }%%
 
 %% write data;
@@ -126,7 +134,9 @@ swan_ast_parse(struct swan *s, const char *buf, size_t size)
     char  hex_char;
 
     struct swan_static_string  *id = NULL;
+    struct swan_static_string  *contents = NULL;
     struct swan_ast_call  *call = NULL;
+    struct swan_ast_string  *ast_string = NULL;
     struct swan_ast  *ast = swan_ast_new(s);
 
     %% write init;

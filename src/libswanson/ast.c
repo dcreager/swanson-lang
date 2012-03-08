@@ -20,6 +20,27 @@
 #include "swanson/metamodel.h"
 #include "swanson/state.h"
 
+
+_recurse_(swan_ast_string) {
+    struct swan_ast_string  *self = obj;
+    recurse(gc, self->result, ud);
+    recurse(gc, self->contents, ud);
+}
+
+_gc_no_free_(swan_ast_string);
+
+struct swan_ast_string *
+swan_ast_string_new(struct swan *s, struct swan_static_string *result,
+                    struct swan_static_string *contents)
+{
+    struct swan_ast_string  *self = cork_gc_new(swan_ast_string);
+    self->parent.element_type = swan_ast_string___breed_id;
+    self->result = result;
+    self->contents = contents;
+    return self;
+}
+
+
 _recurse_(swan_ast_call) {
     struct swan_ast_call  *self = obj;
     size_t  i;
@@ -46,6 +67,7 @@ swan_ast_call_new(struct swan *s)
 {
     struct swan_ast_call  *self = cork_gc_new(swan_ast_call);
     memset(self, 0, sizeof(struct swan_ast_call));
+    self->parent.element_type = swan_ast_call___breed_id;
     self->thing = NULL;
     self->method = NULL;
     cork_array_init(&self->params);

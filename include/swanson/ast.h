@@ -25,8 +25,28 @@
 
 struct swan_ast_element {
     struct swan_thing  parent;
+    /* This is a hack, but a temporary one */
+    cork_hash  element_type;
     struct cork_dllist_item  list;
 };
+
+
+#define swan_ast_string___breed_id  0x729bf289
+#define swan_ast_string___breed_name  "swan_ast_string"
+
+struct swan_ast_string {
+    struct swan_ast_element  parent;
+    struct swan_static_string  *result;
+    struct swan_static_string  *contents;
+};
+
+#define swan_thing_to_swan_ast_string(t) \
+    (cork_container_of((t), struct swan_ast_string, parent.parent))
+
+/* Steals references to all params */
+struct swan_ast_string *
+swan_ast_string_new(struct swan *s, struct swan_static_string *result,
+                    struct swan_static_string *contents);
 
 
 #define swan_ast_call___breed_id  0x5c1ee7c9
