@@ -1,0 +1,3 @@
+true = prelude.true();
+true_str = true.tostring(true);
+true_str:print();

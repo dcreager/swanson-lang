@@ -79,7 +79,12 @@ string = ('"' %{ cork_buffer_clear(&scratch); })
 identifier = ws (bare_identifier | string)
              %{ id = swan_static_string_new(s, scratch.buf); };
 
-no_result = ws "." %{ swan_ast_call_set_thing(s, call, id); };
+no_result = (ws "." %{ swan_ast_call_set_thing(s, call, id); })
+          | (ws ":"
+             %{
+                 swan_ast_call_set_thing(s, call, id);
+                 swan_ast_call_add_param(s, call, cork_gc_incref(id));
+             });
 
 single_result = ws "=" %{ swan_ast_call_add_result(s, call, id); }
                 identifier no_result;
