@@ -1,8 +1,0 @@
-# Expected type: int
-tliteral %0;
-tproduct %3 = ();
-tfunction %1 = %0 -> %3;
-tclass %2 = "int" {
-  "print_literal": %1
-};
-return %2;

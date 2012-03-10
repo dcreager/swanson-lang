@@ -16,11 +16,11 @@
 
 
 struct swan_engine;
-struct swan_prelude;
+struct swan_old_prelude;
 
 struct swan {
     struct swan_engine  *engine;
-    struct swan_prelude  *prelude;
+    struct swan_old_prelude  *prelude;
 };
 
 int

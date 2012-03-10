@@ -33,18 +33,15 @@ endmacro(make_test)
 
 make_test(test-blocks)
 make_test(test-engine)
+make_test(test-metamodel)
 make_test(test-s0-parser)
 make_test(test-scopes)
-make_test(test-types)
 
 add_executable(simple-speed-test simple-speed-test.c)
 target_link_libraries(simple-speed-test libswanson liblagavulin)
 
 add_executable(s0-evaluate s0-evaluate.c)
 target_link_libraries(s0-evaluate libswanson)
-
-add_executable(type-satisfies type-satisfies.c)
-target_link_libraries(type-satisfies libswanson)
 
 #-----------------------------------------------------------------------
 # Command-line tests

@@ -1,5 +1,0 @@
-# Expected type: **LITERAL
-tliteral %0;
-tblock %1 = %0;
-tblock %2 = %1;
-return %2;

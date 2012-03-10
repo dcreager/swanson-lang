@@ -1,9 +1,0 @@
-α -> β satisfies β -> α
-
-interface α {
-}
-
-interface β {
-  foo LITERAL
-}
-

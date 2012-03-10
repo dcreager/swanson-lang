@@ -1,6 +1,0 @@
-%2 = α
-
-interface α {
-  print_literal (LITERAL -> void)
-}
-

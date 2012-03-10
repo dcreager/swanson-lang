@@ -1,5 +1,0 @@
-# Expected result: Invalid tuple index
-literal $0 = "hello world";
-tuple $1 = ($0);
-gettuple $2 = $1.10;
-return $2;

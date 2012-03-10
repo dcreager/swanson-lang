@@ -1,0 +1,89 @@
+/* -*- coding: utf-8 -*-
+ * ----------------------------------------------------------------------
+ * Copyright © 2012, RedJack, LLC.
+ * All rights reserved.
+ *
+ * Please see the LICENSE.txt file in this distribution for license
+ * details.
+ * ----------------------------------------------------------------------
+ */
+
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <libcork/core.h>
+#include <libcork/helpers/errors.h>
+#include <libcork/helpers/gc.h>
+
+#include "swanson/helpers.h"
+#include "swanson/metamodel.h"
+#include "swanson/prelude.h"
+#include "swanson/state.h"
+
+
+/*-----------------------------------------------------------------------
+ * swan_static_string
+ */
+
+_breed_(swan_static_string);
+_default_methods_(swan_static_string);
+_method_(swan_static_string__eq);
+_method_(swan_static_string__print);
+_method_(swan_static_string__unref);
+
+
+_free_(swan_static_string) {
+    struct swan_static_string  *self = obj;
+    cork_strfree(self->contents);
+}
+
+_gc_no_recurse_(swan_static_string);
+
+struct swan_static_string *
+swan_static_string_new(struct swan *s, const char *contents)
+{
+    struct swan_static_string  *self = cork_gc_new(swan_static_string);
+    self->contents = cork_strdup(contents);
+    self->parent.b = &swan_static_string__breed;
+    return self;
+}
+
+
+_eval_(swan_static_string__eq) {
+    struct swan_static_string  *lhs;
+    struct swan_static_string  *rhs;
+    _ensure_param_count_(2);
+    _ensure_result_count_(0);
+    _ensure_breed_(lhs, params[0], swan_static_string);
+    _ensure_breed_(rhs, params[1], swan_static_string);
+    results[0] = swan_bool_new(strcmp(lhs->contents, rhs->contents) == 0);
+    return 0;
+}
+
+_eval_(swan_static_string__print) {
+    struct swan_static_string  *self;
+    _ensure_param_count_(1);
+    _ensure_result_count_(0);
+    _ensure_breed_(self, params[0], swan_static_string);
+    printf("%s\n", self->contents);
+    return 0;
+}
+
+_eval_(swan_static_string__unref) {
+    struct swan_static_string  *self;
+    _ensure_param_count_(1);
+    _ensure_result_count_(0);
+    _ensure_breed_(self, params[0], swan_static_string);
+    cork_gc_decref(self);
+    return 0;
+}
+
+_get_method_(swan_static_string) {
+    _return_method_(swan_static_string, print);
+    _return_method_(swan_static_string, unref);
+    _return_default_methods_(swan_static_string);
+    _return_op_(swan_static_string, eq, "==");
+    swan_metamodel_undefined(vb->name, name);
+    return NULL;
+}

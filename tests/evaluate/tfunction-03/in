@@ -1,9 +1,0 @@
-# Expected type: (LITERAL -> void),*LITERAL -> void
-tliteral %0;
-tlocation %1 = %0;
-tproduct %4 = (%0);
-tproduct %5 = ();
-tfunction %2 = %4 -> %5;
-tproduct %6 = (%2, %1);
-tfunction %3 = %6 -> %5;
-return %3;

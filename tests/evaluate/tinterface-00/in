@@ -1,6 +1,0 @@
-# Expected type: interface α
-tliteral %0;
-tinterface %1 = {
-  "name": %0
-};
-return %1;

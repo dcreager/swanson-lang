@@ -1,5 +1,0 @@
-# Upvalue %0 never defined
-tproduct %1 = ();
-macro $0 = "test" upvalue (%0) %1 -> %1 {
-  tlocation %0 = ^0;
-};

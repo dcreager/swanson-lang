@@ -1,4 +1,0 @@
-# Expected result: Invalid tuple index
-tuple $0 = ();
-gettuple $1 = $0.0;
-return $1;

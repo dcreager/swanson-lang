@@ -1,8 +1,0 @@
-# Expected type: interface α
-trecursive %0;
-tliteral %1;
-tfunction %2 = %1 -> %0;
-tinterface %0 = {
-  "intlit": %2
-};
-return %0;

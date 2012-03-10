@@ -1,6 +1,0 @@
-%0 = α
-
-interface α {
-  intlit (LITERAL -> α)
-}
-

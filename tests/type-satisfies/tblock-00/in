@@ -1,5 +1,0 @@
-# {LITERAL} <: {LITERAL}
-tliteral %0;
-tblock %1 = %0;
-tuple $0 = (%1,%1);
-return $0;
